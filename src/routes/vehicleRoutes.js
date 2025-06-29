@@ -14,4 +14,6 @@ router.post(
 
 router.get('/parked', vehicleController.getParkedVehicles);
 
+router.get('/check-update', vehicleController.checkForUpdates)
+
 module.exports = router

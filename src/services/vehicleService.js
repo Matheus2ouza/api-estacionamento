@@ -37,7 +37,7 @@ async function getParkedVehicles() {
         entryTime: true
       },
       orderBy: {
-        entryTime: 'asc' // ordena por ordem de entrada (opcional)
+        entryTime: 'asc'
       }
     });
 
@@ -51,7 +51,38 @@ async function getParkedVehicles() {
   }
 }
 
+async function hasNewVehicleEntries(lastCheck) {
+  try {
+    const parsedDate = new Date(lastCheck);
+
+    if (isNaN(parsedDate)) {
+      throw new Error("Formato de data inválido.");
+    }
+
+    const newEntries = await prisma.vehicleEntry.findFirst({
+      where: {
+        entryTime: {
+          gt: parsedDate
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return !!newEntries;
+
+  } catch (err) {
+    console.error(`[vehicleService] Erro ao verificar novas entradas: ${err.message}`);
+    throw err;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+
 module.exports = {
   vehicleEntry,
   getParkedVehicles,
+  hasNewVehicleEntries
 };

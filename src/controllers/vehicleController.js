@@ -71,3 +71,31 @@ exports.getParkedVehicles = async (req, res) => {
     });
   }
 };
+
+
+exports.checkForUpdates = async (req, res) => {
+  const lastCheck = req.query.lastCheck;
+
+  if (!lastCheck) {
+    return res.status(400).json({
+      success: false,
+      message: "Parâmetro 'lastCheck' é obrigatório (ISO format)"
+    });
+  }
+
+  try {
+    const updated = await vehicleService.hasNewVehicleEntries(lastCheck);
+
+    return res.status(200).json({
+      success: true,
+      updated
+    });
+
+  } catch (error) {
+    console.error(`[VehicleController] Erro ao verificar atualizações: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao verificar atualizações"
+    });
+  }
+};
