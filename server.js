@@ -6,11 +6,13 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'src', 'public')));
 
-
-
 app.get('/', (req, res) => {
     res.send('Bem-vindo à minha API! ❤️');
 });
+
+const authRoutes = require('./src/routes/authRoutes');
+
+app.use('/auth', authRoutes)
 
 // Exportação para a Vercel
 const server = require('http').createServer(app);
