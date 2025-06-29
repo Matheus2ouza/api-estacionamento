@@ -12,4 +12,6 @@ router.post(
   vehicleController.vehicleEntry
 );
 
+router.get('/parked', vehicleController.getParkedVehicles);
+
 module.exports = router

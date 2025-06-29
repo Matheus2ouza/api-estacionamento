@@ -52,3 +52,22 @@ exports.vehicleEntry = async (req, res) => {
     });
   }
 };
+
+exports.getParkedVehicles = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getParkedVehicles();
+
+    return res.status(200).json({
+      success: true,
+      data: vehicles
+    });
+
+  } catch (error) {
+    console.error(`[VehicleController] Erro ao buscar veículos no pátio: ${error.message}`);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar veículos estacionados'
+    });
+  }
+};

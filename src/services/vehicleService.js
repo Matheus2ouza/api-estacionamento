@@ -29,6 +29,29 @@ async function vehicleEntry(plate) {
   }
 }
 
+async function getParkedVehicles() {
+  try {
+    const vehicles = await prisma.vehicleEntry.findMany({
+      select: {
+        plate: true,
+        entryTime: true
+      },
+      orderBy: {
+        entryTime: 'asc' // ordena por ordem de entrada (opcional)
+      }
+    });
+
+    return vehicles;
+
+  } catch (err) {
+    console.error(`[vehicleService] Erro ao buscar veículos no pátio: ${err.message}`);
+    throw new Error("Erro ao buscar veículos estacionados.");
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 module.exports = {
   vehicleEntry,
+  getParkedVehicles,
 };
