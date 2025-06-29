@@ -11,8 +11,10 @@ app.get('/', (req, res) => {
 });
 
 const authRoutes = require('./src/routes/authRoutes');
+const vehicleRoutes = require('./src/routes/vehicleRoutes');
 
-app.use('/auth', authRoutes)
+app.use('/auth', authRoutes);
+app.use('/vehicles', vehicleRoutes);
 
 // Exportação para a Vercel
 const server = require('http').createServer(app);
