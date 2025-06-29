@@ -1,7 +1,19 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const jwt = require('jsonwebtoken');
 
-function authMiddleware(roles = []) {
-  return (req, res, next) => {
+const Roles = Object.freeze({
+  NORMAL: 'NORMAL',
+  ADMIN: 'ADMIN'
+});
+
+const roleHierarchy = Object.freeze({
+  [Roles.NORMAL]: 1,
+  [Roles.ADMIN]: 2
+});
+
+function authMiddleware(minRole = Roles.NORMAL) {
+  return async (req, res, next) => {
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(' ')[1];
 
@@ -11,17 +23,34 @@ function authMiddleware(roles = []) {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.id;
 
-      // Verifica se a role do usuário está permitida
-      if (roles.length && !roles.includes(decoded.role)) {
-        return res.status(403).json({ error: 'Acesso negado' });
+      const user = await prisma.account.findUnique({
+        where: { id: userId },
+        select: { id: true, username: true, role: true }
+      });
+
+      if (!user) {
+        return res.status(401).json({ error: 'Usuário não encontrado' });
       }
 
-      // Anexa o usuário decodificado na requisição para uso posterior
-      req.user = decoded;
+      // Verifica se a role do banco é válida
+      if (!roleHierarchy.hasOwnProperty(user.role)) {
+        return res.status(403).json({ error: 'Role inválida no banco de dados' });
+      }
+
+      const userRoleLevel = roleHierarchy[user.role];
+      const requiredRoleLevel = roleHierarchy[minRole];
+
+      if (userRoleLevel < requiredRoleLevel) {
+        return res.status(403).json({ error: 'Acesso negado: permissão insuficiente' });
+      }
+
+      req.user = user;
       next();
     } catch (err) {
-      return res.status(401).json({ error: 'Token inválido' });
+      console.error('[authMiddleware] Erro na autenticação:', err);
+      return res.status(401).json({ error: 'Token inválido ou expirado' });
     }
   };
 }

@@ -41,11 +41,10 @@ async function getParkedVehicles() {
       }
     });
 
-    // Ajusta o horário para UTC-3 (Belém do Pará)
     const adjustedVehicles = vehicles.map(vehicle => ({
       ...vehicle,
       entryTime: new Date(
-        new Date(vehicle.entryTime).getTime() - 3 * 60 * 60 * 1000 // subtrai 3 horas
+        new Date(vehicle.entryTime).getTime() - 3 * 60 * 60 * 1000
       ).toISOString()
     }));
 

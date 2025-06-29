@@ -58,3 +58,17 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.listUsers = async (req, res) => {
+  try {
+    const list = await authService.listUsers();
+    console.log(`[AuthController] Busca de usuarios feita com sucesso`);
+    return res.status(201).json({
+      list
+    })
+  } catch (error) {
+    return res.status(401).json({
+      error: 'falha na busca de usuarios',
+      message: error.message
+    })
+  }
+}

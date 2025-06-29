@@ -73,7 +73,28 @@ async function loginUser(username, password) {
   }
 }
 
+async function listUsers() {
+  try{
+    const list = await prisma.account.findMany({
+      select: {
+        id: true,
+        username: true,
+        role: true
+      }
+    });
+
+    return list
+  } catch (err) {
+    console.warn(`[AuthSErvice] Erro buscar a lista de usuarios: ${err}`)
+    throw new Error("Erro ao buscar a lista de usuarios")
+  } finally {
+    prisma.$disconnect();
+  }
+
+}
+
 module.exports = {
   registerUser,
   loginUser,
+  listUsers,
 };
