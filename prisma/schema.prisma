@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id             String         @id @default(uuid())
+  role           AccountRole    @default(NORMAL)
+  username       String         @unique
+  authentication Authentication?
+  
+  @@map("accounts")
+}
+
+model Authentication {
+  accountId    String   @id @map("account_id")
+  passwordHash String   @map("password_hash")
+  salt         String
+  algorithm    String   @default("bcrypt")
+  updatedAt    DateTime @default(now()) @map("updated_at")
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@map("authentications")
+}
+
+model VehicleEntry {
+  id        String   @id @default(uuid())
+  plate     String   @unique
+  entryTime DateTime @default(now()) @map("entry_time")
+  
+  @@map("vehicle_entries")
+}
+
+model VehicleHistory {
+  id         String   @id @default(uuid())
+  plate      String
+  exitTime   DateTime @default(now()) @map("exit_time")
+  
+  @@map("vehicle_histories")
+}
+
+enum AccountRole {
+  ADMIN
+  NORMAL
+}

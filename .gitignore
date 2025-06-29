@@ -3,3 +3,4 @@ node_modules/
 
 # Variáveis de ambiente
 .env
+/src/generated/prisma
