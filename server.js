@@ -4,7 +4,9 @@ const path = require('path');
 
 app.use(express.json());
 
-app.use('/favicon.ico', express.static(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(express.static(path.join(__dirname, 'src', 'public')));
+
+
 
 app.get('/', (req, res) => {
     res.send('Bem-vindo à minha API! ❤️');
