@@ -41,7 +41,7 @@ async function loginUser(username, password) {
     });
 
     if (!account || !account.authentication) {
-      throw new Error('Credenciais inválidas');
+      throw new Error('Usuario Invalido ou não cadastrado');
     }
 
     const isPasswordValid = await verifyPassword(
@@ -51,8 +51,7 @@ async function loginUser(username, password) {
     );
 
     if (!isPasswordValid) {
-      throw new Error('Credenciais inválidas');
-    }
+      throw new Error('Senha inválida')}
 
     const token = jwt.sign(
       { id: account.id, role: account.role },
