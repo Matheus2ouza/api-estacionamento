@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,11 +8,14 @@ datasource db {
 }
 
 model Account {
-  id             String         @id @default(uuid())
+  id             String           @id @default(uuid())
   role           AccountRole    
-  username       String         @unique
+  username       String           @unique
   authentication Authentication?
   
+  // ✅ Relação reversa com VehicleEntry
+  vehicleEntries VehicleEntry[]   @relation("OperatorEntries")
+
   @@map("accounts")
 }
 
@@ -40,7 +37,7 @@ model VehicleEntry {
   operatorId  String   @map("operator_id")
   entryTime   DateTime @default(now()) @map("entry_time")
 
-  operator    Account  @relation(fields: [operatorId], references: [id], onDelete: NoAction)
+  operator    Account  @relation("OperatorEntries", fields: [operatorId], references: [id], onDelete: NoAction)
 
   @@map("vehicle_entries")
 }
