@@ -8,11 +8,24 @@ const router = express.Router();
 router.post(
   '/entries',
   [
-    body('plate').notEmpty().withMessage("Placa é obrigatória")
+    body('plate').notEmpty().withMessage("Placa é obrigatória"),
+    body('category').notEmpty().isIn(["carro", "moto", "carroGrande"]).withMessage("Categoria fora do formato esperado"),
+    body('operatorUsername').notEmpty().withMessage("O operador é obrigatorio")
   ],
   authMiddleware('NORMAL'),
   vehicleController.vehicleEntry
 );
+
+router.post(
+  '/configParking',
+  [
+    body('maxCars').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
+    body('maxMotorcycles').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
+    body('maxLargeVehicles').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
+  ],
+  authMiddleware('ADMIN'),
+  vehicleController.ConfigurationParking
+)
 
 router.get('/parked',authMiddleware('NORMAL'), vehicleController.getParkedVehicles);
 

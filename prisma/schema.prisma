@@ -34,10 +34,14 @@ model Authentication {
 }
 
 model VehicleEntry {
-  id        String   @id @default(uuid())
-  plate     String   @unique
-  entryTime DateTime @default(now()) @map("entry_time")
-  
+  id          String   @id @default(uuid())
+  plate       String   @unique
+  category    VehicleCategory
+  operatorId  String   @map("operator_id")
+  entryTime   DateTime @default(now()) @map("entry_time")
+
+  operator    Account  @relation(fields: [operatorId], references: [id], onDelete: NoAction)
+
   @@map("vehicle_entries")
 }
 
@@ -49,7 +53,22 @@ model VehicleHistory {
   @@map("vehicle_histories")
 }
 
+model PatioConfig {
+  id               String @id @default("singleton")
+  maxCars          Int
+  maxMotorcycles   Int
+  maxLargeVehicles Int
+
+  @@map("patio_configs")
+}
+
 enum AccountRole {
   ADMIN
   NORMAL
+}
+
+enum VehicleCategory {
+  carro
+  moto
+  carroGrande
 }

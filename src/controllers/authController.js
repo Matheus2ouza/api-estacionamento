@@ -73,7 +73,7 @@ exports.editUsers = async (req, res) => {
   const { id, username, password, role } = req.body;
 
   try {
-    const result = await authService.editUser(
+    await authService.editUser(
       id,
       username.toLowerCase(),
       password,

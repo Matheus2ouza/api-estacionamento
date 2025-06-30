@@ -4,25 +4,24 @@ const vehicleService = require('../services/vehicleService');
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
 
-  // Retorna erro de validação no formato esperado
   if (!errors.isEmpty()) {
     const mappedErrors = errors.array().reduce((acc, err) => {
       acc[err.path] = err.msg;
       return acc;
     }, {});
 
-    
     return res.status(400).json({
       success: false,
       message: 'Erro de validação',
       fields: mappedErrors
     });
   }
-  
-  // Normalizar placa removendo não-alfanuméricos
-  const plate = req.body.plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 
-  // Verificar padrões específicos
+  let { plate, category, operatorUsername } = req.body;
+
+  plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+
+  // Verificar padrões específicos de placas brasileiras
   const isOldPattern = /^[A-Z]{3}[0-9]{4}$/.test(plate);
   const isMercosulPattern = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(plate);
 
@@ -34,13 +33,13 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    const vehicle = await vehicleService.vehicleEntry(plate);
+    const vehicle = await vehicleService.vehicleEntry(plate, category, operatorUsername);
 
     return res.status(201).json({
       success: true,
       message: 'Entrada do veículo registrada com sucesso',
       vehicleId: vehicle.id,
-      entryTime: vehicle.entry_time // Adicione esta linha
+      entryTime: vehicle.entryTime
     });
 
   } catch (error) {
@@ -49,6 +48,43 @@ exports.vehicleEntry = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message
+    });
+  }
+};
+
+
+exports.ConfigurationParking = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.warn('[ConfigurationParking] Dados inválidos na requisição:', errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Erro de validação',
+      fields: errors.array().reduce((acc, err) => {
+        acc[err.path] = err.msg;
+        return acc;
+      }, {}),
+    });
+  }
+
+  const { maxCars, maxMotorcycles, maxLargeVehicles } = req.body;
+
+  try {
+    const result = await vehicleService.configParking(maxCars, maxMotorcycles, maxLargeVehicles);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Configuração do pátio atualizada com sucesso',
+      config: result,
+    });
+
+  } catch (error) {
+    console.error(`[ConfigurationParking] Erro ao atualizar configuração do pátio: ${error.message}`);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao atualizar configuração do pátio',
     });
   }
 };
@@ -71,7 +107,6 @@ exports.getParkedVehicles = async (req, res) => {
     });
   }
 };
-
 
 exports.checkForUpdates = async (req, res) => {
   const lastCheck = req.query.lastCheck;
