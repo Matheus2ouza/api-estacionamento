@@ -36,6 +36,15 @@ router.post(
   authController.editUsers
 );
 
+router.post(
+  '/deleteUser',
+  [
+    body('id').notEmpty().withMessage('id é obrigatório')
+  ],
+  authMiddleware('ADMIN'),
+  authController.deleteUser
+)
+
 router.get('/listUsers', authMiddleware('ADMIN'), authController.listUsers);
 
 module.exports = router;

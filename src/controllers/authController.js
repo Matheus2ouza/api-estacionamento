@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
+const { json } = require('express');
 
 exports.register = async (req, res) => {
   const errors = validationResult(req);
@@ -101,6 +102,35 @@ exports.editUsers = async (req, res) => {
     });
   }
 };
+
+exports.deleteUser = async (req, res) => {
+  const { id } = req.body
+
+  try {
+    await authService.deleteUser(id)
+
+    return res.status(201).json({
+      success: true,
+      message: "Usuario excluido"
+    })
+  } catch (error) {
+    console.log(`[AuthController] Erro ao tentar excluir o usuario: ${id}: `, error)
+    
+    // Erros conhecidos
+    if (error.message === "Usuário não encontrado") {
+      return res.status(404).json({
+        success: false,
+        message: "Usuário não encontrado.",
+      });
+    }
+
+    // Outros erros
+    return res.status(500).json({
+      success: false,
+      message: "Erro interno ao editar o usuário.",
+    });
+  }
+}
 
 exports.listUsers = async (req, res) => {
   try {

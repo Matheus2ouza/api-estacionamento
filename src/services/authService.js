@@ -139,6 +139,33 @@ async function editUser(id, username, password, role) {
   } catch (error) {
     console.error("Erro ao editar usuário:", error);
     throw error;
+  } finally {
+    prisma.$disconnect
+  }
+}
+
+async function deleteUser(id) {
+  try {
+    const verifyUser = await prisma.account.findUnique({
+      where: {
+        id
+      },
+    })
+
+    if(!verifyUser) {
+      throw new Error('Usuário não encontrado')
+    }
+
+    const user = await prisma.account.delete({
+      where: { id }
+    })
+
+    return user
+  } catch (err) {
+    console.log(`[authService] Erro ao tentar excluir o usuario ${id}:`, err)
+    throw err
+  } finally {
+    prisma.$disconnect
   }
 }
 
@@ -166,5 +193,6 @@ module.exports = {
   registerUser,
   loginUser,
   editUser,
+  deleteUser,
   listUsers,
 };
