@@ -15,7 +15,7 @@ exports.register = async (req, res) => {
   const { username, password, role } = req.body;
 
   try {
-    const user = await authService.registerUser(username, password, role);
+    const user = await authService.registerUser(username.toLowerCase(), password, role);
     return res.status(201).json({
       success: true,
       details: user.id,
@@ -43,7 +43,7 @@ exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const token = await authService.loginUser(username.trim(), password.trim());
+    const token = await authService.loginUser(username.trim().toLowerCase(), password.trim());
     console.log(`[authController] Login bem-sucedido para usuário: ${username}`);
     return res.status(200).json({
       message: 'Login bem-sucedido',

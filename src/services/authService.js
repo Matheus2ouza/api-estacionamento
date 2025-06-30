@@ -7,6 +7,17 @@ async function registerUser(username, password, role) {
   const { salt, hash } = await createHash(password);
   console.log('[authService] Hash de senha criado com sucesso');
 
+  const verifyUsername = await prisma.account.findUnique({
+    where: {
+      username
+    }
+  })
+
+  if(verifyUsername) {
+    console.error(`[authService] Erro ao criar usuario porque o usuario já existia: ${username}` )
+    throw new Error(`O Nome ${username} já foi usado`)
+  }
+
   try {
     const user = await prisma.account.create({
       data: {
