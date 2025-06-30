@@ -28,12 +28,13 @@ router.post(
 router.post(
   '/edit', 
   [
-    body('id').notEmpty().withMessage('Username é obrigatório'),
-    body('password').notEmpty().withMessage('Senha é obrigatória'),
+    body('id').notEmpty().withMessage('id é obrigatório'),
+    body('username').notEmpty().withMessage('nome de usuario obrigatorio é obrigatória'),
     body('role').notEmpty().withMessage('Role é obrigatório'),
   ],
   authMiddleware('ADMIN'),
-  authController.editUsers)
+  authController.editUsers
+);
 
 router.get('/listUsers', authMiddleware('ADMIN'), authController.listUsers);
 
