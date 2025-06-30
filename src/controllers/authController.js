@@ -58,6 +58,50 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.editUsers = async (req, res) => {
+  const errors = validationResult(req);
+  
+  if (!errors.isEmpty()) {
+    console.warn('[authController] Dados inválidos na requisição:', errors.array());
+    return res.status(400).json({
+      error: 'Erro de validação',
+      details: errors.array(),
+    });
+  }
+
+  const { id, username, password, role } = req.body;
+
+  try {
+    const result = await authService.editUser(
+      id,
+      username.toLowerCase(),
+      password,
+      role
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Usuário atualizado com sucesso.",
+    });
+  } catch (error) {
+    console.error("[editUsers] Erro ao editar usuário:", error.message);
+
+    // Erros conhecidos
+    if (error.message === "Usuário não encontrado") {
+      return res.status(404).json({
+        success: false,
+        message: "Usuário não encontrado.",
+      });
+    }
+
+    // Outros erros
+    return res.status(500).json({
+      success: false,
+      message: "Erro interno ao editar o usuário.",
+    });
+  }
+};
+
 exports.listUsers = async (req, res) => {
   try {
     const list = await authService.listUsers();

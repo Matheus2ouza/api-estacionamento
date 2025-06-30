@@ -79,6 +79,71 @@ async function loginUser(username, password) {
   }
 }
 
+const { createHash } = require("../utils/authUtils");
+
+async function editUser(id, username, password, role) {
+  try {
+    const user = await prisma.account.findUnique({
+      where: { id },
+      select: {
+        username: true,
+        role: true,
+        authentication: {
+          select: {
+            passwordHash: true,
+            salt: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new Error("Usuário não encontrado");
+    }
+
+    const updateData = {};
+    const authUpdateData = {};
+
+    // Atualiza username se fornecido e diferente
+    if (username && username !== user.username) {
+      updateData.username = username;
+    }
+
+    // Atualiza role se fornecido e diferente
+    if (role && role !== user.role) {
+      updateData.role = role;
+    }
+
+    // Atualiza senha SOMENTE se for fornecida (não vazia/null/undefined)
+    if (password && password.trim() !== "") {
+      const { hash, salt } = await createHash(password);
+      authUpdateData.passwordHash = hash;
+      authUpdateData.salt = salt;
+    }
+
+    // Atualiza dados da tabela Account
+    if (Object.keys(updateData).length > 0) {
+      await prisma.account.update({
+        where: { id },
+        data: updateData,
+      });
+    }
+
+    // Atualiza dados da tabela Authentication
+    if (Object.keys(authUpdateData).length > 0) {
+      await prisma.authentication.update({
+        where: { accountId: id },
+        data: authUpdateData,
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao editar usuário:", error);
+    throw error;
+  }
+}
+
 async function listUsers() {
   try{
     const list = await prisma.account.findMany({
@@ -102,5 +167,6 @@ async function listUsers() {
 module.exports = {
   registerUser,
   loginUser,
+  editUser,
   listUsers,
 };

@@ -1,48 +1,45 @@
 const crypto = require('crypto');
 const { promisify } = require('util');
 
-// Transforma a função pbkdf2 do crypto em uma versão que retorna Promise
+// Transforma a função pbkdf2 do Node.js para retornar uma Promise
 const pbkdf2 = promisify(crypto.pbkdf2);
 
-// Configurações globais para o hashing
-const ITERATIONS = 100000; // Número de iterações para o PBKDF2 (quanto maior, mais seguro e mais lento)
-const KEYLEN = 64;         // Tamanho do hash em bytes
-const DIGEST = 'sha256';   // Algoritmo de hash usado
+// Parâmetros para o algoritmo de hash
+const ITERATIONS = 100_000; // Quanto mais alto, mais seguro (e mais lento)
+const KEYLEN = 64;          // Tamanho do hash gerado (em bytes)
+const DIGEST = 'sha256';    // Algoritmo de digestão utilizado
 
 /**
- * Gera um salt e o hash da senha informada usando PBKDF2.
- * @param {string} password - Senha em texto puro
- * @returns {Promise<{salt: string, hash: string}>} - Retorna o salt e o hash em formato hexadecimal
+ * Gera um salt e um hash a partir de uma senha em texto puro.
+ * 
+ * @param {string} password - A senha fornecida pelo usuário.
+ * @returns {Promise<{salt: string, hash: string}>} - Um objeto contendo o salt e o hash em hexadecimal.
  */
 async function createHash(password) {
-  // Gera um salt aleatório de 16 bytes, convertido para hexadecimal
+  // Gera um salt aleatório de 16 bytes
   const salt = crypto.randomBytes(16).toString('hex');
 
-  // Aplica PBKDF2 para gerar o hash da senha com o salt, aguarda a Promise resolver
+  // Gera o hash da senha usando o salt e PBKDF2
   const derivedKey = await pbkdf2(password, salt, ITERATIONS, KEYLEN, DIGEST);
-
-  // Converte o resultado (Buffer) em string hexadecimal
   const hash = derivedKey.toString('hex');
 
-  // Retorna o salt e o hash para armazenar no banco
   return { salt, hash };
 }
 
 /**
- * Verifica se a senha informada corresponde ao hash armazenado.
- * @param {string} password - Senha em texto puro a ser verificada
- * @param {string} salt - Salt armazenado (hexadecimal)
- * @param {string} hash - Hash armazenado (hexadecimal)
- * @returns {Promise<boolean>} - Retorna true se a senha estiver correta, false caso contrário
+ * Compara uma senha fornecida com um hash armazenado.
+ * 
+ * @param {string} password - Senha em texto puro informada pelo usuário.
+ * @param {string} salt - Salt que foi usado para gerar o hash original.
+ * @param {string} hash - Hash previamente armazenado para comparar.
+ * @returns {Promise<boolean>} - Retorna true se a senha for válida, false caso contrário.
  */
 async function verifyPassword(password, salt, hash) {
-  // Gera o hash da senha informada usando o salt armazenado
+  // Recalcula o hash com o salt original
   const derivedKey = await pbkdf2(password, salt, ITERATIONS, KEYLEN, DIGEST);
-
-  // Converte o resultado para hexadecimal para comparação
   const hashToCompare = derivedKey.toString('hex');
 
-  // Compara o hash gerado com o hash armazenado e retorna o resultado
+  // Compara o novo hash com o armazenado
   return hashToCompare === hash;
 }
 
