@@ -112,7 +112,7 @@ async function editUser(id, username, password, role) {
       updateData.role = role;
     }
 
-    // Atualiza senha SOMENTE se for fornecida (não vazia/null/undefined)
+    // Atualiza senha se fornecido e diferente
     if (password && password.trim() !== "") {
       const { hash, salt } = await createHash(password);
       authUpdateData.passwordHash = hash;

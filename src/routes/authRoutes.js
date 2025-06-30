@@ -33,7 +33,8 @@ router.post(
     body('role').notEmpty().withMessage('Role é obrigatório'),
   ],
   authMiddleware('ADMIN'),
-  authController)
+  authController.editUsers)
 
 router.get('/listUsers', authMiddleware('ADMIN'), authController.listUsers);
+
 module.exports = router;
