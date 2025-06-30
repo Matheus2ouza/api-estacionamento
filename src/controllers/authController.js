@@ -7,7 +7,7 @@ exports.register = async (req, res) => {
   if (!errors.isEmpty()) {
     console.warn('[authController] Dados inválidos na requisição:', errors.array());
     return res.status(400).json({
-      error: 'Erro de validação',
+      success: 'Erro de validação',
       details: errors.array(),
     });
   }
@@ -17,8 +17,8 @@ exports.register = async (req, res) => {
   try {
     const user = await authService.registerUser(username, password, role);
     return res.status(201).json({
-      message: 'Usuário criado com sucesso',
-      userId: user.id,
+      success: true,
+      details: user.id,
     });
   } catch (error) {
     console.error('[authController] Erro ao registrar usuário:', error.message);

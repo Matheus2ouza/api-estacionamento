@@ -14,8 +14,8 @@ router.post(
   vehicleController.vehicleEntry
 );
 
-router.get('/parked', vehicleController.getParkedVehicles);
+router.get('/parked',authMiddleware('NORMAL'), vehicleController.getParkedVehicles);
 
-router.get('/check-update', vehicleController.checkForUpdates)
+router.get('/check-update',authMiddleware('NORMAL'), vehicleController.checkForUpdates)
 
 module.exports = router

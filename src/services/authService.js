@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 const { createHash, verifyPassword } = require('../utils/authUtils');
 const jwt = require('jsonwebtoken');
 
-async function registerUser(username, password) {
+async function registerUser(username, password, role) {
   const { salt, hash } = await createHash(password);
   console.log('[authService] Hash de senha criado com sucesso');
 
