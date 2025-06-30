@@ -29,7 +29,7 @@ router.post(
   '/edit', 
   [
     body('id').notEmpty().withMessage('id é obrigatório'),
-    body('username').notEmpty().withMessage('nome de usuario obrigatorio é obrigatória'),
+    body('username').notEmpty().withMessage('nome de usuario obrigatório'),
     body('role').notEmpty().withMessage('Role é obrigatório'),
   ],
   authMiddleware('ADMIN'),
