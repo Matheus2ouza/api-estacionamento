@@ -16,7 +16,7 @@ router.post(
   vehicleController.vehicleEntry
 );
 
-router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getConfigurationParking)
+router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
 
 router.post(
   '/configParking',
