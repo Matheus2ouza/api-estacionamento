@@ -79,8 +79,6 @@ async function loginUser(username, password) {
   }
 }
 
-const { createHash } = require("../utils/authUtils");
-
 async function editUser(id, username, password, role) {
   try {
     const user = await prisma.account.findUnique({
