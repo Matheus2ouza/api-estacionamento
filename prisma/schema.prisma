@@ -15,7 +15,7 @@ datasource db {
 
 model Account {
   id             String         @id @default(uuid())
-  role           AccountRole    @default(NORMAL)
+  role           AccountRole    
   username       String         @unique
   authentication Authentication?
   

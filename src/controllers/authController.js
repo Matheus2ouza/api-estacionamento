@@ -12,10 +12,10 @@ exports.register = async (req, res) => {
     });
   }
 
-  const { username, password } = req.body;
+  const { username, password, role } = req.body;
 
   try {
-    const user = await authService.registerUser(username, password);
+    const user = await authService.registerUser(username, password, role);
     return res.status(201).json({
       message: 'Usuário criado com sucesso',
       userId: user.id,

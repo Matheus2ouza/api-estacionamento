@@ -4,23 +4,21 @@ const { createHash, verifyPassword } = require('../utils/authUtils');
 const jwt = require('jsonwebtoken');
 
 async function registerUser(username, password) {
-  // Cria hash da senha
   const { salt, hash } = await createHash(password);
   console.log('[authService] Hash de senha criado com sucesso');
 
   try {
-    // Corrigido: usando Account (modelo) que mapeia para "accounts" (tabela)
     const user = await prisma.account.create({
       data: {
         username,
+        role,
       },
     });
 
-    // Corrigido: usando Authentication (modelo) que mapeia para "authentications" (tabela)
     await prisma.authentication.create({
       data: {
-        accountId: user.id, // Campo mapeado para "account_id"
-        passwordHash: hash, // Campo mapeado para "password_hash"
+        accountId: user.id,
+        passwordHash: hash,
         salt: salt,
       }
     });
@@ -37,7 +35,6 @@ async function registerUser(username, password) {
 
 async function loginUser(username, password) {
   try {
-    // Corrigido: usando account (modelo) com include
     const account = await prisma.account.findUnique({
       where: { username },
       include: { authentication: true },
@@ -50,14 +47,13 @@ async function loginUser(username, password) {
     const isPasswordValid = await verifyPassword(
       password,
       account.authentication.salt,
-      account.authentication.passwordHash // Campo correto
+      account.authentication.passwordHash
     );
 
     if (!isPasswordValid) {
       throw new Error('Credenciais inválidas');
     }
 
-    // Geração de token JWT
     const token = jwt.sign(
       { id: account.id, role: account.role },
       process.env.JWT_SECRET,
