@@ -52,6 +52,31 @@ exports.vehicleEntry = async (req, res) => {
   }
 };
 
+exports.getParkingConfig = async (req, res) => {
+  try {
+    const config = await vehicleService.getConfigParking();
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: 'Configuração do pátio não encontrada'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: config
+    });
+
+  } catch (error) {
+    console.error(`[VehicleController] Erro ao buscar os dados do pátio: ${error.message}`);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar configuração do pátio'
+    });
+  }
+};
 
 exports.ConfigurationParking = async (req, res) => {
   const errors = validationResult(req);

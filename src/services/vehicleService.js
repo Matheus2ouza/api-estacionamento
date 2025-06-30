@@ -41,6 +41,16 @@ async function vehicleEntry(plate, category, operatorUsername) {
   }
 }
 
+async function getConfigParking() {
+  try {
+    return await prisma.patioConfig.findUnique({
+      where: { id: "singleton" }
+    });
+  } catch (err) {
+    console.error("[vehicleService] Erro ao buscar os dados do pátio:", err);
+    throw err;
+  }
+}
 
 async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
   try{
@@ -60,9 +70,9 @@ async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
     });
 
     return configParking
-  } catch (error) {
-    console.error("Erro ao configurar pátio:", error);
-    throw error;
+  } catch (err) {
+    console.error("[vehicleService] Erro ao configurar pátio:", err);
+    throw err;
   }
 }
 
@@ -123,6 +133,7 @@ async function hasNewVehicleEntries(lastCheck) {
 
 module.exports = {
   vehicleEntry,
+  getConfigParking,
   configParking,
   getParkedVehicles,
   hasNewVehicleEntries
