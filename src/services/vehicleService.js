@@ -81,14 +81,19 @@ async function getParkedVehicles() {
     const vehicles = await prisma.vehicleEntry.findMany({
       select: {
         plate: true,
-        entryTime: true
+        entryTime: true,
       },
       orderBy: {
-        entryTime: 'asc'
-      }
+        entryTime: 'asc',
+      },
     });
 
-    return vehicles;
+    const formattedVehicles = vehicles.map(vehicle => ({
+      plate: vehicle.plate,
+      entryTime: vehicle.entryTime.toISOString(),
+    }));
+
+    return formattedVehicles;
 
   } catch (err) {
     console.error(`[vehicleService] Erro ao buscar veículos no pátio: ${err.message}`);
