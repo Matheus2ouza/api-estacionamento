@@ -88,14 +88,7 @@ async function getParkedVehicles() {
       }
     });
 
-    const adjustedVehicles = vehicles.map(vehicle => ({
-      ...vehicle,
-      entryTime: new Date(
-        new Date(vehicle.entryTime).getTime() - 3 * 60 * 60 * 1000
-      ).toISOString()
-    }));
-
-    return adjustedVehicles;
+    return vehicles;
 
   } catch (err) {
     console.error(`[vehicleService] Erro ao buscar veículos no pátio: ${err.message}`);
