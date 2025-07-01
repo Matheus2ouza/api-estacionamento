@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function vehicleEntry(plate, category, operatorUsername) {
+async function vehicleEntry(plate, category, operatorId) {
   try {
     // Verifica se o veículo já está no pátio
     const checkPlate = await prisma.vehicleEntry.findUnique({
@@ -15,12 +15,12 @@ async function vehicleEntry(plate, category, operatorUsername) {
 
     // Busca o operador pelo username
     const operator = await prisma.account.findUnique({
-      where: { username: operatorUsername },
+      where: { id: operatorId },
     });
 
     if (!operator) {
-      console.warn(`[vehicleService] Operador ${operatorUsername} não encontrado.`);
-      throw new Error("Operador inválido para essa ação.");
+      console.warn(`[vehicleService] O id ${operatorId} não foi encontrado`);
+      throw new Error("Operador invalido.");
     }
 
     // Registra a entrada do veículo
@@ -28,7 +28,7 @@ async function vehicleEntry(plate, category, operatorUsername) {
       data: { 
         plate,
         category,
-        operatorId: operator.id,
+        operatorId: operator.username,
       },
     });
 

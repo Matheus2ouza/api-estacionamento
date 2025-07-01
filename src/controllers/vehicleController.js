@@ -17,7 +17,7 @@ exports.vehicleEntry = async (req, res) => {
     });
   }
 
-  let { plate, category, operatorUsername } = req.body;
+  let { plate, category, operatorId } = req.body;
 
   plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 
@@ -59,7 +59,7 @@ exports.getParkingConfig = async (req, res) => {
     if (!config) {
       return res.status(404).json({
         success: false,
-        message: 'Configuração do pátio não encontrada'
+        message: 'Os dados do patio ainda não foi configurado'
       });
     }
 

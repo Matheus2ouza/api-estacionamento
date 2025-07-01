@@ -12,9 +12,6 @@ model Account {
   role           AccountRole    
   username       String           @unique
   authentication Authentication?
-  
-  // ✅ Relação reversa com VehicleEntry
-  vehicleEntries VehicleEntry[]   @relation("OperatorEntries")
 
   @@map("accounts")
 }
@@ -34,10 +31,8 @@ model VehicleEntry {
   id          String   @id @default(uuid())
   plate       String   @unique
   category    VehicleCategory
-  operatorId  String   @map("operator_id")
+  operator    String   
   entryTime   DateTime @default(now()) @map("entry_time")
-
-  operator    Account  @relation("OperatorEntries", fields: [operatorId], references: [id], onDelete: NoAction)
 
   @@map("vehicle_entries")
 }

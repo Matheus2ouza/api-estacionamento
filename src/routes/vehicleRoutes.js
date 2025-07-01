@@ -10,7 +10,7 @@ router.post(
   [
     body('plate').notEmpty().withMessage("Placa é obrigatória"),
     body('category').notEmpty().isIn(["carro", "moto", "carroGrande"]).withMessage("Categoria fora do formato esperado"),
-    body('operatorUsername').notEmpty().withMessage("O operador é obrigatorio")
+    body('operatorId').notEmpty().withMessage("O id do operador é obrigatorio")
   ],
   authMiddleware('NORMAL'),
   vehicleController.vehicleEntry
