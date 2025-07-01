@@ -26,6 +26,7 @@ exports.vehicleEntry = async (req, res) => {
   const isMercosulPattern = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(plate);
 
   if (!(isOldPattern || isMercosulPattern)) {
+    console.log(`[VehicleController] A placa esta fora do formato esperado ${plate}`)
     return res.status(400).json({
       success: false,
       message: 'Placa inválida após normalização'
