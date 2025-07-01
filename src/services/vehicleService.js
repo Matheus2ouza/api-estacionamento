@@ -82,6 +82,7 @@ async function getParkedVehicles() {
       select: {
         plate: true,
         entryTime: true,
+        operator: true
       },
       orderBy: {
         entryTime: 'asc',
