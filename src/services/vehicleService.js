@@ -82,7 +82,8 @@ async function getParkedVehicles() {
       select: {
         plate: true,
         entryTime: true,
-        operator: true
+        operator: true,
+        category: true
       },
       orderBy: {
         entryTime: 'asc',
@@ -92,7 +93,8 @@ async function getParkedVehicles() {
     const formattedVehicles = vehicles.map(vehicle => ({
       plate: vehicle.plate,
       entryTime: vehicle.entryTime.toISOString(),
-      operator: vehicle.operator.toUpperCase()
+      operator: vehicle.operator.toUpperCase(),
+      category: vehicle.category
     }));
 
     return formattedVehicles;
