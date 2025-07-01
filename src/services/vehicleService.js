@@ -94,7 +94,7 @@ async function getParkedVehicles() {
       plate: vehicle.plate,
       entryTime: vehicle.entryTime.toISOString(),
       operator: vehicle.operator.toUpperCase(),
-      category: vehicle.category
+      category: vehicle.category.toUpperCase(),
     }));
 
     return formattedVehicles;
