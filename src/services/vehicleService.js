@@ -28,7 +28,7 @@ async function vehicleEntry(plate, category, operatorId) {
       data: { 
         plate,
         category,
-        operatorId: operator.username,
+        operator: operator.username,
       },
     });
 

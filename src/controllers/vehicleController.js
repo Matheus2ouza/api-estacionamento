@@ -33,7 +33,7 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    const vehicle = await vehicleService.vehicleEntry(plate, category, operatorUsername);
+    const vehicle = await vehicleService.vehicleEntry(plate, category, operatorId);
 
     return res.status(201).json({
       success: true,
