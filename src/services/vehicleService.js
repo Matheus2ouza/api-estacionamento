@@ -92,6 +92,7 @@ async function getParkedVehicles() {
     });
 
     const formattedVehicles = vehicles.map(vehicle => ({
+      id: vehicle.id,
       plate: vehicle.plate,
       entryTime: vehicle.entryTime.toISOString(),
       operator: vehicle.operator.toUpperCase(),
