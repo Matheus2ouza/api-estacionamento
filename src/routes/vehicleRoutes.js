@@ -5,8 +5,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.post(
-  '/entries',
+router.post('/entries',
   [
     body('plate').notEmpty().withMessage("Placa é obrigatória"),
     body('category').notEmpty().isIn(["carro", "moto", "carroGrande"]).withMessage("Categoria fora do formato esperado"),
@@ -18,8 +17,7 @@ router.post(
 
 router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
 
-router.post(
-  '/configParking',
+router.post('/configParking',
   [
     body('maxCars').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
     body('maxMotorcycles').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),

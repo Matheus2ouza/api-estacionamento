@@ -80,6 +80,7 @@ async function getParkedVehicles() {
   try {
     const vehicles = await prisma.vehicleEntry.findMany({
       select: {
+        id: true,
         plate: true,
         entryTime: true,
         operator: true,
