@@ -16,6 +16,10 @@ exports.vehicleEntry = async (req, res) => {
 
   plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
   const belemTime = DateTime.now().setZone("America/Belem").toJSDate();
+  const formattedDate = DateTime.fromJSDate(belemTime)
+    .setZone("America/Belem")
+    .toFormat("dd/MM/yyyy HH:mm:ss");
+
 
   // Verificar padrões específicos de placas brasileiras
   const isOldPattern = /^[A-Z]{3}[0-9]{4}$/.test(plate);
@@ -30,7 +34,7 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    await vehicleService.vehicleEntry(plate, category, operatorId, belemTime);
+    await vehicleService.vehicleEntry(plate, category, operatorId, belemTime, formattedDate);
 
     return res.status(201).json({
       success: true,
