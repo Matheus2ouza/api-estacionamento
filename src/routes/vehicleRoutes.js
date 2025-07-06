@@ -35,6 +35,14 @@ router.post('/editVehicle',
   vehicleController.editVehicle
 )
 
+router.post('/deleteVehicle', 
+  [
+    body('id').notEmpty().withMessage('O id é obrigatorio'),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.deleteVehicle
+)
+
 router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
 
 router.get('/parked',authMiddleware('NORMAL'), vehicleController.getParkedVehicles);

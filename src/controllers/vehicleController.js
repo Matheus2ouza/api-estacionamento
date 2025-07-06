@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
 const { DateTime } = require("luxon");
+const { generateEntryTicket } = require('../utils/printLayout');
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
@@ -34,11 +35,19 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    await vehicleService.vehicleEntry(plate, category, operatorId, belemTime, formattedDate);
+    const result = await vehicleService.vehicleEntry(plate, category, operatorId, belemTime, formattedDate);
+
+    const dt = DateTime.fromJSDate(result.entryTime).setZone("America/Belem");
+
+    const formattedDate = dt.toFormat("dd/MM/yyyy");
+    const formattedTime = dt.toFormat("HH:mm:ss"); 
+
+    const ticket = await generateEntryTicket(result.id, result.plate, result.category, formattedDate, formattedTime );
 
     return res.status(201).json({
       success: true,
       message: 'Entrada do veículo registrada com sucesso',
+      image: ticket
     });
 
   } catch (error) {
@@ -193,3 +202,35 @@ exports.editVehicle = async (req, res) => {
     });
   }
 };
+
+exports.deleteVehicle = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id } = req.body
+  const user = req.user
+
+  const belemTime = DateTime.now().setZone("America/Belem").toJSDate();
+  const formattedDate = DateTime.fromJSDate(belemTime);
+
+  try {
+    await vehicleService.deleteVehicleService(id, belemTime, formattedDate, user);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Dados excluidos com sucesso'
+    });
+  } catch (error) {
+    console.error(`Erro ao tentar excluir o veiculo: ${error}`);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
