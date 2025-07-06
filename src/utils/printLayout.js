@@ -1,58 +1,78 @@
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const QRCode = require('qrcode');
 const path = require('path');
-const { createCanvas, loadImage } = require("canvas");
-const { generateQRCode } = require("./qrCodeGenerator");
 
-async function generateEntryTicket({ id, plate, category, formattedDate, formattedTime }) {
-  const width = 384;
-  const height = 500;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
+/**
+ * Gera comprovante de entrada em PDF (base64)
+ * @param {{ id: number, plate: string, category: string, formattedDate: string, formattedTime: string }} data
+ * @returns {Promise<string>} PDF em base64
+ */
+async function generateEntryTicketPDF({ id, plate, category, formattedDate, formattedTime }) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: [226, 400], // 58mm largura ~ 2.2 polegadas em pts (72dpi)
+        margins: { top: 10, bottom: 10, left: 10, right: 10 },
+      });
 
-  // fundo branco
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, width, height);
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        resolve(pdfData.toString('base64'));
+      });
 
-  const logoPath = path.join(__dirname, "..", "public", "logo.png");
+      // Logo marca d'água
+      const logoPath = path.join(__dirname, '..', 'public', 'logo.png');
+      try {
+        doc.save();
+        doc.opacity(0.15);
+        doc.image(logoPath, (doc.page.width - 150) / 2, 100, { width: 150 });
+        doc.restore();
+      } catch (err) {
+        console.warn('[PrintLayout] Falha ao carregar logo marca d\'água:', err.message);
+      }
 
-  try {
-    const logo = await loadImage(logoPath);
+      // Título
+      doc.fontSize(16).fillColor('black').font('Helvetica-Bold');
+      doc.text('ESTACIONAMENTO CENTRAL', { align: 'center', lineGap: 8 });
 
-    ctx.save();
-    ctx.globalAlpha = 0.15;
+      // Informações do veículo
+      doc.moveDown();
+      doc.fontSize(12).font('Helvetica');
+      doc.text(`Placa: ${plate}`, { align: 'center' });
+      doc.text(`Categoria: ${category}`, { align: 'center' });
+      doc.text(`Entrada: ${formattedDate} ${formattedTime}`, { align: 'center' });
 
-    const logoSize = 200;
-    const x = (width - logoSize) / 2;
-    const y = (height - logoSize) / 2;
+      // Linha separadora
+      doc.moveDown(0.5);
+      doc.lineWidth(1);
+      doc.moveTo(10, doc.y).lineTo(doc.page.width - 10, doc.y).stroke();
 
-    ctx.drawImage(logo, x, y, logoSize, logoSize);
-    ctx.restore();
-  } catch (err) {
-    console.warn("[PrintLayout] Falha ao carregar logo marca d'água:", err.message);
-  }
+      // QR Code (gera base64 PNG)
+      const qrDataUrl = await QRCode.toDataURL(`${id}|${plate}`, {
+        errorCorrectionLevel: 'H',
+        margin: 1,
+        scale: 5,
+      });
 
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 20px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("ESTACIONAMENTO CENTRAL", width / 2, 110);
+      // Extrai base64 para buffer e adiciona imagem
+      const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+      const qrBuffer = Buffer.from(qrBase64, 'base64');
 
-  ctx.font = "16px sans-serif";
-  ctx.fillText(`Placa: ${plate}`, width / 2, 150);
-  ctx.fillText(`Categoria: ${category}`, width / 2, 180);
-  ctx.fillText(`Entrada: ${formattedDate} ${formattedTime}`, width / 2, 210);
+      // Posiciona QR Code no centro
+      doc.image(qrBuffer, (doc.page.width - 150) / 2, doc.y + 10, { width: 150, height: 150 });
 
-  ctx.beginPath();
-  ctx.moveTo(20, 230);
-  ctx.lineTo(width - 20, 230);
-  ctx.stroke();
+      doc.moveDown(10);
+      doc.fontSize(10).text('Guarde este comprovante', { align: 'center' });
 
-  const qrCodeBase64 = await generateQRCode(id, plate);
-  const qrImage = await loadImage(qrCodeBase64);
-  ctx.drawImage(qrImage, width / 2 - 75, 250, 150, 150);
+      doc.end();
 
-  ctx.font = "14px sans-serif";
-  ctx.fillText("Guarde este comprovante", width / 2, 430);
-
-  return canvas.toDataURL();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
-module.exports = { generateEntryTicket };
+module.exports = { generateEntryTicketPDF };

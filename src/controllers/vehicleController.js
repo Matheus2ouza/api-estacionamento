@@ -1,7 +1,7 @@
 const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
 const { DateTime } = require("luxon");
-const { generateEntryTicket } = require('../utils/printLayout');
+const { generateEntryTicketPDF } = require('../utils/printLayout');
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
@@ -42,12 +42,12 @@ exports.vehicleEntry = async (req, res) => {
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
     const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
-    const ticket = await generateEntryTicket(result.id, result.plate, result.category, formattedDateOnly, formattedTimeOnly);
+    const ticket = await generateEntryTicketPDF(result.id, result.plate, result.category, formattedDateOnly, formattedTimeOnly);
 
     return res.status(201).json({
       success: true,
       message: 'Entrada do veículo registrada com sucesso',
-      image: ticket
+      ticket
     });
 
   } catch (error) {
