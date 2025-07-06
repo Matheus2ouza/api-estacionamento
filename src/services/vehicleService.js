@@ -33,7 +33,7 @@ async function vehicleEntry(plate, category, operatorId, date, formattedDate) {
       }
     })
     return newEntry
-  }catch (error) {
+  } catch (error) {
     throw error
   }
 }
@@ -131,26 +131,60 @@ async function hasNewVehicleEntries(lastCheck) {
   }
 }
 
-async function editVehicleService(id, category, plate) {
-  const verifyPlate = prisma.vehicleEntry.findFirst({
-    where: { id: id }
+async function editVehicleService(id, category, plate, formattedDate, user) {
+  const verifyPlate = await prisma.vehicleEntry.findFirst({
+    where: {
+      id: id,
+      status: "INSIDE"
+    }
   })
 
   if (!verifyPlate) {
-    console.log(`[VheicleService] Tentativa de atualizar os dados de um veiculo mas ele nao foi encontrado`)
+    console.log(`[VehicleService] Tentativa de atualizar os dados de um veículo, mas ele não foi encontrado`);
     throw new Error('Veiculo não encontrado no patio')
   }
+
+  const updatedDescription = `${verifyPlate.description || ""}
+  \nRegistro editado por ${user.username} em ${formattedDate}`
 
   try {
     const result = await prisma.vehicleEntry.update({
       where: { id: id },
       data: {
         plate: plate,
-        category: category
+        category: category,
+        description: updatedDescription.trim()
       }
     })
 
     return result
+  } catch (error) {
+    throw error
+  }
+}
+
+async function deleteVehicleService(id, date, formattedDate, user) {
+  try {
+    const verifyPlate = await prisma.vehicleEntry.findFirst({
+      where: { id: id }
+    })
+
+    if (!verifyPlate) {
+      console.log(`[VehicleService] Tentativa de excluir os dados de um veículo, mas ele não foi encontrado`);
+      throw new Error('Veiculo não encontrado no patio')
+    }
+
+    const updatedDescription = `${verifyPlate.description}
+    \nRegistro apagado por ${user.username} em ${formattedDate}`
+
+    const result = await prisma.vehicleEntry.update({
+      where: {id: id},
+      data: {
+        status : "DELETED",
+        deletedAt: date,
+        description: updatedDescription.trim()
+      }
+    })
   } catch (error) {
     throw error
   }
@@ -162,5 +196,6 @@ module.exports = {
   configParking,
   getParkedVehicles,
   editVehicleService,
+  deleteVehicleService,
   hasNewVehicleEntries
 };

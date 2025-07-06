@@ -170,9 +170,15 @@ exports.editVehicle = async (req, res) => {
   }
 
   const { id, category, plate } = req.body;
+  const user = req.user
+
+  const belemTime = DateTime.now().setZone("America/Belem").toJSDate();
+  const formattedDate = DateTime.fromJSDate(belemTime)
+    .setZone("America/Belem")
+    .toFormat("dd/MM/yyyy HH:mm:ss");
 
   try {
-    await vehicleService.editVehicleService(id, category, plate);
+    await vehicleService.editVehicleService(id, category, plate, formattedDate, user);
 
     console.log(`[VehicleController] Dados do veículo atualizados com sucesso`);
     return res.status(201).json({
