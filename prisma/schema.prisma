@@ -28,21 +28,18 @@ model Authentication {
 }
 
 model VehicleEntry {
-  id          String   @id @default(uuid())
-  plate       String   @unique
+  id          String         @id @default(uuid())
+  plate       String
   category    VehicleCategory
-  operator    String   
-  entryTime   DateTime @default(now()) @map("entry_time")
+  operator    String
+  entryTime   DateTime       @default(now()) @map("entry_time")
+  exitTime    DateTime?      @map("exit_time")
+  status      VehicleStatus  @default(INSIDE)
+  deletedAt   DateTime?      @map("deleted_at")
+  description String?        @default("")     // nova coluna
 
   @@map("vehicle_entries")
-}
-
-model VehicleHistory {
-  id         String   @id @default(uuid())
-  plate      String
-  exitTime   DateTime @default(now()) @map("exit_time")
-  
-  @@map("vehicle_histories")
+  @@index([plate])
 }
 
 model PatioConfig {
@@ -63,4 +60,10 @@ enum VehicleCategory {
   carro
   moto
   carroGrande
+}
+
+enum VehicleStatus {
+  INSIDE     // veículo está no pátio
+  EXITED     // veículo saiu do pátio
+  DELETED    // registro foi "apagado" mas pode ser restaurado
 }

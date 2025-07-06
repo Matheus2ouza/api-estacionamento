@@ -1,43 +1,40 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function vehicleEntry(plate, category, operatorId) {
+async function vehicleEntry(plate, category, operatorId, date) {
   try {
-    // Verifica se o veículo já está no pátio
-    const checkPlate = await prisma.vehicleEntry.findUnique({
-      where: { plate },
+    const verifyPlate = await prisma.vehicleEntry.findFirst({
+      where: {
+        plate: plate,
+        status: "INSIDE"
+      }
     });
 
-    if (checkPlate) {
-      console.warn(`[vehicleService] Veículo com placa ${plate} já está no pátio.`);
-      throw new Error("Veículo já registrado no pátio.");
+    if (verifyPlate) {
+      throw new Error('Já existe um veiculo com essa placa dentro do estacionamento');
     }
 
-    // Busca o operador pelo username
     const operator = await prisma.account.findUnique({
       where: { id: operatorId },
-    });
+      select: { username: true }
+    })
 
     if (!operator) {
-      console.warn(`[vehicleService] O id ${operatorId} não foi encontrado`);
-      throw new Error("Operador invalido.");
+      throw new Error('Operador não encontrado');
     }
 
-    // Registra a entrada do veículo
-    const vehicle = await prisma.vehicleEntry.create({
-      data: { 
-        plate,
-        category,
+    const newEntry = await prisma.vehicleEntry.create({
+      data: {
+        plate: plate,
+        category: category,
         operator: operator.username,
-      },
-    });
-
-    console.log(`[vehicleService] Entrada registrada com sucesso. ID: ${vehicle.id}`);
-    return vehicle;
-
-  } catch (err) {
-    console.error(`[vehicleService] Erro ao registrar entrada: ${err.message}`);
-    throw new Error(err.message || "Erro interno ao registrar a entrada do veículo.");
+        entryTime: date,
+        description: `Registro criado pelo operador ${operator.username} em ${date}`
+      }
+    })
+    return newEntry
+  }catch (error) {
+    throw error
   }
 }
 
@@ -53,9 +50,9 @@ async function getConfigParking() {
 }
 
 async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
-  try{
+  try {
     const configParking = await prisma.PatioConfig.upsert({
-      where: {id: "singleton"},
+      where: { id: "singleton" },
       update: {
         maxCars,
         maxMotorcycles,
@@ -136,17 +133,17 @@ async function hasNewVehicleEntries(lastCheck) {
 
 async function editVehicleService(id, category, plate) {
   const verifyPlate = prisma.vehicleEntry.findFirst({
-    where: {id: id}
+    where: { id: id }
   })
 
-  if(!verifyPlate) {
+  if (!verifyPlate) {
     console.log(`[VheicleService] Tentativa de atualizar os dados de um veiculo mas ele nao foi encontrado`)
     throw new Error('Veiculo não encontrado no patio')
   }
 
-  try{
+  try {
     const result = await prisma.vehicleEntry.update({
-      where: {id: id},
+      where: { id: id },
       data: {
         plate: plate,
         category: category
@@ -154,7 +151,7 @@ async function editVehicleService(id, category, plate) {
     })
 
     return result
-  }catch (error) {
+  } catch (error) {
     throw error
   }
 }

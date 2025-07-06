@@ -1,25 +1,21 @@
 const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
+const { DateTime } = require("luxon");
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    const mappedErrors = errors.array().reduce((acc, err) => {
-      acc[err.path] = err.msg;
-      return acc;
-    }, {});
-
     return res.status(400).json({
       success: false,
-      message: 'Erro de validação',
-      fields: mappedErrors
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
     });
   }
 
   let { plate, category, operatorId } = req.body;
 
   plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  const belemTime = DateTime.now().setZone("America/Belem").toJSDate();
 
   // Verificar padrões específicos de placas brasileiras
   const isOldPattern = /^[A-Z]{3}[0-9]{4}$/.test(plate);
@@ -29,18 +25,16 @@ exports.vehicleEntry = async (req, res) => {
     console.log(`[VehicleController] A placa esta fora do formato esperado ${plate}`)
     return res.status(400).json({
       success: false,
-      message: 'Placa inválida após normalização'
+      message: 'Placa fora do formato esperado'
     });
   }
 
   try {
-    const vehicle = await vehicleService.vehicleEntry(plate, category, operatorId);
+    await vehicleService.vehicleEntry(plate, category, operatorId, belemTime);
 
     return res.status(201).json({
       success: true,
       message: 'Entrada do veículo registrada com sucesso',
-      vehicleId: vehicle.id,
-      entryTime: vehicle.entryTime
     });
 
   } catch (error) {
