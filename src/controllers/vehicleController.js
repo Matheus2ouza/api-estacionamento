@@ -39,10 +39,10 @@ exports.vehicleEntry = async (req, res) => {
 
     const dt = DateTime.fromJSDate(result.entryTime).setZone("America/Belem");
 
-    const formattedDate = dt.toFormat("dd/MM/yyyy");
-    const formattedTime = dt.toFormat("HH:mm:ss"); 
+    const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
+    const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
-    const ticket = await generateEntryTicket(result.id, result.plate, result.category, formattedDate, formattedTime );
+    const ticket = await generateEntryTicket(result.id, result.plate, result.category, formattedDateOnly, formattedTimeOnly);
 
     return res.status(201).json({
       success: true,
