@@ -167,30 +167,25 @@ exports.editVehicle = async (req, res) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Erro de validação',
-      error: errors.array().reduce((acc, err) => {
-        acc[err.path] = err.msg;
-        return acc;
-      }, {}),
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
     });
   }
 
-  const { id, category, plate } = req.body
+  const { id, category, plate } = req.body;
 
-  try{
-    await vehicleService.editVehicleService( id, category, plate)
+  try {
+    await vehicleService.editVehicleService(id, category, plate);
 
-    console.log(`[VhecleController] Dados do viculo atualizados com sucesso`)
+    console.log(`[VehicleController] Dados do veículo atualizados com sucesso`);
     return res.status(201).json({
       success: true,
-      message: 'Dados do veiculo atualizados com sucesso'
-    })
-  }catch (error) {
-    console.log(`[VhecleController] Erro ao tentar ataulizar os dados do veiculo: ${error}`)
+      message: 'Dados do veículo atualizados com sucesso',
+    });
+  } catch (error) {
+    console.log(`[VehicleController] Erro ao atualizar os dados do veículo: ${error}`);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao tentar atualizar os dados do veiculo',
-      error: error
-    })
+      message: 'Erro interno ao atualizar os dados',
+    });
   }
-}
+};
