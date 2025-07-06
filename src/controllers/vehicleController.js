@@ -160,3 +160,37 @@ exports.checkForUpdates = async (req, res) => {
     });
   }
 };
+
+exports.editVehicle = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Erro de validação',
+      error: errors.array().reduce((acc, err) => {
+        acc[err.path] = err.msg;
+        return acc;
+      }, {}),
+    });
+  }
+
+  const { id, category, plate } = req.body
+
+  try{
+    await vehicleService.editVehicleService( id, category, plate)
+
+    console.log(`[VhecleController] Dados do viculo atualizados com sucesso`)
+    return res.status(201).json({
+      success: true,
+      message: 'Dados do veiculo atualizados com sucesso'
+    })
+  }catch (error) {
+    console.log(`[VhecleController] Erro ao tentar ataulizar os dados do veiculo: ${error}`)
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao tentar atualizar os dados do veiculo',
+      error: error
+    })
+  }
+}

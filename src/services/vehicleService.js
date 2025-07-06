@@ -134,11 +134,36 @@ async function hasNewVehicleEntries(lastCheck) {
   }
 }
 
+async function editVehicleService(id, category, plate) {
+  const verifyPlate = prisma.vehicleEntry.findFirst({
+    where: {id: id}
+  })
+
+  if(!verifyPlate) {
+    console.log(`[VheicleService] Tentativa de atualizar os dados de um veiculo mas ele nao foi encontrado`)
+    throw new Error('Veiculo não encontrado no patio')
+  }
+
+  try{
+    const result = await prisma.vehicleEntry.update({
+      where: {id: id},
+      data: {
+        plate: plate,
+        category: category
+      }
+    })
+
+    return result
+  }catch (error) {
+    throw error
+  }
+}
 
 module.exports = {
   vehicleEntry,
   getConfigParking,
   configParking,
   getParkedVehicles,
+  editVehicleService,
   hasNewVehicleEntries
 };

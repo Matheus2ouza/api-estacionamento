@@ -15,8 +15,6 @@ router.post('/entries',
   vehicleController.vehicleEntry
 );
 
-router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
-
 router.post('/configParking',
   [
     body('maxCars').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
@@ -26,6 +24,18 @@ router.post('/configParking',
   authMiddleware('ADMIN'),
   vehicleController.ConfigurationParking
 )
+
+router.post('/editVehicle', 
+  [
+    body('id').notEmpty().withMessage('O id é obrigatorio'),
+    body('category').notEmpty().withMessage('A categoria é obrigatoria'),
+    body('plate').notEmpty().withMessage('A placa é obrigatoria')
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.editVehicle
+)
+
+router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
 
 router.get('/parked',authMiddleware('NORMAL'), vehicleController.getParkedVehicles);
 
