@@ -34,7 +34,7 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    await vehicleService.vehicleEntry(plate, category, operatorId, belemTime, formattedDate);
+    await vehicleService.vehicleEntry(plate, category, operatorId, formattedDate);
 
     return res.status(201).json({
       success: true,
