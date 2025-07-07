@@ -37,6 +37,7 @@ exports.vehicleEntry = async (req, res) => {
   try {
     const result = await vehicleService.vehicleEntry(plate, category, operatorId, belemTime, formattedDate);
 
+    console.log(result)
     const dt = DateTime.fromJSDate(result.entryTime).setZone("America/Belem");
 
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
