@@ -3,7 +3,7 @@ const fs = require('fs');
 const QRCode = require('qrcode');
 const path = require('path');
 
-async function generateEntryTicketPDF({ id, plate, operator, category, formattedDate, formattedTime }) {
+async function generateEntryTicketPDF( id, plate, operator, category, formattedDate, formattedTime ) {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
