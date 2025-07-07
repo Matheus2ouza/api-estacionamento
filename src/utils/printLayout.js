@@ -8,7 +8,7 @@ const path = require('path');
  * @param {{ id: number, plate: string, category: string, formattedDate: string, formattedTime: string }} data
  * @returns {Promise<string>} PDF em base64
  */
-async function generateEntryTicketPDF({ id, plate, category, formattedDate, formattedTime }) {
+async function generateEntryTicketPDF({ id, plate, operator, category, formattedDate, formattedTime }) {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -43,6 +43,7 @@ async function generateEntryTicketPDF({ id, plate, category, formattedDate, form
       doc.fontSize(10).font('Helvetica');
       doc.text(`Placa: ${plate}`, { align: 'center' });
       doc.text(`Categoria: ${category}`, { align: 'center' });
+      doc.text(`Operador: ${o}`)
       doc.text(`Entrada: ${formattedDate} ${formattedTime}`, { align: 'center' });
 
       // Linha separadora
