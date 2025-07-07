@@ -1,4 +1,5 @@
 const PDFDocument = require('pdfkit');
+const fs = require('fs');
 const QRCode = require('qrcode');
 const path = require('path');
 
@@ -17,59 +18,39 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
         resolve(pdfData.toString('base64'));
       });
 
-      // Logo marca d'água centralizada vertical e horizontalmente
+      // Logo marca d'água centralizada
       const logoPath = path.join(__dirname, '..', 'public', 'logo.png');
       try {
-        const logoWidth = 80;
-        const logoHeight = 80;
-        const logoX = (doc.page.width - logoWidth) / 2;
-        const logoY = (doc.page.height - logoHeight) / 2;
-        
         doc.save();
         doc.opacity(0.1);
-        doc.image(logoPath, logoX, logoY, { 
-          width: logoWidth,
-          height: logoHeight
-        });
+        doc.image(logoPath, (doc.page.width - 60) / 2, 10, { width: 60 });
         doc.restore();
       } catch (err) {
         console.warn('[PrintLayout] Falha ao carregar logo marca d\'água:', err.message);
       }
 
       // Título
-      doc.fontSize(12)
-        .fillColor('black')
-        .font('Helvetica-Bold')
-        .text('Leão Estacionamento', { align: 'center', lineGap: 4 });
+      doc.fontSize(12).fillColor('black').font('Helvetica-Bold');
+      doc.text('Leão Estacionamento', { align: 'center', lineGap: 4 });
 
-      // Informações do veículo com layout de duas colunas
-      doc.moveDown(0.5);
-      doc.fontSize(9).font('Helvetica');
-      
-      // Configurações das colunas
-      const col1 = 15;   // Largura da primeira coluna (rótulos)
-      const col2 = 100;  // Posição inicial da segunda coluna (valores)
-      const lineHeight = 15;
-      
-      // Função para adicionar linha formatada
-      const addInfoLine = (label, value) => {
-        doc.text(label + ':', 10, doc.y)
-          .font('Helvetica-Bold')
-          .text(value, col2, doc.y)
-          .font('Helvetica')
-          .moveDown(0.2);
-      };
+      // Informações do veículo (rótulo à esquerda, valor à direita)
+      doc.moveDown(1);
+      doc.fontSize(10).font('Helvetica');
 
-      // Adiciona informações
-      addInfoLine('Placa', plate);
-      addInfoLine('Categoria', category);
-      addInfoLine('Operador', operator);
-      
-      // Data e hora em linha única
-      doc.text('Entrada:', 10, doc.y)
-        .font('Helvetica-Bold')
-        .text(`${formattedDate} ${formattedTime}`, col2, doc.y)
-        .font('Helvetica');
+      const labelX = 10;
+      const valueX = doc.page.width - 10;
+
+      function drawLabelValue(label, value) {
+        doc.text(label, labelX, doc.y, { continued: true });
+        doc.text(value, valueX, doc.y, { align: 'right' });
+        doc.moveDown(0.3);
+      }
+
+      drawLabelValue('Placa:', plate);
+      drawLabelValue('Categoria:', category);
+      drawLabelValue('Operador:', operator);
+      drawLabelValue('Entrada:', `${formattedDate} ${formattedTime}`);
+
 
       // Linha fina de separação
       doc.moveDown(0.5);
@@ -87,18 +68,20 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       const qrBuffer = Buffer.from(qrBase64, 'base64');
 
       // Posiciona QR Code no centro
-      const qrSize = 90;
-      const qrX = (doc.page.width - qrSize) / 2;
-      const qrY = doc.y + 10;
+      const qrX = (doc.page.width - 90) / 2;
+      const qrY = doc.y + 5;
 
-      doc.image(qrBuffer, qrX, qrY, { width: qrSize });
+      doc.image(qrBuffer, qrX, qrY, { width: 90 });
+
+      // Atualiza posição Y após o QR Code
+      const qrHeight = 90;
+      const spacingAfterQR = 5;
+      doc.y = qrY + qrHeight + spacingAfterQR;
 
       // Texto abaixo do QR Code
-      doc.fontSize(8)
-        .moveDown(1.5)
-        .text('Guarde este comprovante', { align: 'center' });
+      doc.fontSize(8).text('Guarde este comprovante', { align: 'center' });
 
-      // Finaliza o documento
+      // Finaliza o documento sem adicionar mais páginas ou espaços extras
       doc.end();
 
     } catch (error) {
