@@ -3,18 +3,6 @@ const fs = require('fs');
 const QRCode = require('qrcode');
 const path = require('path');
 
-/**
- * Gera comprovante de entrada em PDF (base64)
- * @param {{
- *   id: number,
- *   plate: string,
- *   operator: string,
- *   category: string,
- *   formattedDate: string,
- *   formattedTime: string
- * }} data
- * @returns {Promise<string>} PDF em base64
- */
 async function generateEntryTicketPDF({ id, plate, operator, category, formattedDate, formattedTime }) {
   return new Promise(async (resolve, reject) => {
     try {
