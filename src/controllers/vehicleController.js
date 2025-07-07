@@ -43,6 +43,13 @@ exports.vehicleEntry = async (req, res) => {
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
     const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
+    console.log(result.id)
+    console.log(result.plate)
+    console.log(result.operator)
+    console.log(result.category)
+    console.log(formattedDateOnly)
+    console.log(formattedTimeOnly)
+
     const ticket = await generateEntryTicketPDF(result.id, result.plate, result.operator, result.category, formattedDateOnly, formattedTimeOnly);
 
     return res.status(201).json({

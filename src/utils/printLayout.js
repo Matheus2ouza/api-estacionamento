@@ -5,7 +5,14 @@ const path = require('path');
 
 /**
  * Gera comprovante de entrada em PDF (base64)
- * @param {{ id: number, plate: string, category: string, formattedDate: string, formattedTime: string }} data
+ * @param {{
+ *   id: number,
+ *   plate: string,
+ *   operator: string,
+ *   category: string,
+ *   formattedDate: string,
+ *   formattedTime: string
+ * }} data
  * @returns {Promise<string>} PDF em base64
  */
 async function generateEntryTicketPDF({ id, plate, operator, category, formattedDate, formattedTime }) {
@@ -43,7 +50,7 @@ async function generateEntryTicketPDF({ id, plate, operator, category, formatted
       doc.fontSize(10).font('Helvetica');
       doc.text(`Placa: ${plate}`, { align: 'center' });
       doc.text(`Categoria: ${category}`, { align: 'center' });
-      doc.text(`Operador: ${o}`)
+      doc.text(`Operador: ${operator}`);
       doc.text(`Entrada: ${formattedDate} ${formattedTime}`, { align: 'center' });
 
       // Linha separadora
@@ -63,9 +70,17 @@ async function generateEntryTicketPDF({ id, plate, operator, category, formatted
       const qrBuffer = Buffer.from(qrBase64, 'base64');
 
       // Posiciona QR Code no centro
-      doc.image(qrBuffer, (doc.page.width - 90) / 2, doc.y + 5, { width: 90 });
+      const qrX = (doc.page.width - 90) / 2;
+      const qrY = doc.y + 5;
 
-      doc.moveDown(0.5);
+      doc.image(qrBuffer, qrX, qrY, { width: 90 });
+
+      // Atualiza manualmente a posição Y após o QR Code
+      const qrHeight = 90; // Altura do QR Code em pts
+      const spacingAfterQR = 10;
+      doc.y = qrY + qrHeight + spacingAfterQR;
+
+      // Agora adiciona o texto abaixo do QR Code
       doc.fontSize(8).text('Guarde este comprovante', { align: 'center' });
 
       doc.end();
