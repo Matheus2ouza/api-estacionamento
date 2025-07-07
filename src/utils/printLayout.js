@@ -12,8 +12,8 @@ async function generateEntryTicketPDF({ id, plate, category, formattedDate, form
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
-        size: [226, 400], // 58mm largura ~ 2.2 polegadas em pts (72dpi)
-        margins: { top: 10, bottom: 10, left: 10, right: 10 },
+        size: [137, 400], // Largura útil da impressora: 48mm (~137pt)
+        margins: { top: 5, bottom: 5, left: 5, right: 5 },
       });
 
       const buffers = [];
@@ -23,24 +23,24 @@ async function generateEntryTicketPDF({ id, plate, category, formattedDate, form
         resolve(pdfData.toString('base64'));
       });
 
-      // Logo marca d'água
+      // Logo marca d'água (opcional)
       const logoPath = path.join(__dirname, '..', 'public', 'logo.png');
       try {
         doc.save();
-        doc.opacity(0.15);
-        doc.image(logoPath, (doc.page.width - 150) / 2, 100, { width: 150 });
+        doc.opacity(0.1);
+        doc.image(logoPath, (doc.page.width - 60) / 2, 10, { width: 60 });
         doc.restore();
       } catch (err) {
         console.warn('[PrintLayout] Falha ao carregar logo marca d\'água:', err.message);
       }
 
       // Título
-      doc.fontSize(16).fillColor('black').font('Helvetica-Bold');
-      doc.text('ESTACIONAMENTO CENTRAL', { align: 'center', lineGap: 8 });
+      doc.fontSize(12).fillColor('black').font('Helvetica-Bold');
+      doc.text('ESTACIONAMENTO CENTRAL', { align: 'center', lineGap: 4 });
 
       // Informações do veículo
-      doc.moveDown();
-      doc.fontSize(12).font('Helvetica');
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica');
       doc.text(`Placa: ${plate}`, { align: 'center' });
       doc.text(`Categoria: ${category}`, { align: 'center' });
       doc.text(`Entrada: ${formattedDate} ${formattedTime}`, { align: 'center' });
@@ -54,7 +54,7 @@ async function generateEntryTicketPDF({ id, plate, category, formattedDate, form
       const qrDataUrl = await QRCode.toDataURL(`${id}|${plate}`, {
         errorCorrectionLevel: 'H',
         margin: 1,
-        scale: 5,
+        scale: 3, // Reduzido para caber melhor
       });
 
       // Extrai base64 para buffer e adiciona imagem
@@ -62,10 +62,10 @@ async function generateEntryTicketPDF({ id, plate, category, formattedDate, form
       const qrBuffer = Buffer.from(qrBase64, 'base64');
 
       // Posiciona QR Code no centro
-      doc.image(qrBuffer, (doc.page.width - 150) / 2, doc.y + 10, { width: 150, height: 150 });
+      doc.image(qrBuffer, (doc.page.width - 90) / 2, doc.y + 5, { width: 90 });
 
-      doc.moveDown(10);
-      doc.fontSize(10).text('Guarde este comprovante', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(8).text('Guarde este comprovante', { align: 'center' });
 
       doc.end();
 

@@ -8,6 +8,10 @@ async function generateQRCode(id, plate) {
       type: 'image/png',
       margin: 1,
       scale: 5,
+      color : {
+        dark: '#000000',
+        light: '#00000000'
+      }
     });
     return base64;
   } catch (error) {
