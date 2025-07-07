@@ -3,7 +3,7 @@ const fs = require('fs');
 const QRCode = require('qrcode');
 const path = require('path');
 
-async function generateEntryTicketPDF( id, plate, operator, category, formattedDate, formattedTime ) {
+async function generateEntryTicketPDF(id, plate, operator, category, formattedDate, formattedTime) {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -18,7 +18,7 @@ async function generateEntryTicketPDF( id, plate, operator, category, formattedD
         resolve(pdfData.toString('base64'));
       });
 
-      // Logo marca d'água (opcional)
+      // Logo marca d'água centralizada
       const logoPath = path.join(__dirname, '..', 'public', 'logo.png');
       try {
         doc.save();
@@ -31,17 +31,24 @@ async function generateEntryTicketPDF( id, plate, operator, category, formattedD
 
       // Título
       doc.fontSize(12).fillColor('black').font('Helvetica-Bold');
-      doc.text('ESTACIONAMENTO CENTRAL', { align: 'center', lineGap: 4 });
+      doc.text('Leão Estacionamento', { align: 'center', lineGap: 4 });
 
-      // Informações do veículo
-      doc.moveDown(0.5);
+      // Informações do veículo (uma por linha, alinhadas ao centro)
+      doc.moveDown(1); // Um espaço maior após o título
       doc.fontSize(10).font('Helvetica');
+
       doc.text(`Placa: ${plate}`, { align: 'center' });
+      doc.moveDown(0.3);
+
       doc.text(`Categoria: ${category}`, { align: 'center' });
-      doc.text(`Operador: ${operator}`);
+      doc.moveDown(0.3);
+
+      doc.text(`Operador: ${operator}`, { align: 'center' });
+      doc.moveDown(0.3);
+
       doc.text(`Entrada: ${formattedDate} ${formattedTime}`, { align: 'center' });
 
-      // Linha separadora
+      // Linha fina de separação
       doc.moveDown(0.5);
       doc.lineWidth(1);
       doc.moveTo(10, doc.y).lineTo(doc.page.width - 10, doc.y).stroke();
@@ -50,10 +57,9 @@ async function generateEntryTicketPDF( id, plate, operator, category, formattedD
       const qrDataUrl = await QRCode.toDataURL(`${id}|${plate}`, {
         errorCorrectionLevel: 'H',
         margin: 1,
-        scale: 3, // Reduzido para caber melhor
+        scale: 3,
       });
 
-      // Extrai base64 para buffer e adiciona imagem
       const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
       const qrBuffer = Buffer.from(qrBase64, 'base64');
 
@@ -63,14 +69,15 @@ async function generateEntryTicketPDF( id, plate, operator, category, formattedD
 
       doc.image(qrBuffer, qrX, qrY, { width: 90 });
 
-      // Atualiza manualmente a posição Y após o QR Code
-      const qrHeight = 90; // Altura do QR Code em pts
-      const spacingAfterQR = 10;
+      // Atualiza posição Y após o QR Code
+      const qrHeight = 90;
+      const spacingAfterQR = 5;
       doc.y = qrY + qrHeight + spacingAfterQR;
 
-      // Agora adiciona o texto abaixo do QR Code
+      // Texto abaixo do QR Code
       doc.fontSize(8).text('Guarde este comprovante', { align: 'center' });
 
+      // Finaliza o documento sem adicionar mais páginas ou espaços extras
       doc.end();
 
     } catch (error) {
