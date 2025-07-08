@@ -16,7 +16,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.pipe(writeStream);
 
       // Logo marca d'água centralizada
-      const logoPath = path.join(__dirname, 'public', 'img', 'logo.png'); // ajuste se necessário
+      const logoPath = path.join(__dirname, '..', 'public', 'img', 'logo.png'); // ajuste se necessário
       try {
         doc.save();
         doc.opacity(0.1);
@@ -27,7 +27,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       }
 
       // Título
-      doc.registerFont('Oswald-Bold.ttf', path.join(__dirname, 'public', 'fonts', 'Oswald-Bold.ttf'))
+      doc.registerFont('Oswald-Bold.ttf', path.join(__dirname, '..', 'public', 'fonts', 'Oswald-Bold.ttf'))
       doc.fontSize(17).fillColor('black').font('Oswald-Bold.ttf');
       doc.text('Leão', { align: 'center', lineGap: -6 });
 
@@ -35,7 +35,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.text('Estacionamento', { align: 'center', lineGap: -3 });
 
       // Frase abaixo do título
-      doc.registerFont('OpenSans_Condensed-LightItalic', path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed-LightItalic.ttf'));
+      doc.registerFont('OpenSans_Condensed-LightItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-LightItalic.ttf'));
       doc.fontSize(7).font('OpenSans_Condensed-LightItalic');
       doc.text('Comprovante de entrada', { align: 'center' });
 
@@ -101,7 +101,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
 
       // Texto abaixo do QR Code (centralizado e itálico)
       doc.moveDown(2)
-      doc.registerFont('OpenSans_Condensed-LightItalic', path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed-LightItalic.ttf'));
+      doc.registerFont('OpenSans_Condensed-LightItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-LightItalic.ttf'));
       doc.font('OpenSans_Condensed-LightItalic').fontSize(6);
       doc.text('Apresente o comprovante na saída', 0, doc.y, {
         align: 'center',
