@@ -194,6 +194,7 @@ exports.editVehicle = async (req, res) => {
     .setZone("America/Belem")
     .toFormat("dd/MM/yyyy HH:mm:ss");
 
+  console.log(id)
   try {
     await vehicleService.editVehicleService(String(id), category, plate, formattedDate, user);
 
