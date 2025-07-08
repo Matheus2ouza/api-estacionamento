@@ -195,7 +195,7 @@ exports.editVehicle = async (req, res) => {
     .toFormat("dd/MM/yyyy HH:mm:ss");
 
   try {
-    await vehicleService.editVehicleService(id, category, plate, formattedDate, user);
+    await vehicleService.editVehicleService(String(id), category, plate, formattedDate, user);
 
     console.log(`[VehicleController] Dados do veículo atualizados com sucesso`);
     return res.status(201).json({
