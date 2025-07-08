@@ -114,12 +114,6 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
 
 
       doc.end();
-
-      writeStream.on('finish', () => {
-        console.log(`✅ PDF salvo em: ${outputPath}`);
-        resolve();
-      });
-
     } catch (error) {
       console.error("Erro ao gerar PDF:", error.message);
       reject(error);

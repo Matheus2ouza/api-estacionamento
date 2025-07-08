@@ -7,7 +7,7 @@ async function generateQRCode(id, plate) {
       errorCorrectionLevel: 'H',
       type: 'image/png',
       margin: 1,
-      scale: 4,
+      scale: 3,
       color : {
         dark: '#000000',
         light: '#00000000'
