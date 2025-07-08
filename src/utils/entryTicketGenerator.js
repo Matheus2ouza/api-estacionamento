@@ -11,10 +11,6 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
         margins: { top: 5, bottom: 5, left: 5, right: 5 },
       });
 
-      const outputPath = path.join(__dirname, 'entrada.pdf');
-      const writeStream = fs.createWriteStream(outputPath);
-      doc.pipe(writeStream);
-
       // Logo marca d'água centralizada
       const logoPath = path.join(__dirname, '..', 'public', 'img', 'logo.png'); // ajuste se necessário
       try {
