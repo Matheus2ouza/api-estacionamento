@@ -1,7 +1,7 @@
 const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
 const { DateTime } = require("luxon");
-const { generateEntryTicketPDF } = require('../utils/printLayout');
+const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
