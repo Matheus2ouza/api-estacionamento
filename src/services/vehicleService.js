@@ -185,6 +185,8 @@ async function deleteVehicleService(id, date, formattedDate, user) {
         description: updatedDescription.trim()
       }
     })
+
+    return result
   } catch (error) {
     throw error
   }

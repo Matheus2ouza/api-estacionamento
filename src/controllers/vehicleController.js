@@ -229,7 +229,7 @@ exports.deleteVehicle = async (req, res) => {
   const formattedDate = DateTime.fromJSDate(belemTime);
 
   try {
-    await vehicleService.deleteVehicleService(id, belemTime, formattedDate, user);
+    await vehicleService.deleteVehicleService(String(id), belemTime, formattedDate, user);
 
     return res.status(201).json({
       success: true,
