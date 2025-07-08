@@ -76,6 +76,7 @@ async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
 async function getParkedVehicles() {
   try {
     const vehicles = await prisma.vehicleEntry.findMany({
+      where: {status: 'INSIDE'},
       select: {
         id: true,
         plate: true,
