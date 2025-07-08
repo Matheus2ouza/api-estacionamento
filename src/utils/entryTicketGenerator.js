@@ -11,6 +11,13 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
         margins: { top: 5, bottom: 5, left: 5, right: 5 },
       });
 
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        resolve(pdfData.toString('base64'));
+      });
+
       // Logo marca d'água centralizada
       const logoPath = path.join(__dirname, '..', 'public', 'img', 'logo.png'); // ajuste se necessário
       try {
