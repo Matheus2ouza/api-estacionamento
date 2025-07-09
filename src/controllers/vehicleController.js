@@ -52,6 +52,8 @@ exports.vehicleEntry = async (req, res) => {
 
     const ticket = await generateEntryTicketPDF(result.id, result.plate, result.operator, result.category, formattedDateOnly, formattedTimeOnly);
 
+    console.log(ticket);
+
     return res.status(201).json({
       success: true,
       message: 'Entrada do veículo registrada com sucesso',
