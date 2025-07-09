@@ -12,7 +12,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       });
 
       // Novo cabeçalho com logo à esquerda e texto ao lado
-      const logoPath = path.join(__dirname, '..', 'public', 'img', 'logo.png');
+      const logoPath = path.join(__dirname, 'public', 'img', 'logo.png');
       try {
         const logoWidth = 40;
         const logoX = 5;
@@ -74,19 +74,18 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
         const valueX = doc.page.width - 10 - valueWidth;
 
         // Label
-        doc.registerFont('OpenSans_SemiCondensed-Bold', path.join(__dirname, '..','public', 'fonts', 'OpenSans_SemiCondensed-Bold.ttf'))
+        doc.registerFont('OpenSans_SemiCondensed-Bold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed-Bold.ttf'))
         doc.font('OpenSans_SemiCondensed-Bold').fontSize(labelFontSize);
         doc.text(label, labelX, y, { continued: false });
 
         // Valor (mesmo Y!)
-        doc.registerFont('OpenSans_Condensed-Regular', path.join(__dirname, '..','public', 'fonts', 'OpenSans_Condensed-Regular.ttf'))
+        doc.registerFont('OpenSans_Condensed-Regular', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-Regular.ttf'))
         doc.font('OpenSans_Condensed-Regular').fontSize(labelFontSize);
         doc.text(value, valueX, y);
 
         // Avança para a próxima linha
         doc.y = y + lineHeight;
       }
-
 
       drawLabelValue('PLACA:', plate);
       drawLabelValue('CATEGORIA:', category);
@@ -101,7 +100,15 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.undash(); // remove o estilo tracejado para próximas linhas
 
       // QR Code
-      const qrDataUrl = await generateQRCode(id, plate);
+      const qrDataUrl = await QRCode.toDataURL(`${id}|${plate}`, {
+        errorCorrectionLevel: 'H',
+        margin: 1,
+        scale: 3,
+        color: {
+          dark: '#000000',
+          light: '#00000000', // fundo transparente
+        },
+      });
 
       const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
       const qrBuffer = Buffer.from(qrBase64, 'base64');
@@ -184,5 +191,6 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
     }
   });
 }
+
 
 module.exports = { generateEntryTicketPDF };
