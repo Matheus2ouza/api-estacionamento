@@ -21,8 +21,6 @@ exports.vehicleEntry = async (req, res) => {
     .setZone("America/Belem")
     .toFormat("dd/MM/yyyy HH:mm:ss");
 
-
-  // Verificar padrões específicos de placas brasileiras
   const isOldPattern = /^[A-Z]{3}[0-9]{4}$/.test(plate);
   const isMercosulPattern = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(plate);
 
@@ -43,7 +41,6 @@ exports.vehicleEntry = async (req, res) => {
       formattedDate
     );
 
-    // Debug do resultado da entrada
     console.log('[Entrada Registrada]', {
       id: result.id,
       plate: result.plate,
@@ -58,8 +55,8 @@ exports.vehicleEntry = async (req, res) => {
 
     console.log('[Data Formatada]', { formattedDateOnly, formattedTimeOnly });
 
-    // Geração do ticket
-    const ticketPath = await generateEntryTicketPDF(
+    // Geração do ticket com timeout de 15s
+    const ticketPromise = generateEntryTicketPDF(
       result.id,
       result.plate,
       result.operator,
@@ -68,23 +65,36 @@ exports.vehicleEntry = async (req, res) => {
       formattedTimeOnly
     );
 
-    console.log('📄 Caminho do ticket PDF:', ticketPath);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 15000)
+    );
+
+    let ticket = null;
+    try {
+      ticket = await Promise.race([ticketPromise, timeoutPromise]);
+    } catch (err) {
+      if (err.message === 'timeout') {
+        console.warn('⏰ Geração do ticket excedeu o tempo limite de 15s');
+      } else {
+        console.error('❌ Erro ao gerar ticket:', err.message);
+      }
+    }
 
     return res.status(201).json({
       success: true,
-      message: 'Entrada do veículo registrada com sucesso',
-      ticket: ticketPath // ou null caso você queira omitir
+      message: ticket
+        ? 'Entrada do veículo registrada com sucesso'
+        : 'Entrada registrada, mas o ticket não pôde ser gerado a tempo',
+      ticket: ticket || null
     });
 
   } catch (error) {
     console.warn(`[VehicleController] Erro ao tentar registrar a entrada do veículo: ${error.message}`);
-
     return res.status(400).json({
       success: false,
       message: error.message
     });
   }
-
 };
 
 exports.getParkingConfig = async (req, res) => {
