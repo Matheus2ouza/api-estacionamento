@@ -117,7 +117,19 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.text('Obrigado pela preferência', 0, doc.y, { align: 'center', width: doc.page.width });
 
       doc.end();
-      
+
+      writeStream.on('finish', () => {
+        const relativePath = path.relative(process.cwd(), outputPath);
+        console.log(`✅ PDF de entrada gerado com sucesso em: ${relativePath}`);
+        resolve(outputPath); // Retorna o caminho para logar depois
+      });
+
+      writeStream.on('error', (err) => {
+        console.error("❌ Erro ao escrever o arquivo PDF:", err.message);
+        reject(err);
+      });
+
+
     } catch (error) {
       console.error("Erro ao gerar PDF:", error.message);
       reject(error);

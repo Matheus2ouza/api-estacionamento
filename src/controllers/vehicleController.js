@@ -35,29 +35,45 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    const result = await vehicleService.vehicleEntry(plate, category, operatorId, belemTime, formattedDate);
+    const result = await vehicleService.vehicleEntry(
+      plate,
+      category,
+      operatorId,
+      belemTime,
+      formattedDate
+    );
 
-    console.log(result)
+    // Debug do resultado da entrada
+    console.log('[Entrada Registrada]', {
+      id: result.id,
+      plate: result.plate,
+      operator: result.operator,
+      category: result.category,
+      entryTime: result.entryTime
+    });
+
     const dt = DateTime.fromJSDate(result.entryTime).setZone("America/Belem");
-
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
     const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
-    console.log(result.id)
-    console.log(result.plate)
-    console.log(result.operator)
-    console.log(result.category)
-    console.log(formattedDateOnly)
-    console.log(formattedTimeOnly)
+    console.log('[Data Formatada]', { formattedDateOnly, formattedTimeOnly });
 
-    const ticket = await generateEntryTicketPDF(result.id, result.plate, result.operator, result.category, formattedDateOnly, formattedTimeOnly);
+    // Geração do ticket
+    const ticketPath = await generateEntryTicketPDF(
+      result.id,
+      result.plate,
+      result.operator,
+      result.category,
+      formattedDateOnly,
+      formattedTimeOnly
+    );
 
-    console.log(ticket);
+    console.log('📄 Caminho do ticket PDF:', ticketPath);
 
     return res.status(201).json({
       success: true,
       message: 'Entrada do veículo registrada com sucesso',
-      ticket
+      ticket: ticketPath // ou null caso você queira omitir
     });
 
   } catch (error) {
@@ -68,6 +84,7 @@ exports.vehicleEntry = async (req, res) => {
       message: error.message
     });
   }
+
 };
 
 exports.getParkingConfig = async (req, res) => {
