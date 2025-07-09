@@ -11,10 +11,6 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
         margins: { top: 5, bottom: 5, left: 5, right: 5 },
       });
 
-      const outputPath = path.join(__dirname, 'entrada.pdf');
-      const writeStream = fs.createWriteStream(outputPath);
-      doc.pipe(writeStream);
-
       // === Registro das fontes (uma vez só) ===
       const fontsPath = path.join(__dirname, '..', 'public', 'fonts');
       doc.registerFont('Oswald-Bold', path.join(fontsPath, 'Oswald-Bold.ttf'));
@@ -121,12 +117,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.text('Obrigado pela preferência', 0, doc.y, { align: 'center', width: doc.page.width });
 
       doc.end();
-
-      writeStream.on('finish', () => {
-        console.log(`✅ PDF salvo em: ${outputPath}`);
-        resolve();
-      });
-
+      
     } catch (error) {
       console.error("Erro ao gerar PDF:", error.message);
       reject(error);
