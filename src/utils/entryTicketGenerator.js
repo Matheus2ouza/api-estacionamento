@@ -1,6 +1,7 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const QRCode = require('qrcode');
 const { generateQRCode } = require('./qrCodeGenerator')
 
 async function generateEntryTicketPDF(id, plate, operator, category, formattedDate, formattedTime) {
