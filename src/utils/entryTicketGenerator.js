@@ -78,7 +78,8 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       drawLabelValue('PLACA:', plate);
       drawLabelValue('CATEGORIA:', category);
       drawLabelValue('OPERADOR:', operator);
-      drawLabelValue('ENTRADA:', `${formattedDate} ${formattedTime}`);
+      drawLabelValue('DATA:', `${formattedDate}`);
+      drawLabelValue('HORA:', `${formattedTime}`)
 
       doc.moveDown(0.5);
       doc.lineWidth(0.5);
