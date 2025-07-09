@@ -13,7 +13,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       });
 
       // Novo cabeçalho com logo à esquerda e texto ao lado
-      const logoPath = path.join(__dirname, 'public', 'img', 'logo.png');
+      const logoPath = path.join(__dirname, '..','public', 'img', 'logo.png');
       try {
         const logoWidth = 40;
         const logoX = 5;
