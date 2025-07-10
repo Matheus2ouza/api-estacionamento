@@ -111,6 +111,7 @@ exports.generateTicketDuplicate = async (req, res) => {
 
   try {
     const vehicle = await vehicleService.getvehicle(id)
+    console.log(vehicle);
 
     if(!vehicle) {
       return res.status(401).json({
