@@ -216,6 +216,8 @@ exports.ConfigurationParking = async (req, res) => {
   }
 };
 
+const { DateTime } = require('luxon');
+
 exports.getUniqueVehicle = async (req, res) => {
   const errors = validationResult(req);
 
@@ -226,31 +228,38 @@ exports.getUniqueVehicle = async (req, res) => {
     });
   }
 
-  const { id, plate } = req.params
+  const { id, plate } = req.params;
 
-  try{
+  try {
     const vehicle = await vehicleService.getUniqueVehicleService(id, plate);
 
-    if(!vehicle) {
+    if (!vehicle) {
       console.log(`[vehicleController] tentativa de busca da placa: ${plate}, mas não estava no patio `);
       return res.status(401).json({
         success: false,
         message: `O veiculo não se encontra no patio`
-      })
+      });
+    }
+
+    // Formata o entryTime para ISO 8601 com Z (UTC)
+    if (vehicle.entryTime) {
+      const dt = DateTime.fromJSDate(new Date(vehicle.entryTime)); // cria DateTime do JS
+      vehicle.entryTime = dt.toUTC().toISO(); // formata ISO UTC com Z no fim
     }
 
     return res.status(201).json({
       success: true,
       car: vehicle
-    })
+    });
   } catch (error) {
-    console.log(`[vehicleController] Erro ao tentar buscar o veiculo: ${error}`)
+    console.log(`[vehicleController] Erro ao tentar buscar o veiculo: ${error}`);
     return res.status(500).json({
       success: false,
       message: `Erro ao tentar buscar o veiculo: ${error}`
-    })
+    });
   }
-}
+};
+
 
 exports.getParkedVehicles = async (req, res) => {
   try {
