@@ -113,24 +113,17 @@ exports.generateTicketDuplicate = async (req, res) => {
     const vehicle = await vehicleService.getvehicle(id)
     console.log(vehicle);
 
-    if(!vehicle) {
+    if (!vehicle) {
       return res.status(401).json({
         success: false,
         message: `vehiculo não encontrodo no patio`
       })
     }
 
-    const entryTime = new Date(vehicle.entryTime);
+    const dt = DateTime.fromISO(vehicle.entryTime, { zone: 'utc' }).setZone('America/Belem');
 
-    const dia = String(entryTime.getDate()).padStart(2, '0');
-    const mes = String(entryTime.getMonth() + 1).padStart(2, '0');
-    const ano = entryTime.getFullYear();
-
-    const horas = String(entryTime.getHours()).padStart(2, '0');
-    const minutos = String(entryTime.getMinutes()).padStart(2, '0');
-
-    const dataFormatada = `${dia}/${mes}/${ano}`;
-    const horaFormatada = `${horas}:${minutos}`;
+    const dataFormatada = dt.toFormat('dd/MM/yyyy');
+    const horaFormatada = dt.toFormat('HH:mm');
 
     console.log(horaFormatada)
 
@@ -142,12 +135,12 @@ exports.generateTicketDuplicate = async (req, res) => {
       dataFormatada,
       horaFormatada
     );
-    
+
     return res.status(201).json({
       success: true,
       ticket: secondTicket
     })
-  }catch (error) {
+  } catch (error) {
     console.log(`[VehicleController] Erro ao tentar gerar a segunda via do ticket: ${error}`);
     return res.status(500).json({
       success: false,
@@ -234,17 +227,17 @@ exports.getUniqueVehicle = async (req, res) => {
     const vehicle = await vehicleService.getUniqueVehicleService(id, plate);
 
     if (!vehicle) {
-      console.log(`[vehicleController] tentativa de busca da placa: ${plate}, mas não estava no patio `);
+      console.log(`[vehicleController] tentativa de busca da placa: ${plate}, mas não estava no patio`);
       return res.status(401).json({
         success: false,
-        message: `O veiculo não se encontra no patio`
+        message: `O veículo não se encontra no pátio`
       });
     }
 
-    // Formata o entryTime para ISO 8601 com Z (UTC)
+    // Formata o entryTime para horário de Belém
     if (vehicle.entryTime) {
-      const dt = DateTime.fromJSDate(new Date(vehicle.entryTime)); // cria DateTime do JS
-      vehicle.entryTime = dt.toUTC().toISO(); // formata ISO UTC com Z no fim
+      const dt = DateTime.fromISO(vehicle.entryTime, { zone: 'utc' }).setZone('America/Belem');
+      vehicle.entryTime = dt.toFormat('dd/MM/yyyy HH:mm:ss');
     }
 
     return res.status(201).json({
@@ -252,10 +245,10 @@ exports.getUniqueVehicle = async (req, res) => {
       car: vehicle
     });
   } catch (error) {
-    console.log(`[vehicleController] Erro ao tentar buscar o veiculo: ${error}`);
+    console.log(`[vehicleController] Erro ao tentar buscar o veículo: ${error}`);
     return res.status(500).json({
       success: false,
-      message: `Erro ao tentar buscar o veiculo: ${error}`
+      message: `Erro ao tentar buscar o veículo: ${error}`
     });
   }
 };
