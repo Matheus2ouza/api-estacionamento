@@ -97,6 +97,62 @@ exports.vehicleEntry = async (req, res) => {
   }
 };
 
+exports.generateTicketDuplicate = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id } = req.params;
+
+  try {
+    const vehicle = await vehicleService.getvehicle(id)
+
+    if(!vehicle) {
+      return res.status(401).json({
+        success: false,
+        message: `vehiculo não encontrodo no patio`
+      })
+    }
+
+    const entryTime = new Date(vehicle.entryTime);
+
+    const dia = String(entryTime.getDate()).padStart(2, '0');
+    const mes = String(entryTime.getMonth() + 1).padStart(2, '0'); // meses começam em 0
+    const ano = entryTime.getFullYear();
+
+    const horas = String(entryTime.getHours()).padStart(2, '0');
+    const minutos = String(entryTime.getMinutes()).padStart(2, '0');
+
+    const dataFormatada = `${dia}/${mes}/${ano}`;
+    const horaFormatada = `${horas}:${minutos}`;
+
+    const secondTicket = generateEntryTicketPDF(
+      id,
+      vehicle.plate,
+      vehicle.operator,
+      vehicle.category,
+      dataFormatada,
+      horaFormatada
+    );
+    
+    return res.status(201).json({
+      success: true,
+      ticket: secondTicket
+    })
+  }catch (error) {
+    console.log(`[VehicleController] Erro ao tentar gerar a segunda via do ticket: ${error}`);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
 exports.getParkingConfig = async (req, res) => {
   try {
     const config = await vehicleService.getConfigParking();

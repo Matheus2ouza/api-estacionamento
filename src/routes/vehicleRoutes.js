@@ -43,6 +43,12 @@ router.post('/deleteVehicle',
   vehicleController.deleteVehicle
 )
 
+router.get('/:id/ticket', 
+  authMiddleware('NORMAL'), 
+  vehicleController.generateTicketDuplicate
+);
+
+
 router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
 
 router.get('/parked',authMiddleware('NORMAL'), vehicleController.getParkedVehicles);

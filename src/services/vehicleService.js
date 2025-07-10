@@ -73,6 +73,26 @@ async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
   }
 }
 
+async function getvehicle(id) {
+  try{
+    const result = await prisma.vehicleEntry.findFirst({
+      where: {
+        id: id,
+        status: 'INSIDE'
+      },
+      data: {
+        plate: true,
+        entryTime: true,
+        operator: true,
+      }
+    })
+
+    return result
+  } catch (err) {
+    throw err
+  }
+}
+
 async function getParkedVehicles() {
   try {
     const vehicles = await prisma.vehicleEntry.findMany({
@@ -196,6 +216,7 @@ async function deleteVehicleService(id, date, formattedDate, user) {
 module.exports = {
   vehicleEntry,
   getConfigParking,
+  getvehicle,
   configParking,
   getParkedVehicles,
   editVehicleService,
