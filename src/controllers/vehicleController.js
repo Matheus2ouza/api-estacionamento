@@ -123,7 +123,7 @@ exports.generateTicketDuplicate = async (req, res) => {
     const entryTime = new Date(vehicle.entryTime);
 
     const dia = String(entryTime.getDate()).padStart(2, '0');
-    const mes = String(entryTime.getMonth() + 1).padStart(2, '0'); // meses começam em 0
+    const mes = String(entryTime.getMonth() + 1).padStart(2, '0');
     const ano = entryTime.getFullYear();
 
     const horas = String(entryTime.getHours()).padStart(2, '0');
@@ -131,6 +131,8 @@ exports.generateTicketDuplicate = async (req, res) => {
 
     const dataFormatada = `${dia}/${mes}/${ano}`;
     const horaFormatada = `${horas}:${minutos}`;
+
+    console.log(horaFormatada)
 
     const secondTicket = await generateEntryTicketPDF(
       id,
