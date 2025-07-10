@@ -37,7 +37,7 @@ exports.vehicleEntry = async (req, res) => {
       plate,
       category,
       operatorId,
-      belemTime,
+      belemDateTime,
       formattedDate
     );
 
