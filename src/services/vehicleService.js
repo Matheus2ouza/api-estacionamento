@@ -94,6 +94,22 @@ async function getvehicle(id) {
   }
 }
 
+async function getUniqueVehicleService(id, plate) {
+  try{
+    const result = await prisma.vehicleEntry.findUnique({
+      where: {id: id, plate: plate, status: 'INSIDE'},
+      select: {
+        category: true,
+        entryTime: true,
+      }
+    })
+
+    return result
+  } catch (err) {
+    throw err
+  }
+}
+
 async function getParkedVehicles() {
   try {
     const vehicles = await prisma.vehicleEntry.findMany({
@@ -218,6 +234,7 @@ module.exports = {
   vehicleEntry,
   getConfigParking,
   getvehicle,
+  getUniqueVehicleService,
   configParking,
   getParkedVehicles,
   editVehicleService,

@@ -216,6 +216,42 @@ exports.ConfigurationParking = async (req, res) => {
   }
 };
 
+exports.getUniqueVehicle = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id, plate } = req.params
+
+  try{
+    const vehicle = await vehicleService.getUniqueVehicleService(id, plate);
+
+    if(!vehicle) {
+      console.log(`[vehicleController] tentativa de busca da placa: ${plate}, mas não estava no patio `);
+      return res.status(401).json({
+        success: false,
+        message: `O veiculo não se encontra no patio`
+      })
+    }
+
+    return res.status(201).json({
+      success: true,
+      car: vehicle
+    })
+  } catch (error) {
+    console.log(`[vehicleController] Erro ao tentar buscar o veiculo: ${error}`)
+    return res.status(500).json({
+      success: false,
+      message: `Erro ao tentar buscar o veiculo: ${error}`
+    })
+  }
+}
+
 exports.getParkedVehicles = async (req, res) => {
   try {
     const vehicles = await vehicleService.getParkedVehicles();

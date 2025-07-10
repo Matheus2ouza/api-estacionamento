@@ -1,5 +1,5 @@
 const express = require('express');
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const vehicleController = require('../controllers/vehicleController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
@@ -43,11 +43,22 @@ router.post('/deleteVehicle',
   vehicleController.deleteVehicle
 )
 
-router.get('/:id/ticket', 
+router.get('/:id/ticket',
+  [
+    param('id').isUUID(),
+  ],
   authMiddleware('NORMAL'), 
   vehicleController.generateTicketDuplicate
 );
 
+router.get('/:id/:plate/vehicle',
+  [
+    param('id').isUUID(),
+    param('plate').isLength({ min: 7, max: 7 }),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.getUniqueVehicle
+)
 
 router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
 
