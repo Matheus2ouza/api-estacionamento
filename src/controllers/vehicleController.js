@@ -33,6 +33,8 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
+    console.log(`${belemTime}`);
+    console.log(`${formattedDate}`);
     const result = await vehicleService.vehicleEntry(
       plate,
       category,
