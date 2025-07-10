@@ -216,8 +216,6 @@ exports.ConfigurationParking = async (req, res) => {
   }
 };
 
-const { DateTime } = require('luxon');
-
 exports.getUniqueVehicle = async (req, res) => {
   const errors = validationResult(req);
 
