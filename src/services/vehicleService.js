@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function vehicleEntry(plate, category, operatorId, formattedDate) {
+async function vehicleEntry(plate, category, operatorId, date, formattedDate) {
   try {
     const verifyPlate = await prisma.vehicleEntry.findFirst({
       where: {
@@ -28,7 +28,7 @@ async function vehicleEntry(plate, category, operatorId, formattedDate) {
         plate: plate,
         category: category,
         operator: operator.username,
-        entryTime: formattedDate,
+        entryTime: date,
         description: `Registro criado pelo operador ${operator.username} em ${formattedDate}`
       }
     })

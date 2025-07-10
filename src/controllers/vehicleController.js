@@ -16,10 +16,8 @@ exports.vehicleEntry = async (req, res) => {
   let { plate, category, operatorId } = req.body;
 
   plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-  const belemTime = DateTime.now().setZone("America/Belem").toJSDate();
-  const formattedDate = DateTime.fromJSDate(belemTime)
-    .setZone("America/Belem")
-    .toFormat("dd/MM/yyyy HH:mm:ss");
+  const belemDateTime = DateTime.now().setZone("America/Belem");
+  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
 
   const isOldPattern = /^[A-Z]{3}[0-9]{4}$/.test(plate);
   const isMercosulPattern = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(plate);
@@ -33,12 +31,13 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    console.log(`${belemTime}`);
+    console.log(`${belemDateTime}`);
     console.log(`${formattedDate}`);
     const result = await vehicleService.vehicleEntry(
       plate,
       category,
       operatorId,
+      belemTime,
       formattedDate
     );
 
