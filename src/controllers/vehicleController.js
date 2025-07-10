@@ -238,7 +238,7 @@ exports.getUniqueVehicle = async (req, res) => {
 
     // Formata o entryTime para horário de Belém
     if (vehicle.entryTime) {
-      const dt = DateTime.fromISO(vehicle.entryTime, { zone: 'utc' }).setZone('America/Belem');
+      const dt = DateTime.fromJSDate(vehicle.entryTime).setZone('America/Belem');
       vehicle.entryTime = dt.toFormat('dd/MM/yyyy HH:mm:ss');
     }
 
