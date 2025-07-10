@@ -7,7 +7,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
-        size: [137, 270],
+        size: [137, 290],
         margins: { top: 5, bottom: 5, left: 5, right: 5 },
       });
 
