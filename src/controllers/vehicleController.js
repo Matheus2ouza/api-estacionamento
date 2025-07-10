@@ -121,7 +121,7 @@ exports.generateTicketDuplicate = async (req, res) => {
     }
 
     console.log(`Hora de entrada: ${vehicle.entryTime}`)
-    const dt = DateTime.fromISO(vehicle.entryTime, { zone: 'utc' }).setZone('America/Belem');
+    const dt = DateTime.fromJSDate(vehicle.entryTime).setZone('America/Belem');
 
     const dataFormatada = dt.toFormat('dd/MM/yyyy');
     const horaFormatada = dt.toFormat('HH:mm');
@@ -254,7 +254,6 @@ exports.getUniqueVehicle = async (req, res) => {
     });
   }
 };
-
 
 exports.getParkedVehicles = async (req, res) => {
   try {
