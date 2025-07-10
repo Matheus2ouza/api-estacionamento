@@ -84,6 +84,7 @@ async function getvehicle(id) {
         plate: true,
         entryTime: true,
         operator: true,
+        category: true,
       }
     })
 
