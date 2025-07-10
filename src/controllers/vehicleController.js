@@ -132,7 +132,7 @@ exports.generateTicketDuplicate = async (req, res) => {
     const dataFormatada = `${dia}/${mes}/${ano}`;
     const horaFormatada = `${horas}:${minutos}`;
 
-    const secondTicket = generateEntryTicketPDF(
+    const secondTicket = await generateEntryTicketPDF(
       id,
       vehicle.plate,
       vehicle.operator,
