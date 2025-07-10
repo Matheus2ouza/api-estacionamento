@@ -75,7 +75,7 @@ async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
 
 async function getvehicle(id) {
   try{
-    const result = await prisma.vehicleEntry.findFirst({
+    const result = await prisma.vehicleEntry.findUnique({
       where: {
         id: id,
         status: 'INSIDE'
