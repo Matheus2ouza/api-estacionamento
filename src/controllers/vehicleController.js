@@ -120,12 +120,14 @@ exports.generateTicketDuplicate = async (req, res) => {
       })
     }
 
+    console.log(`Hora de entrada: ${vehicle.entryTime}`)
     const dt = DateTime.fromISO(vehicle.entryTime, { zone: 'utc' }).setZone('America/Belem');
 
     const dataFormatada = dt.toFormat('dd/MM/yyyy');
     const horaFormatada = dt.toFormat('HH:mm');
 
-    console.log(horaFormatada)
+    console.log(`Data formatada: ${dataFormatada}`);
+    console.log(`Hora formatada: ${horaFormatada}`);
 
     const secondTicket = await generateEntryTicketPDF(
       id,
