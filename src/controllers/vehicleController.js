@@ -124,7 +124,7 @@ exports.generateTicketDuplicate = async (req, res) => {
     const dt = DateTime.fromJSDate(vehicle.entryTime).setZone('America/Belem');
 
     const dataFormatada = dt.toFormat('dd/MM/yyyy');
-    const horaFormatada = dt.toFormat('HH:mm');
+    const horaFormatada = dt.toFormat('HH:mm:ss');
 
     console.log(`Data formatada: ${dataFormatada}`);
     console.log(`Hora formatada: ${horaFormatada}`);
