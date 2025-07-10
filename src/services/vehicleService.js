@@ -80,7 +80,7 @@ async function getvehicle(id) {
         id: id,
         status: 'INSIDE'
       },
-      data: {
+      select: {
         plate: true,
         entryTime: true,
         operator: true,
