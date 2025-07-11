@@ -2,8 +2,6 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { DateTime } = require("luxon");
 
-import { DateTime } from 'luxon';
-
 async function statusCashService(date) {
   try {
     // Converte a data para o fuso de Belém (UTC-3)
@@ -22,7 +20,7 @@ async function statusCashService(date) {
       },
     });
 
-    return !!result; // retorna true se encontrou, false se não
+    return !!result;
   } catch (err) {
     throw err;
   }
@@ -51,7 +49,7 @@ async function opencashService(user, initialValue, date) {
 
   const newCash = await prisma.cashRegister.create({
     data: {
-      openingDate: date, // esse `date` já veio com fuso local ao ser criado
+      openingDate: date,
       operator: user.username,
       initialValue,
       finalValue: initialValue,
