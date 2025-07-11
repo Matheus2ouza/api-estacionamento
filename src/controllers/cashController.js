@@ -32,22 +32,29 @@ exports.openCash = async (req, res) => {
     });
   }
 
-  const { initialValue } = req.body
-  const user = req.user
+  const { initialValue } = req.body;
+  const user = req.user;
   const date = DateTime.now().setZone("America/Belem").toJSDate();
 
   try {
-    const cash = await cashService.opencashService(user, initialValue, date);
+    const isOpen = await cashService.opencashService(user, initialValue, date);
+
+    if (!isOpen) {
+      return res.status(409).json({
+        success: false,
+        message: "Já existe um caixa aberto para hoje.",
+      });
+    }
 
     return res.status(201).json({
       success: true,
-      cash
-    })
-  } catch  (error) {
-    console.log(`[CashController] Já existe um caixa aberto nessa data`);
+      isOpen: true,
+    });
+  } catch (error) {
+    console.log(`[CashController] Erro ao abrir caixa: ${error}`);
     return res.status(500).json({
       success: false,
-      message: error.message
-    })
+      message: "Erro interno ao tentar abrir o caixa.",
+    });
   }
-}
+};

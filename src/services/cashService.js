@@ -38,24 +38,21 @@ async function opencashService(user, initialValue, date) {
   });
 
   if (existingCash) {
-
-    throw new Error("Já existe um caixa aberto para hoje.");
+    return false;
   }
 
-  try{
-    const newCash = await prisma.cashRegister.create({
-      data: {
-        openingDate: date,
-        operator: user.username,
-        initialValue: initialValue,
-        status: "OPEN",
-      },
-    });
-  
-    return newCash;
-  } catch (err) {
-    throw err
-  }
+  const newCash = await prisma.cashRegister.create({
+    data: {
+      openingDate: date,
+      operator: user.username,
+      initialValue,
+      finalValue: initialValue,
+      status: "OPEN",
+      closingDate: null,
+    },
+  });
+
+  return !!newCash; // true se criou com sucesso
 }
 
 module.exports = {
