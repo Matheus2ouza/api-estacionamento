@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const cashService = require('../services/vehicleService');
+const cashService = require('../services/cashService');
 const { DateTime } = require("luxon");
 
 
@@ -10,7 +10,9 @@ exports.statusCash = async (req, res) => {
 
     console.log(`Data com toJSDate: ${date}`);
     console.log(`Data sem toJSDate: ${date2}`);
-    // const status = await cashService.
+  
+
+
   } catch (error) {
     console.log(`[CashController] Erro ao tentar buscar o status do caixa: ${error}`);
     res.status(500).json({
