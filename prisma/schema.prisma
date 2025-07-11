@@ -27,6 +27,21 @@ model Authentication {
   @@map("authentications")
 }
 
+model CashRegister {
+  id                  String                @id @default(uuid())
+  openingDate         DateTime              @map("opening_date")
+  closingDate         DateTime?             @map("closing_date")
+  status              CashRegisterStatus    @default(OPEN)
+  operator            String
+  initialValue        Decimal               @db.Decimal(10, 2) @map("initial_value")
+  finalValue          Decimal               @db.Decimal(10, 2) @map("final_value")
+
+  outgoingExpenses    OutgoingExpense[]
+  Transactions        Transaction[]
+
+  @@map("cash_register")
+}
+
 model VehicleEntry {
   id          String         @id @default(uuid())
   plate       String
@@ -36,10 +51,71 @@ model VehicleEntry {
   exitTime    DateTime?      @map("exit_time")
   status      VehicleStatus  @default(INSIDE)
   deletedAt   DateTime?      @map("deleted_at")
-  description String?        @default("")     // nova coluna
+  description String?        @default("")
+
+  transactions   Transaction[]
 
   @@map("vehicle_entries")
   @@index([plate])
+}
+
+model Product {
+  id                String         @id @default(uuid())
+  productName       String         @map("product_name")
+
+  transactions      Transaction[]
+  generalSales      GeneralSale[]
+
+  @@map("products")
+}
+
+model GeneralSale {
+  id                String         @id @default(uuid())
+  productId         String         @map("product_id")
+  unitPrice         Decimal        @db.Decimal(10, 2)  @map("unit_price")
+  quantity          Int
+  expirationDate    DateTime?      @map("expiration_date") 
+
+  product           Product        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@map("general_sale")
+}
+
+model Transaction {
+  id                String         @id @default(uuid())
+  vehicleId         String?        @map("vehicle_id")
+  productId         String?        @map("product_id")
+  operator          String
+  transactionDate   DateTime       @map("transaction_date")
+  cashRegisterId    String         @map("cash_register_id")
+  
+  vehicleEntry      VehicleEntry?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  product           Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  cashRegister      CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+
+  @@map("transaction")
+}
+
+model OutgoingExpense {
+  id                String         @id @default(uuid())
+  description       String         @map("description")
+  amount            Decimal        @db.Decimal(10, 2) @map("amount")
+  transactionDate   DateTime       @default(now()) @map("transaction_date")
+  cashRegisterId    String         @map("cash_register_id")
+  operator          String
+
+  cashRegister      CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+
+  @@map("outgoing_expense")
+}
+
+model FinancialMovement {
+  id                String         @id @default(uuid())
+  description       String
+  amount            Decimal        @db.Decimal(10, 2) @map("amount")
+  transactionDate   DateTime       @default(now()) @map("transaction_date")
+
+  @@map("financial_movement")
 }
 
 model PatioConfig {
@@ -54,6 +130,11 @@ model PatioConfig {
 enum AccountRole {
   ADMIN
   NORMAL
+}
+
+enum CashRegisterStatus {
+  OPEN
+  CLOSED
 }
 
 enum VehicleCategory {
