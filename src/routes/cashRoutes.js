@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get('/status', authMiddleware('NORMAL'), cashController.statusCash)
 
-router.post('open-cash',
+router.post('/open-cash',
   [
     body('initialValue').isFloat({min: 0}).withMessage('O valor inicial deve ser um número maior que zero.')
   ],
