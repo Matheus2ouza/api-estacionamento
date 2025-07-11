@@ -142,8 +142,8 @@ enum CashRegisterStatus {
 enum PaymentMethod {
   DINHEIRO,
   PIX,
-  CRÉDITO,
-  DÉBITO
+  CREDITO,
+  DEBITO
 }
 
 enum VehicleCategory {
