@@ -9,7 +9,7 @@ router.get('/status', authMiddleware('NORMAL'), cashController.statusCash)
 
 router.post('open-cash',
   [
-    body('initialValue').isFloat({gt: 0}).withMessage('O valor inicial deve ser um número maior que zero.')
+    body('initialValue').isFloat({min: 0}).withMessage('O valor inicial deve ser um número maior que zero.')
   ],
   authMiddleware('ADMIN'),
   cashController.cashController
