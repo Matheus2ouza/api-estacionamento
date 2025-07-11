@@ -140,9 +140,9 @@ enum CashRegisterStatus {
 }
 
 enum PaymentMethod {
-  DINHEIRO,
-  PIX,
-  CREDITO,
+  DINHEIRO
+  PIX
+  CREDITO
   DEBITO
 }
 
