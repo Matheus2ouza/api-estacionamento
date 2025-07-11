@@ -27,11 +27,18 @@ async function statusCashService(date) {
 }
 
 async function opencashService(user, initialValue, date) {
+  console.log("[opencashService] Iniciando abertura de caixa...");
+  console.log("[opencashService] Data original recebida:", date);
+
   // Força a zona para America/Belem ao calcular o intervalo
   const localDateTime = DateTime.fromJSDate(date).setZone('America/Belem');
+  console.log("[opencashService] Data convertida para America/Belem:", localDateTime.toISO());
 
   const startOfDay = localDateTime.startOf('day').toJSDate();
   const endOfDay = localDateTime.endOf('day').toJSDate();
+
+  console.log("[opencashService] Intervalo startOfDay:", startOfDay);
+  console.log("[opencashService] Intervalo endOfDay:", endOfDay);
 
   const existingCash = await prisma.cashRegister.findFirst({
     where: {
@@ -44,8 +51,11 @@ async function opencashService(user, initialValue, date) {
   });
 
   if (existingCash) {
+    console.log("[opencashService] Já existe um caixa aberto:", existingCash);
     return false;
   }
+
+  console.log("[opencashService] Nenhum caixa aberto encontrado, criando um novo...");
 
   const newCash = await prisma.cashRegister.create({
     data: {
@@ -58,8 +68,11 @@ async function opencashService(user, initialValue, date) {
     },
   });
 
+  console.log("[opencashService] Caixa criado com sucesso:", newCash);
+
   return !!newCash;
 }
+
 
 
 module.exports = {
