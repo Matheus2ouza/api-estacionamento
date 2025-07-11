@@ -86,6 +86,7 @@ model Transaction {
   vehicleId         String?        @map("vehicle_id")
   productId         String?        @map("product_id")
   operator          String
+  paymentMethod     PaymentMethod  
   transactionDate   DateTime       @map("transaction_date")
   cashRegisterId    String         @map("cash_register_id")
   
@@ -113,6 +114,7 @@ model FinancialMovement {
   id                String         @id @default(uuid())
   description       String
   amount            Decimal        @db.Decimal(10, 2) @map("amount")
+  paymentMethod     PaymentMethod
   transactionDate   DateTime       @default(now()) @map("transaction_date")
 
   @@map("financial_movement")
@@ -135,6 +137,13 @@ enum AccountRole {
 enum CashRegisterStatus {
   OPEN
   CLOSED
+}
+
+enum PaymentMethod {
+  DINHEIRO,
+  PIX,
+  CRÉDITO,
+  DÉBITO
 }
 
 enum VehicleCategory {
