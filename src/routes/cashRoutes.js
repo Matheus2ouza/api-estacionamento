@@ -12,7 +12,7 @@ router.post('open-cash',
     body('initialValue').isFloat({min: 0}).withMessage('O valor inicial deve ser um número maior que zero.')
   ],
   authMiddleware('ADMIN'),
-  cashController.cashController
+  cashController.openCash
 )
 
 module.exports = router;
