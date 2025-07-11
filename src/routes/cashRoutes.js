@@ -5,7 +5,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.get('/statusCash', authMiddleware('NORMAL'), cashController.statusCash)
+router.get('/status', authMiddleware('NORMAL'), cashController.statusCash)
 
 
 
