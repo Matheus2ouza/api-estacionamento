@@ -40,24 +40,16 @@ exports.createProduct = async (req, res) => {
 
   const { productName, unitPrice, quantity, expirationDate } = req.body;
 
+  console.log(expirationDate)
+
   try {
     let parsedExpiration = null;
 
-    if (expirationDate) {
+    // Só tenta converter se a data existir
+    if (expirationDate && typeof expirationDate === 'string') {
       const [month, year] = expirationDate.split('/');
-      if (!month || !year) {
-        return res.status(400).json({
-          success: false,
-          message: 'Formato de validade inválido. Use MM/AAAA.',
-        });
-      }
-
-      parsedExpiration = new Date(`${year}-${month}-01T00:00:00Z`);
-      if (isNaN(parsedExpiration.getTime())) {
-        return res.status(400).json({
-          success: false,
-          message: 'Data de validade inválida.',
-        });
+      if (month && year) {
+        parsedExpiration = new Date(`${year}-${month}-01`);
       }
     }
 
