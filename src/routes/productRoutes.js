@@ -16,3 +16,5 @@ router.post('/create-product',
   ], authMiddleware('NORMAL'),
   ProductController.createProduct
 )
+
+module.exports = router
