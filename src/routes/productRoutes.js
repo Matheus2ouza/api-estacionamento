@@ -5,7 +5,7 @@ const ProductController = require('../controllers/productController')
 
 const router = express.Router()
 
-router.get('list-products', authMiddleware('NORMAL'), ProductController.listProducts)
+router.get('/list-products', authMiddleware('NORMAL'), ProductController.listProducts)
 
 router.post('/create-product',
   [
