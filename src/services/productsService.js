@@ -32,36 +32,35 @@ async function listProductService() {
 }
 
 async function createProductService(productName, unitPrice, quantity, expirationDate) {
-  
   const verifyProduct = await prisma.product.findFirst({
-    where: {productName: productName}
-  })
+    where: { productName }
+  });
 
-  if(verifyProduct) {
-    return false
+  if (verifyProduct) {
+    return false;
   }
 
   try {
-    await prisma.$transaction( async (tx) => {
-      console.log(`[ProductsService] Ristrando o nome do produto`)
-      const registerNameProduct = await prisma.product.create({
-        data: {
-          productName: productName
-        }
-      })
+    await prisma.$transaction(async (tx) => {
+      const registerNameProduct = await tx.product.create({
+        data: { productName }
+      });
 
-      console.log(`[ProductsService] Ristrando dados do produto`)
-      await prisma.generalSale.create({
-        data: {
-          productId: registerNameProduct.id,
-          unitPrice: unitPrice,
-          quantity: quantity,
-          expirationDate: expirationDate
-        }
-      })
-    })
+      const generalSaleData = {
+        productId: registerNameProduct.id,
+        unitPrice,
+        quantity,
+        ...(expirationDate && { expirationDate }) // só inclui se estiver presente
+      };
+
+      await tx.generalSale.create({
+        data: generalSaleData
+      });
+    });
+
+    return true;
   } catch (err) {
-    throw err
+    throw err;
   }
 }
 

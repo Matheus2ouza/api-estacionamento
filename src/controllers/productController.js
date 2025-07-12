@@ -38,32 +38,54 @@ exports.createProduct = async (req, res) => {
     });
   }
 
-  const { productName, unitPrice, quantity, expirationDate} = req.body
+  const { productName, unitPrice, quantity, expirationDate } = req.body;
 
-  try{
-    const [ month, year ] = expirationDate.split('/')
-    const parsedExpiration = new Date(`${year}-${month}`)
+  try {
+    let parsedExpiration = null;
 
-    const product = await productsService.createProductService(productName, unitPrice, quantity, parsedExpiration);
+    if (expirationDate) {
+      const [month, year] = expirationDate.split('/');
+      if (!month || !year) {
+        return res.status(400).json({
+          success: false,
+          message: 'Formato de validade inválido. Use MM/AAAA.',
+        });
+      }
 
-    if (!product) {
+      parsedExpiration = new Date(`${year}-${month}-01T00:00:00Z`);
+      if (isNaN(parsedExpiration.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Data de validade inválida.',
+        });
+      }
+    }
+
+    const created = await productsService.createProductService(
+      productName,
+      parseFloat(unitPrice),
+      parseInt(quantity),
+      parsedExpiration
+    );
+
+    if (!created) {
       return res.status(400).json({
         success: false,
-        message: 'Produto já cadastrado'
-      })
+        message: 'Produto já cadastrado',
+      });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'O produto foi cadastrado com sucesso'
-    })
-  } catch(error) {
-    console.log(`[ProductController] Erro ao tentar cadastrar o produto`)
+      message: 'O produto foi cadastrado com sucesso',
+    });
+  } catch (error) {
+    console.error(`[ProductController] Erro ao tentar cadastrar o produto:`, error);
 
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao cadastrar o produto.',
-      error: error.message
-    })
+      error: error.message,
+    });
   }
-}
+};

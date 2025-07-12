@@ -12,7 +12,6 @@ router.post('/create-product',
     body('productName').notEmpty(),
     body('unitPrice').isDecimal({ decimal_digits: '0,2' }),
     body('quantity').isInt({ gt: 0 }),
-    body('expirationDate').matches(/^(0[1-9]|1[0-2])\/\d{4}$/)
   ],
   authMiddleware('NORMAL'),
   ProductController.createProduct
