@@ -51,7 +51,7 @@ async function getConfigParking() {
 
 async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
   try {
-    const configParking = await prisma.PatioConfig.upsert({
+    const configParking = await prisma.patioConfig.upsert({
       where: { id: "singleton" },
       update: {
         maxCars,

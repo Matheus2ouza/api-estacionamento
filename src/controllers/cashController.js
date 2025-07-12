@@ -2,7 +2,6 @@ const { validationResult, Result } = require('express-validator');
 const cashService = require('../services/cashService');
 const { DateTime } = require("luxon");
 
-
 exports.statusCash = async (req, res) => {
   try {
     const date = DateTime.now().setZone("America/Belem").toJSDate();
