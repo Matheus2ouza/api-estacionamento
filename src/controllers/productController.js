@@ -41,8 +41,8 @@ exports.createProduct = async (req, res) => {
   const { productName, unitPrice, quantity, expirationDate} = req.body
 
   try{
-    const [ day, month, year ] = expirationDate.split('/')
-    const parsedExpiration = new Date(`${year}-${month}-${day}`)
+    const [ month, year ] = expirationDate.split('/')
+    const parsedExpiration = new Date(`${year}-${month}`)
 
     const product = await productsService.createProductService(productName, unitPrice, quantity, parsedExpiration);
 
