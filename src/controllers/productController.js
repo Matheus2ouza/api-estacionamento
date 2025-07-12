@@ -40,17 +40,46 @@ exports.createProduct = async (req, res) => {
 
   const { productName, unitPrice, quantity, expirationDate } = req.body;
 
-  console.log(expirationDate)
-
   try {
     let parsedExpiration = null;
 
-    // Só tenta converter se a data existir
-    if (expirationDate && typeof expirationDate === 'string') {
-      const [month, year] = expirationDate.split('/');
-      if (month && year) {
-        parsedExpiration = new Date(`${year}-${month}-01`);
+    // Validação da data de validade
+    if (expirationDate) {
+      // Verificar formato MM/AAAA
+      if (!/^\d{2}\/\d{4}$/.test(expirationDate)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Formato de validade inválido. Use MM/AAAA.',
+        });
       }
+
+      const [monthStr, yearStr] = expirationDate.split('/');
+      const month = parseInt(monthStr, 10);
+      const year = parseInt(yearStr, 10);
+
+      // Validar mês (1-12)
+      if (month < 1 || month > 12) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mês inválido na validade. Deve ser entre 01 e 12.',
+        });
+      }
+
+      // Validar se a data não está no passado
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // Janeiro = 1
+      const currentYear = now.getFullYear();
+
+      // Verificar se a data é anterior ao mês/ano atual
+      if (year < currentYear || (year === currentYear && month < currentMonth)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A validade não pode ser anterior ao mês/ano atual.',
+        });
+      }
+
+      // Converter para objeto Date (primeiro dia do mês)
+      parsedExpiration = new Date(year, month - 1, 1);
     }
 
     const created = await productsService.createProductService(
