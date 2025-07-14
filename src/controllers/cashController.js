@@ -12,13 +12,14 @@ exports.statusCash = async (req, res) => {
     if(!isOpen) {
       return res.status(404).json({
         success: false,
-        isOpen: null
+        message: 'Nenhum caixa encontrado',
+        cash: null
       })
     }
 
     return res.status(200).json({
       success: true,
-      isOpen,
+      cash: isOpen
     });
   } catch (error) {
     console.error(`[CashController] Erro ao buscar status do caixa: ${error}`);

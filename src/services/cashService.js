@@ -30,7 +30,6 @@ async function statusCashService(date) {
   }
 }
 
-
 async function opencashService(user, initialValue, date) {
   console.log("[opencashService] Iniciando abertura de caixa...");
   console.log("[opencashService] Data original recebida:", date);
