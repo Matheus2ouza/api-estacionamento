@@ -19,7 +19,7 @@ router.get('/general-cash-data/:id',
   [
     param('id').isUUID(),
   ],
-  authMiddleware('ADMIN'), cashController.
+  authMiddleware('ADMIN'), cashController.geralCashData
 );
 
 module.exports = router;
