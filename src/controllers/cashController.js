@@ -7,19 +7,18 @@ exports.statusCash = async (req, res) => {
     // Usa a data atual com fuso de Belém
     const date = DateTime.now().setZone("America/Belem").toJSDate();
 
-    const isOpen = await cashService.statusCashService(date);
+    const data = await cashService.statusCashService(date);
 
     if(!isOpen) {
       return res.status(404).json({
         success: false,
         message: 'Nenhum caixa encontrado',
-        cash: null
       })
     }
 
     return res.status(200).json({
       success: true,
-      cash: isOpen
+      cash: data
     });
   } catch (error) {
     console.error(`[CashController] Erro ao buscar status do caixa: ${error}`);
@@ -29,7 +28,6 @@ exports.statusCash = async (req, res) => {
     });
   }
 };
-
 
 exports.openCash = async (req, res) => {
   const errors = validationResult(req);
@@ -57,7 +55,7 @@ exports.openCash = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      isOpen: true,
+      cash: isOpen
     });
   } catch (error) {
     console.log(`[CashController] Erro ao abrir caixa: ${error}`);

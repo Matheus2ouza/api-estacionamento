@@ -74,7 +74,7 @@ async function opencashService(user, initialValue, date) {
 
   console.log("[opencashService] Caixa criado com sucesso:", newCash);
 
-  return !!newCash;
+  return newCash;
 }
 
 async function geralCashDataService(id) {
