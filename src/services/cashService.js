@@ -78,9 +78,32 @@ async function opencashService(user, initialValue, date) {
   return !!newCash;
 }
 
+async function geralCashDataService(id) {
+  const verifyCash = await prisma.cashRegister.findUnique({
+    where: {id: id}
+  })
 
+  if(!verifyCash) {
+    return false
+  }
+
+  try{
+    const result =  await prisma.cashRegister.findFirst({
+      where: {id: id},
+      select: {
+        vehicleEntryTotal: true,
+        generalSaleTotal: true
+      }
+    })
+    
+    return result
+  } catch (error) {
+    throw error
+  }
+}
 
 module.exports = {
   statusCashService,
-  opencashService
+  opencashService,
+  geralCashDataService
 }

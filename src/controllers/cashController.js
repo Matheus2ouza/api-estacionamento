@@ -59,3 +59,39 @@ exports.openCash = async (req, res) => {
     });
   }
 };
+
+exports.geralCashData = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id } = req.params;
+  
+  try{
+    const data = await cashService.statusCashService(id);
+
+    if (!data) {
+      return res.status(400).json({
+        success: false,
+        message: 'Caixa não encontrado'
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: data
+    })
+  } catch (error) {
+    console.log(`[CashController] Erro ao tentar buscar os dados gerais do caixa: ${error}`);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao tentar buscar os dados gerais do caixa',
+      error: error
+    })
+  }
+}
