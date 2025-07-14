@@ -23,7 +23,7 @@ async function statusCashService(date) {
     });
 
     // Retorna true se encontrou um caixa aberto nesse dia
-    return !!result;
+    return result;
   } catch (error) {
     console.error(`[CashService] Erro ao verificar caixa aberto: ${error}`);
     throw error;
