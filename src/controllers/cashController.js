@@ -73,9 +73,9 @@ exports.geralCashData = async (req, res) => {
   const { id } = req.params;
   
   try{
-    const data = await cashService.statusCashService(id);
+    const geralCashData = await cashService.geralCashDataService(id);
 
-    if (!data) {
+    if (!geralCashData) {
       return res.status(400).json({
         success: false,
         message: 'Caixa não encontrado'
@@ -84,7 +84,7 @@ exports.geralCashData = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: data
+      data: geralCashData
     })
   } catch (error) {
     console.log(`[CashController] Erro ao tentar buscar os dados gerais do caixa: ${error}`);
