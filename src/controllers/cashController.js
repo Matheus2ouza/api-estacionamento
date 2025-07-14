@@ -9,6 +9,13 @@ exports.statusCash = async (req, res) => {
 
     const isOpen = await cashService.statusCashService(date);
 
+    if(!isOpen) {
+      return res.status(404).json({
+        success: false,
+        isOpen: null
+      })
+    }
+
     return res.status(200).json({
       success: true,
       isOpen,
