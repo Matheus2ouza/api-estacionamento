@@ -96,7 +96,7 @@ exports.geralCashData = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Erro ao tentar buscar os dados gerais do caixa',
-      error: error
+      error: error.message
     })
   }
 }
