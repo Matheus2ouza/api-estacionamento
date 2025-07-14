@@ -4,27 +4,32 @@ const { DateTime } = require("luxon");
 
 async function statusCashService(date) {
   try {
-    // Converte a data para o fuso de Belém (UTC-3)
-    const localDateTime = DateTime.fromJSDate(date).setZone('America/Belem');
+    // Converte a data para DateTime com fuso de Belém
+    const localDateTime = DateTime.fromJSDate(date).setZone("America/Belem");
 
-    const startOfDay = localDateTime.startOf('day').toJSDate();
-    const endOfDay = localDateTime.endOf('day').toJSDate();
+    // Define o início e o fim do "dia local" (ex: segunda-feira das 00:00 às 23:59 de Belém)
+    const startOfDay = localDateTime.startOf("day").toJSDate();
+    const endOfDay = localDateTime.endOf("day").toJSDate();
 
+    // Busca caixa aberto com data dentro do intervalo local
     const result = await prisma.cashRegister.findFirst({
       where: {
         openingDate: {
           gte: startOfDay,
           lte: endOfDay,
         },
-        status: 'OPEN',
+        status: "OPEN",
       },
     });
 
+    // Retorna true se encontrou um caixa aberto nesse dia
     return !!result;
-  } catch (err) {
-    throw err;
+  } catch (error) {
+    console.error(`[CashService] Erro ao verificar caixa aberto: ${error}`);
+    throw error;
   }
 }
+
 
 async function opencashService(user, initialValue, date) {
   console.log("[opencashService] Iniciando abertura de caixa...");

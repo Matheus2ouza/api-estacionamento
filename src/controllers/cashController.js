@@ -4,6 +4,7 @@ const { DateTime } = require("luxon");
 
 exports.statusCash = async (req, res) => {
   try {
+    // Usa a data atual com fuso de Belém
     const date = DateTime.now().setZone("America/Belem").toJSDate();
 
     const isOpen = await cashService.statusCashService(date);
@@ -13,13 +14,14 @@ exports.statusCash = async (req, res) => {
       isOpen,
     });
   } catch (error) {
-    console.log(`[CashController] Erro ao tentar buscar o status do caixa: ${error}`);
+    console.error(`[CashController] Erro ao buscar status do caixa: ${error}`);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Erro interno ao verificar o status do caixa.",
     });
   }
 };
+
 
 exports.openCash = async (req, res) => {
   const errors = validationResult(req);
