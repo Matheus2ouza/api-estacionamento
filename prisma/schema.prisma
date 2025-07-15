@@ -86,17 +86,21 @@ model GeneralSale {
 }
 
 model Transaction {
-  id                String         @id @default(uuid())
-  vehicleId         String?        @map("vehicle_id")
-  productId         String?        @map("product_id")
-  operator          String
-  paymentMethod     PaymentMethod  
-  transactionDate   DateTime       @map("transaction_date")
-  cashRegisterId    String         @map("cash_register_id")
-  
-  vehicleEntry      VehicleEntry?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  product           Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
-  cashRegister      CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+  id               String         @id @default(uuid())
+  vehicleId        String?        @map("vehicle_id")
+  productId        String?        @map("product_id")
+  operator         String
+  paymentMethod    PaymentMethod  
+  transactionDate  DateTime       @map("transaction_date")
+  cashRegisterId   String         @map("cash_register_id")
+
+  originalAmount   Decimal        @map("original_amount")     // The price before discount
+  discountAmount   Decimal        @default(0) @map("discount_amount") // Discount applied
+  finalAmount      Decimal        @map("final_amount")         // Price after discount
+
+  vehicleEntry     VehicleEntry?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  product          Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  cashRegister     CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
 
   @@map("transaction")
 }
