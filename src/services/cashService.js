@@ -88,11 +88,7 @@ async function geralCashDataService(id) {
 
   try{
     const result =  await prisma.cashRegister.findFirst({
-      where: {id: id},
-      select: {
-        vehicleEntryTotal: true,
-        generalSaleTotal: true
-      }
+      where: {id: id}
     })
     
     return result
