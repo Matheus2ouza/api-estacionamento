@@ -87,15 +87,10 @@ exports.geralCashData = async (req, res) => {
         message: 'Caixa não encontrado'
       })
     }
-    
-    const geralCashData = {
-      veicles: data.vehicleEntryTotal,
-      products: data.generalSaleTotal
-    }
 
     return res.status(200).json({
       success: true,
-      data: geralCashData
+      data: data
     })
   } catch (error) {
     console.log(`[CashController] Erro ao tentar buscar os dados gerais do caixa: ${error}`);
