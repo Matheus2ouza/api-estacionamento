@@ -9,7 +9,7 @@ exports.statusCash = async (req, res) => {
 
     const data = await cashService.statusCashService(date);
 
-    if(!isOpen) {
+    if(!data) {
       return res.status(404).json({
         success: false,
         message: 'Nenhum caixa encontrado',
