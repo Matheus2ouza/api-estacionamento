@@ -22,4 +22,11 @@ router.get('/general-cash-data/:id',
   authMiddleware('ADMIN'), cashController.geralCashData
 );
 
+router.post('/close-cash/:id',
+  [
+    param('id').isUUID(),
+    body('finalValue').isIn({min: 0})
+  ],
+  authMiddleware('NORMAL'), cashController.closeCash)
+
 module.exports = router;

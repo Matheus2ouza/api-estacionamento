@@ -30,19 +30,14 @@ async function statusCashService(date) {
   }
 }
 
-async function opencashService(user, initialValue, date) {
-  console.log("[opencashService] Iniciando abertura de caixa...");
-  console.log("[opencashService] Data original recebida:", date);
+async function openCashService(user, initialValue, localDateTime) {
+  console.log("[opencashService] Data recebida como DateTime:", localDateTime.toISO());
 
-  // Força a zona para America/Belem ao calcular o intervalo
-  const localDateTime = DateTime.fromJSDate(date).setZone('America/Belem');
-  console.log("[opencashService] Data convertida para America/Belem:", localDateTime.toISO());
-
-  const startOfDay = localDateTime.startOf('day').toJSDate();
+  const startOfDay = localDateTime.startOf('day').toJSDate(); // convertido em UTC
   const endOfDay = localDateTime.endOf('day').toJSDate();
 
-  console.log("[opencashService] Intervalo startOfDay:", startOfDay);
-  console.log("[opencashService] Intervalo endOfDay:", endOfDay);
+  console.log("[opencashService] Intervalo UTC - startOfDay:", startOfDay);
+  console.log("[opencashService] Intervalo UTC - endOfDay:", endOfDay);
 
   const existingCash = await prisma.cashRegister.findFirst({
     where: {
@@ -59,11 +54,9 @@ async function opencashService(user, initialValue, date) {
     return false;
   }
 
-  console.log("[opencashService] Nenhum caixa aberto encontrado, criando um novo...");
-
   const newCash = await prisma.cashRegister.create({
     data: {
-      openingDate: date,
+      openingDate: localDateTime.toJSDate(), // armazena em UTC
       operator: user.username,
       initialValue,
       finalValue: initialValue,
@@ -73,8 +66,31 @@ async function opencashService(user, initialValue, date) {
   });
 
   console.log("[opencashService] Caixa criado com sucesso:", newCash);
-
   return newCash;
+}
+
+
+async function closeCashService(id, date, finalValue) {
+  const verifyCash = await prisma.cashRegister.findUnique({
+    where: { id: id }
+  })
+
+  if (!verifyCash) {
+    return false
+  }
+
+  try{
+    const closeCash = await prisma.cashRegister.update({
+      where: {id: id},
+      data: {
+        closingDate: date,
+        status: 'CLOSED',
+        finalValue: finalValue
+      }
+    })
+  } catch (error) {
+    throw error
+  }
 }
 
 async function geralCashDataService(id) {
@@ -99,6 +115,7 @@ async function geralCashDataService(id) {
 
 module.exports = {
   statusCashService,
-  opencashService,
+  openCashService,
+  closeCashService,
   geralCashDataService
 }

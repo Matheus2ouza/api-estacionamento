@@ -41,10 +41,10 @@ exports.openCash = async (req, res) => {
 
   const { initialValue } = req.body;
   const user = req.user;
-  const date = DateTime.now().setZone("America/Belem").toJSDate();
+  const date = DateTime.now().setZone("America/Belem")
 
   try {
-    const isOpen = await cashService.opencashService(user, initialValue, date);
+    const isOpen = await cashService.openCashService(user, initialValue, date);
 
     if (!isOpen) {
       return res.status(409).json({
@@ -65,6 +65,42 @@ exports.openCash = async (req, res) => {
     });
   }
 };
+
+exports.closeCash = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id } = req.params
+  const { finalValue } = req.body
+  const date = DateTime.now().setZone("America/Belem")
+  try{
+    const cash = await cashService.closeCashService(id, finalValue, date);
+
+    if(!cash) {
+      return res.status(404).json({
+        success: false,
+        message: 'Caixa não encontrado',
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Caixa Fechado com sucesso'
+    })
+  } catch (error) {
+    console.log(`[CashController] Erro ao tentar fechar o caixa: ${error}`);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    })
+  }
+}
 
 exports.geralCashData = async (req, res) => {
   const errors = validationResult(req);
