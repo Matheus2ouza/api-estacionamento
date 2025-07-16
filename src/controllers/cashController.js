@@ -117,13 +117,15 @@ exports.geralCashData = async (req, res) => {
   
   try{
     const data = await cashService.geralCashDataService(id);
-
     if (!data) {
       return res.status(400).json({
         success: false,
         message: 'Caixa não encontrado'
       })
     }
+
+    const totalValue = data.initialValue + data.generalSaleTotal + data.vehicleEntryTotal
+    data.totalValue = totalValue
 
     return res.status(200).json({
       success: true,

@@ -69,7 +69,6 @@ async function openCashService(user, initialValue, localDateTime) {
   return newCash;
 }
 
-
 async function closeCashService(id, date, finalValue) {
   const verifyCash = await prisma.cashRegister.findUnique({
     where: { id: id }
