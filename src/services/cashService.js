@@ -18,7 +18,6 @@ async function statusCashService(date) {
           gte: startOfDay,
           lte: endOfDay,
         },
-        status: "OPEN",
       },
     });
 
@@ -100,7 +99,7 @@ async function closeCashService(id, finalValue, date) {
 
 async function geralCashDataService(id) {
   const verifyCash = await prisma.cashRegister.findUnique({
-    where: {id: id, status: 'CLOSED'}
+    where: {id: id}
   })
 
   if(!verifyCash) {
