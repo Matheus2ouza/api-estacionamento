@@ -118,7 +118,7 @@ exports.geralCashData = async (req, res) => {
   try{
     const data = await cashService.geralCashDataService(id);
     if (!data) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
         message: 'Caixa não encontrado'
       })
