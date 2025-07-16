@@ -86,8 +86,14 @@ async function closeCashService(id, date, finalValue) {
         closingDate: date,
         status: 'CLOSED',
         finalValue: finalValue
+      },
+      select: {
+        id: true,
+        status: true
       }
     })
+
+    return closeCash
   } catch (error) {
     throw error
   }

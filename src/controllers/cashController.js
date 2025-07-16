@@ -91,6 +91,7 @@ exports.closeCash = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      data: cash,
       message: 'Caixa Fechado com sucesso'
     })
   } catch (error) {
