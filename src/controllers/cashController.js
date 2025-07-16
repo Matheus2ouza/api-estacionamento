@@ -124,7 +124,7 @@ exports.geralCashData = async (req, res) => {
       })
     }
 
-    const totalValue = data.initialValue + data.generalSaleTotal + data.vehicleEntryTotal
+    const totalValue = Number(data.initialValue) + Number(data.generalSaleTotal) + Number(data.vehicleEntryTotal)
     data.totalValue = totalValue
 
     return res.status(200).json({
