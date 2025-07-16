@@ -100,7 +100,7 @@ async function closeCashService(id, finalValue, date) {
 
 async function geralCashDataService(id) {
   const verifyCash = await prisma.cashRegister.findUnique({
-    where: {id: id}
+    where: {id: id, status: 'CLOSED'}
   })
 
   if(!verifyCash) {
