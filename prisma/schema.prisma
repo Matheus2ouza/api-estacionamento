@@ -28,17 +28,18 @@ model Authentication {
 }
 
 model CashRegister {
-  id                  String                @id @default(uuid())
-  openingDate         DateTime              @map("opening_date")
-  closingDate         DateTime?             @map("closing_date")
-  status              CashRegisterStatus    @default(OPEN)
-  operator            String
+  id                       String                @id @default(uuid())
+  openingDate              DateTime              @map("opening_date")
+  closingDate              DateTime?             @map("closing_date")
+  status                   CashRegisterStatus    @default(OPEN)
+  operator                 String
 
-  initialValue        Decimal               @db.Decimal(10, 2) @map("initial_value")
-  finalValue          Decimal               @db.Decimal(10, 2) @map("final_value")
+  initialValue             Decimal               @db.Decimal(10, 2) @map("initial_value")
+  finalValue               Decimal               @db.Decimal(10, 2) @map("final_value")
 
-  vehicleEntryTotal   Decimal               @db.Decimal(10, 2) @default(0.00) @map("vehicle_entry_total")
-  generalSaleTotal    Decimal               @db.Decimal(10, 2) @default(0.00) @map("general_sale_total")
+  vehicleEntryTotal        Decimal               @db.Decimal(10, 2) @default(0.00) @map("vehicle_entry_total")
+  generalSaleTotal         Decimal               @db.Decimal(10, 2) @default(0.00) @map("general_sale_total")
+  outgoingExpenseTotal     Decimal               @db.Decimal(10, 2) @default(0.00) @map("outgoing_expense_total")
 
   outgoingExpenses    OutgoingExpense[]
   Transactions        Transaction[]
