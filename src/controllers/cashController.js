@@ -78,6 +78,8 @@ exports.closeCash = async (req, res) => {
 
   const { id } = req.params
   const { finalValue } = req.body
+
+  console.log(id, finalValue)
   const date = DateTime.now().setZone("America/Belem")
   try{
     const cash = await cashService.closeCashService(id, finalValue, date);
