@@ -4,18 +4,15 @@ const { DateTime } = require("luxon");
 
 async function statusCashService(date) {
   try {
-    // Converte a data para DateTime com fuso de Belém
-    const localDateTime = DateTime.fromJSDate(date).setZone("America/Belem");
+    // Usa a data no fuso "America/Belem" corretamente
+    const local = DateTime.fromJSDate(date, { zone: "America/Belem" });
 
-    // Define o início e o fim do "dia local" (ex: segunda-feira das 00:00 às 23:59 de Belém)
-    const startOfDay = localDateTime.startOf("day").toJSDate();
-    const endOfDay = localDateTime.endOf("day").toJSDate();
+    const startOfDay = local.startOf("day").toUTC().toJSDate(); // convertendo para UTC antes de enviar ao banco
+    const endOfDay = local.endOf("day").toUTC().toJSDate();
 
-    console.log("Incio da data: ",startOfDay)
-    console.log("Fim da data ",endOfDay)
-    console.log("Data procurada: ", date)
+    console.log("Início do dia (UTC):", startOfDay);
+    console.log("Fim do dia (UTC):", endOfDay);
 
-    // Busca caixa aberto com data dentro do intervalo local
     const result = await prisma.cashRegister.findFirst({
       where: {
         openingDate: {
