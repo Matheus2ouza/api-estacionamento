@@ -8,8 +8,8 @@ async function statusCashService(date) {
     const localDateTime = DateTime.fromJSDate(date).setZone("America/Belem");
 
     // Define o início e o fim do "dia local" (ex: segunda-feira das 00:00 às 23:59 de Belém)
-    const startOfDay = localDateTime.startOf("day").toJSDate();
-    const endOfDay = localDateTime.endOf("day").toJSDate();
+    const startOfDay = localDateTime.startOf("day")
+    const endOfDay = localDateTime.endOf("day")
 
     console.log("Incio da data: ",startOfDay)
     console.log("Fim da data ",endOfDay)
