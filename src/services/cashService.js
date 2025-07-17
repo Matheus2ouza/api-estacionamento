@@ -11,6 +11,10 @@ async function statusCashService(date) {
     const startOfDay = localDateTime.startOf("day").toJSDate();
     const endOfDay = localDateTime.endOf("day").toJSDate();
 
+    console.log("Incio da data: ",startOfDay)
+    console.log("Fim da data ",endOfDay)
+    console.log("Data procurada: ", date)
+
     // Busca caixa aberto com data dentro do intervalo local
     const result = await prisma.cashRegister.findFirst({
       where: {
