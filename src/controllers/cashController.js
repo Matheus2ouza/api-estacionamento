@@ -6,8 +6,9 @@ exports.statusCash = async (req, res) => {
   try {
     // Usa a data atual com fuso de Belém
     const date = DateTime.now().setZone("America/Belem").toJSDate();
-
+    console.log(date)
     const data = await cashService.statusCashService(date);
+    console.log(data)
 
     if(!data) {
       return res.status(404).json({
