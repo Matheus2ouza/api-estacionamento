@@ -40,9 +40,11 @@ async function fetchProductService(barcode) {
         productName: true,
         barcode: true,
         generalSales: {
-          unitPrice: true,
-          quantity: true,
-          expirationDate: true
+          select: {
+            unitPrice: true,
+            quantity: true,
+            expirationDate: true
+          }
         }
       }
     })

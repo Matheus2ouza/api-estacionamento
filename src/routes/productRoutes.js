@@ -9,7 +9,7 @@ router.get('/list-products', authMiddleware('NORMAL'), ProductController.listPro
 
 router.get('/fetch-product/:barcode',
   [
-    param("barcode").notEmpty()
+    param("barcode").exists().notEmpty()
   ],
   authMiddleware("NORMAL"),
   ProductController.fetchProduct
