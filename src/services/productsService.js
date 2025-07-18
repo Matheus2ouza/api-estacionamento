@@ -22,7 +22,7 @@ async function listProductService() {
       id: product.id,
       barcode: product.product?.barcode,
       productName: product.product?.productName,
-      unitPrice: product.unitPrice,
+      unitPrice: Number(product.unitPrice),
       quantity: product.quantity,
       expirationDate: product.expirationDate,
     }));
