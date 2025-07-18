@@ -8,6 +8,7 @@ async function listProductService() {
         product: {
           select: {
             productName: true,
+            barcode: true
           }
         }
       }
@@ -19,7 +20,8 @@ async function listProductService() {
 
     const mapped = products.map((product) => ({
       id: product.id,
-      productName: product.product?.productName ?? 'Produto removido',
+      barcode: product.product?.barcode,
+      productName: product.product?.productName,
       unitPrice: product.unitPrice,
       quantity: product.quantity,
       expirationDate: product.expirationDate,
