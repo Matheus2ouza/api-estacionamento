@@ -65,11 +65,12 @@ model VehicleEntry {
 }
 
 model Product {
-  id                String         @id @default(uuid())
-  productName       String         @map("product_name")
-
-  transactions      Transaction[]
-  generalSales      GeneralSale[]
+  id           String         @id @default(uuid())
+  productName  String         @map("product_name")
+  barcode      String?        @unique
+  
+  transactions Transaction[]
+  generalSales GeneralSale[]
 
   @@map("products")
 }

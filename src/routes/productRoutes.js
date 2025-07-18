@@ -10,6 +10,7 @@ router.get('/list-products', authMiddleware('NORMAL'), ProductController.listPro
 router.post('/create-product',
   [
     body('productName').notEmpty(),
+    body('barcode').notEmpty(),
     body('unitPrice').isDecimal({ decimal_digits: '0,2' }),
     body('quantity').isInt({ gt: 0 }),
   ],

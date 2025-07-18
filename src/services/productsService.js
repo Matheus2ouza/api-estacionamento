@@ -31,7 +31,7 @@ async function listProductService() {
   }
 }
 
-async function createProductService(productName, unitPrice, quantity, expirationDate) {
+async function createProductService(productName, barcode, unitPrice, quantity, expirationDate) {
   const verifyProduct = await prisma.product.findFirst({
     where: { productName }
   });
@@ -43,7 +43,10 @@ async function createProductService(productName, unitPrice, quantity, expiration
   try {
     await prisma.$transaction(async (tx) => {
       const registerNameProduct = await tx.product.create({
-        data: { productName }
+        data: { 
+          productName: productName,
+          barcode: barcode
+        }
       });
 
       const generalSaleData = {

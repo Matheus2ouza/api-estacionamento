@@ -7,7 +7,7 @@ async function statusCashService(date) {
     // Usa a data no fuso "America/Belem" corretamente
     const local = DateTime.fromJSDate(date, { zone: "America/Belem" });
 
-    const startOfDay = local.startOf("day").toUTC().toJSDate(); // convertendo para UTC antes de enviar ao banco
+    const startOfDay = local.startOf("day").toUTC().toJSDate();
     const endOfDay = local.endOf("day").toUTC().toJSDate();
 
     console.log("Início do dia (UTC):", startOfDay);

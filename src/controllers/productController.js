@@ -38,7 +38,7 @@ exports.createProduct = async (req, res) => {
     });
   }
 
-  const { productName, unitPrice, quantity, expirationDate } = req.body;
+  const { productName, barcode, unitPrice, quantity, expirationDate } = req.body;
 
   try {
     let parsedExpiration = null;
@@ -84,6 +84,7 @@ exports.createProduct = async (req, res) => {
 
     const created = await productsService.createProductService(
       productName,
+      barcode,
       parseFloat(unitPrice),
       parseInt(quantity),
       parsedExpiration
