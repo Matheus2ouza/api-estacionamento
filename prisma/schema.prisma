@@ -42,7 +42,8 @@ model CashRegister {
   outgoingExpenseTotal     Decimal               @db.Decimal(10, 2) @default(0.00) @map("outgoing_expense_total")
 
   outgoingExpenses    OutgoingExpense[]
-  Transactions        Transaction[]
+  vehicleTransactions VehicleTransaction[]
+  productTransactions ProductTransaction[]
 
   @@map("cash_register")
 }
@@ -58,7 +59,7 @@ model VehicleEntry {
   deletedAt   DateTime?      @map("deleted_at")
   description String?        @default("")
 
-  transactions   Transaction[]
+  vehicleTransactions VehicleTransaction[]
 
   @@map("vehicle_entries")
   @@index([plate])
@@ -69,8 +70,9 @@ model Product {
   productName  String         @map("product_name")
   barcode      String?        @unique
   
-  transactions Transaction[]
+  
   generalSales GeneralSale[]
+  saleItems SaleItem[]
 
   @@map("products")
 }
@@ -87,25 +89,54 @@ model GeneralSale {
   @@map("general_sale")
 }
 
-model Transaction {
-  id               String         @id @default(uuid())
-  vehicleId        String?        @map("vehicle_id")
-  productId        String?        @map("product_id")
+model VehicleTransaction {
+  id               String        @id @default(uuid())
+  vehicleId        String        @map("vehicle_id")
   operator         String
-  paymentMethod    PaymentMethod  
-  transactionDate  DateTime       @map("transaction_date")
-  cashRegisterId   String         @map("cash_register_id")
+  paymentMethod    PaymentMethod
+  transactionDate  DateTime      @map("transaction_date")
+  cashRegisterId   String        @map("cash_register_id")
+  amount           Decimal       @db.Decimal(10, 2)
 
-  originalAmount   Decimal        @map("original_amount")     // The price before discount
-  discountAmount   Decimal        @default(0) @map("discount_amount") // Discount applied
-  finalAmount      Decimal        @map("final_amount")         // Price after discount
+  vehicleEntry     VehicleEntry  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  cashRegister     CashRegister  @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
 
-  vehicleEntry     VehicleEntry?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  product          Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
-  cashRegister     CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
-
-  @@map("transaction")
+  @@map("vehicle_transaction")
 }
+
+model ProductTransaction {
+  id               String        @id @default(uuid())
+  operator         String
+  paymentMethod    PaymentMethod
+  transactionDate  DateTime      @map("transaction_date")
+  cashRegisterId   String        @map("cash_register_id")
+  
+  originalAmount   Decimal       @db.Decimal(10, 2) @map("original_amount")
+  discountAmount   Decimal       @default(0) @map("discount_amount")
+  finalAmount      Decimal       @db.Decimal(10, 2) @map("final_amount")
+
+  cashRegister     CashRegister  @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+  saleItems        SaleItem[]
+
+  @@map("product_transaction")
+}
+
+model SaleItem {
+  id                   String             @id @default(uuid())
+  productTransactionId String             @map("product_transaction_id")
+  productId            String?            @map("product_id")
+  soldQuantity         Int
+
+  productName          String
+  unitPrice            Decimal            @db.Decimal(10, 2)
+  expirationDate       DateTime?
+
+  product              Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productTransaction   ProductTransaction @relation(fields: [productTransactionId], references: [id], onDelete: Cascade)
+
+  @@map("sale_items")
+}
+
 
 model OutgoingExpense {
   id                String         @id @default(uuid())

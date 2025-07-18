@@ -1,0 +1,178 @@
+const PDFDocument = require('pdfkit');
+const path = require('path');
+
+async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmount, discountValue, finalPrice) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: [137, 290], // Altura reduzida, mesma largura
+        margins: { top: 5, bottom: 5, left: 5, right: 5 },
+      });
+
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        resolve(pdfData.toString('base64'));
+      });
+
+      const printWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+      // ========== Cabeçalho ==========
+      try {
+        const logoPath = path.join(__dirname, '..', 'public', 'img', 'logo.png');
+        const logoWidth = 40;
+        const logoX = doc.page.margins.left;
+        const logoY = doc.y;
+
+        doc.image(logoPath, logoX, logoY, { width: logoWidth });
+
+        const textX = logoX + logoWidth + 5;
+        const textY = logoY + 2;
+
+        doc.registerFont('Oswald-Bold', path.join(__dirname, '..', 'public', 'fonts', 'Oswald-Bold.ttf'));
+        doc.font('Oswald-Bold').fillColor('black');
+
+        doc.fontSize(18);
+        doc.text('LEÃO', textX, textY, { align: 'left' });
+
+        doc.fontSize(10);
+        doc.text('ESTACIONAMENTO', textX, doc.y - 5, { align: 'left' });
+
+        doc.moveDown(0.5);
+      } catch (err) {
+        console.warn('[PrintLayout] Falha ao carregar logo ou título:', err.message);
+      }
+
+      // ========== Título ==========
+      doc.registerFont('OpenSans-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed-Bold.ttf'));
+      doc.font('OpenSans-SemiBold').fontSize(8).fillColor('black');
+
+      doc.text('COMPROVANTE DE COMPRA', {
+        align: 'center',
+        width: printWidth,
+      });
+
+      doc.moveDown(0.8);
+
+      // ========== Informações do operador e pagamento ==========
+      doc.font('Helvetica').fontSize(7).fillColor('black');
+      doc.text(`Operador: ${operator}`, { width: printWidth, align: 'left' });
+      doc.text(`Pagamento: ${paymentMethod}`, { width: printWidth, align: 'left' });
+      doc.moveDown(0.5);
+
+      // ========== Itens ==========
+      doc.fontSize(7);
+      doc.text('Itens:', { underline: true });
+      doc.moveDown(0.3);
+
+      const colQtyWidth = printWidth * 0.5;
+      const colTotalWidth = printWidth * 0.5;
+
+      saleItems.forEach(item => {
+        const name = (item.productName?.toUpperCase() || 'PRODUTO').slice(0, 30);
+        const qty = item.soldQuantity.toString();
+        const unitPrice = Number(item.unitPrice).toFixed(2);
+        const totalItemValue = (item.unitPrice * item.soldQuantity).toFixed(2);
+
+        const startX = doc.page.margins.left;
+        const startY = doc.y;
+
+        doc.font('Helvetica-Bold').fontSize(7).text(name, startX, startY, {
+          width: printWidth,
+          align: 'left',
+        });
+
+        const line2Y = doc.y;
+
+        doc.font('Helvetica').fontSize(7).text(`${qty} x R$ ${unitPrice}`, startX, line2Y, {
+          width: colQtyWidth,
+          align: 'left',
+        });
+
+        doc.text(`R$ ${totalItemValue}`, startX + colQtyWidth, line2Y, {
+          width: colTotalWidth,
+          align: 'right',
+        });
+
+        doc.moveDown(0.6);
+      });
+
+      // ========== Linha separadora ==========
+      doc.moveDown(0.2);
+      doc.lineWidth(0.5);
+      doc.dash(3, { space: 2 });
+      doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
+      doc.undash();
+      doc.moveDown(0.3);
+
+      // ========== Totais ==========
+      doc.font('Helvetica-Bold').fontSize(8);
+
+      const totalItems = saleItems.reduce((sum, item) => sum + item.soldQuantity, 0);
+
+      doc.text('Qtde. Total Itens:', doc.page.margins.left, doc.y, {
+        width: printWidth,
+        align: 'left',
+        continued: true,
+      });
+      doc.text(`${totalItems}`, {
+        width: printWidth,
+        align: 'right',
+      });
+      doc.moveDown(0.2);
+
+      doc.text('Valor Total R$:', doc.page.margins.left, doc.y, {
+        width: printWidth,
+        align: 'left',
+        continued: true,
+      });
+      doc.text(`R$ ${Number(totalAmount).toFixed(2)}`, {
+        width: printWidth,
+        align: 'right',
+      });
+      doc.moveDown(0.2);
+
+      doc.text('Desconto R$:', doc.page.margins.left, doc.y, {
+        width: printWidth,
+        align: 'left',
+        continued: true,
+      });
+      doc.text(`- R$ ${Number(discountValue).toFixed(2)}`, {
+        width: printWidth,
+        align: 'right',
+      });
+      doc.moveDown(0.2);
+
+      doc.text('Total a Pagar R$:', doc.page.margins.left, doc.y, {
+        width: printWidth,
+        align: 'left',
+        continued: true,
+        underline: true,
+      });
+      doc.text(`R$ ${Number(finalPrice).toFixed(2)}`, {
+        width: printWidth,
+        align: 'right',
+        underline: true,
+      });
+
+      doc.moveDown(0.7);
+
+      // ========== Mensagem final ==========
+      doc.registerFont('OpenSans-Italic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-MediumItalic.ttf'));
+      doc.font('OpenSans-Italic').fontSize(6).fillColor('black');
+      doc.text('Obrigado pela preferência!', {
+        align: 'center',
+        width: printWidth,
+      });
+
+      doc.end();
+
+    } catch (error) {
+      console.error('Erro ao gerar recibo:', error);
+      reject(error);
+    }
+  });
+}
+
+module.exports = { generateReceiptPDF };

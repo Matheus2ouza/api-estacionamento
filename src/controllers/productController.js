@@ -1,5 +1,7 @@
 const { validationResult, Result } = require('express-validator');
 const productsService = require('../services/productsService');
+const { DateTime } = require("luxon");
+const { generateReceiptPDF } = require('../utils/invoicGrenerator')
 
 exports.listProducts = async (req, res) => {
   try {
@@ -143,6 +145,81 @@ exports.createProduct = async (req, res) => {
       success: false,
       message: 'Erro interno ao cadastrar o produto.',
       error: error.message,
+    });
+  }
+};
+
+exports.registerPayment = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+      errors: errors.array(),
+    });
+  }
+
+  const {
+    operator,
+    paymentMethod,
+    cashRegisterId,
+    totalAmount,
+    discountValue,
+    finalPrice,
+    saleItems,
+  } = req.body;
+
+  try {
+    // Garante que a data está correta no fuso horário
+    const local = DateTime.now().setZone("America/Belem");
+
+    // Faz o parsing da lista de produtos vendidos
+    const parsedSaleItems = JSON.parse(saleItems);
+
+    const saleItemsToInsert = parsedSaleItems.map((item) => ({
+      productId: item?.product?.id,
+      soldQuantity: item?.soldQuantity,
+      productName: item?.product?.productName,
+      unitPrice: Number(item?.product?.unitPrice),
+      expirationDate: item?.product?.expirationDate || null,
+    }));
+
+    // Chama o service que lida com a lógica de transação
+    await productsService.registerPayment(
+      operator,
+      paymentMethod,
+      cashRegisterId,
+      totalAmount,
+      discountValue,
+      finalPrice,
+      saleItemsToInsert,
+      local
+    );
+
+    const receipt = await generateReceiptPDF(operator, paymentMethod, saleItems, totalAmount, discountValue, finalPrice)
+
+    if(!receipt) {
+      return res.status(201).json({
+        success: true,
+        message: "Pagemento registrado com sucesso, mas o comprovante de pagamento não foi gerado"
+      })
+    }
+
+    // Sucesso
+    return res.status(201).json({
+      success: true,
+      receipt: receipt,
+      message: "Pagamento registrado com sucesso.",
+    });
+
+
+
+  } catch (error) {
+    console.error("Erro ao registrar pagamento:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Erro interno ao registrar pagamento.",
     });
   }
 };

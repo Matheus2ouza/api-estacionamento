@@ -26,5 +26,18 @@ router.post('/create-product',
   ProductController.createProduct
 );
 
+router.post('/register-payment',
+  [
+    body("operator").exists().notEmpty(),
+    body("paymentMethod").exists().notEmpty(),
+    body("cashRegisterId").exists().notEmpty(),
+    body("totalAmount").exists().notEmpty(),
+    body("discountValue").exists().notEmpty(),
+    body("finalPrice").exists().notEmpty(),
+    body("saleItems").exists().notEmpty()
+  ],
+  authMiddleware("NORMAL"),
+  ProductController.registerPayment
+)
 
 module.exports = router
