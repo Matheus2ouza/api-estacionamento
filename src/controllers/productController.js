@@ -213,8 +213,6 @@ exports.registerPayment = async (req, res) => {
       message: "Pagamento registrado com sucesso.",
     });
 
-
-
   } catch (error) {
     console.error("Erro ao registrar pagamento:", error);
     return res.status(500).json({
