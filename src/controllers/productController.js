@@ -37,7 +37,7 @@ exports.fetchProduct = async(req, res) => {
     });
   }
 
-  const { barcode } = req.param
+  const barcode = req.param
 
   try{
     const product = await productsService.fetchProductService(barcode);
