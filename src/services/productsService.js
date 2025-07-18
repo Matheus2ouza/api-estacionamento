@@ -32,9 +32,9 @@ async function listProductService() {
 }
 
 async function fetchProductService(barcode) {
-  try{
+  try {
     const result = await prisma.product.findFirst({
-      where: {barcode: barcode},
+      where: { barcode },
       select: {
         id: true,
         productName: true,
@@ -43,17 +43,32 @@ async function fetchProductService(barcode) {
           select: {
             unitPrice: true,
             quantity: true,
-            expirationDate: true
-          }
-        }
-      }
-    })
+            expirationDate: true,
+          },
+          take: 1, // Pega só o primeiro registro
+        },
+      },
+    });
 
-    return result
+    if (!result) return null;
+
+    const generalSale = result.generalSales[0] || {};
+
+    const product = {
+      id: result.id,
+      productName: result.productName,
+      barcode: result.barcode,
+      unitPrice: generalSale.unitPrice ?? null,
+      quantity: generalSale.quantity ?? null,
+      expirationDate: generalSale.expirationDate ?? null,
+    };
+
+    return product;
   } catch (err) {
-    throw err
+    throw err;
   }
 }
+
 
 async function createProductService(productName, barcode, unitPrice, quantity, expirationDate) {
   const verifyProduct = await prisma.product.findFirst({
