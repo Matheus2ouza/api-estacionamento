@@ -7,7 +7,7 @@ async function listProductService() {
       include: {
         product: {
           select: {
-            productName: true
+            productName: true,
           }
         }
       }
@@ -28,6 +28,28 @@ async function listProductService() {
     return mapped;
   } catch (err) {
     throw err;
+  }
+}
+
+async function fetchProductService(barcode) {
+  try{
+    const result = await prisma.product.findFirst({
+      where: {barcode: barcode},
+      select: {
+        id: true,
+        productName: true,
+        barcode: true,
+        generalSales: {
+          unitPrice: true,
+          quantity: true,
+          expirationDate: true
+        }
+      }
+    })
+
+    return result
+  } catch (err) {
+    throw err
   }
 }
 
@@ -69,5 +91,6 @@ async function createProductService(productName, barcode, unitPrice, quantity, e
 
 module.exports = {
   listProductService,
+  fetchProductService,
   createProductService
 };

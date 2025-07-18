@@ -7,6 +7,14 @@ const router = express.Router()
 
 router.get('/list-products', authMiddleware('NORMAL'), ProductController.listProducts)
 
+router.get('/fetch-product/:barcode',
+  [
+    param("barcode").notEmpty()
+  ],
+  authMiddleware("NORMAL"),
+  ProductController.fetchProduct
+)
+
 router.post('/create-product',
   [
     body('productName').notEmpty(),

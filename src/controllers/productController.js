@@ -27,6 +27,41 @@ exports.listProducts = async (req, res) => {
   }
 };
 
+exports.fetchProduct = async(req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { barcode } = req.param
+
+  try{
+    const product = await productsService.fetchProductService(barcode);
+
+    if(!product) {
+      console.log(`[ProductController] Tentativa de buscar produto com codigo de barra: ${barcode} mas não foi encontrado nenhum produto`);
+      return res.status(404).json({
+        success: false,
+        message: "Nenhum produto encontrado"
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      product: product
+    })
+  } catch (error) {
+    console.error(`[ProductController] Erro ao tentar buscar o produto: ${error}`)
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    })
+  }
+}
 
 exports.createProduct = async (req, res) => {
   const errors = validationResult(req);
