@@ -210,11 +210,11 @@ exports.registerPayment = async (req, res) => {
       user.username,
       normalizedMethod,
       cashRegisterId,
-      Number(totalAmount),
-      Number(discountValue),
-      Number(finalPrice),
-      Number(amountReceived),
-      Number(changeGiven),
+      Number(totalAmount.toFixed(2)),
+      Number(discountValue.toFixed(2)),
+      Number(finalPrice.toFixed(2)),
+      Number(amountReceived.toFixed(2)),
+      Number(changeGiven.toFixed(2)),
       saleItemsToInsert,
       local
     );

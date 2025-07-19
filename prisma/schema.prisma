@@ -96,9 +96,9 @@ model VehicleTransaction {
   paymentMethod    PaymentMethod
   transactionDate  DateTime      @map("transaction_date")
   cashRegisterId   String        @map("cash_register_id")
-  
+
   originalAmount   Decimal       @db.Decimal(10, 2) @map("original_amount")
-  discountAmount   Decimal       @default(0) @map("discount_amount")
+  discountAmount   Decimal       @db.Decimal(10, 2) @default(0) @map("discount_amount")
   finalAmount      Decimal       @db.Decimal(10, 2) @map("final_amount")
   amountReceived   Decimal       @db.Decimal(10, 2) @default(0.00) @map("amount_received")
   changeGiven      Decimal       @db.Decimal(10, 2) @default(0.00) @map("change_given")
@@ -117,7 +117,7 @@ model ProductTransaction {
   cashRegisterId   String        @map("cash_register_id")
   
   originalAmount   Decimal       @db.Decimal(10, 2) @map("original_amount")
-  discountAmount   Decimal       @default(0) @map("discount_amount")
+  discountAmount   Decimal       @db.Decimal(10, 2) @default(0) @map("discount_amount")
   finalAmount      Decimal       @db.Decimal(10, 2) @map("final_amount")
   amountReceived   Decimal       @db.Decimal(10, 2) @default(0.00) @map("amount_received")
   changeGiven      Decimal       @db.Decimal(10, 2) @default(0.00) @map("change_given")
