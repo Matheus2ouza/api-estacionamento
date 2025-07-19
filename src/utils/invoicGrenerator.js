@@ -99,14 +99,14 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         const startX = doc.page.margins.left;
         const startY = doc.y;
 
-        doc.font('Helvetica-Bold').fontSize(7).text(name, startX, startY, {
+        doc.font('Helvetica-Bold').fontSize(6.5).text(name, startX, startY, {
           width: printWidth,
           align: 'left',
         });
 
         const line2Y = doc.y;
 
-        doc.font('Helvetica').fontSize(7).text(`${qty} x R$ ${unitPrice}`, startX, line2Y, {
+        doc.font('Helvetica').fontSize(6.5).text(`${qty} x R$ ${unitPrice}`, startX, line2Y, {
           width: colQtyWidth,
           align: 'left',
         });
