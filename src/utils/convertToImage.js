@@ -5,28 +5,41 @@ const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
 const unlink = promisify(fs.unlink);
 
-const { PdfConverter } = require('pdf-poppler');
+const { fromPath } = require('pdf2pic');
 
 async function convertPdfBase64ToImageBase64(pdfBase64) {
   const tmpPdfPath = path.join(__dirname, 'tmp-receipt.pdf');
-  const tmpPngPath = path.join(__dirname, 'tmp-receipt-1.png'); // página 1
+  const outputDir = path.dirname(tmpPdfPath);
+  const outputPrefix = 'tmp-receipt';
 
   try {
+    // Salva o PDF temporariamente
     await writeFile(tmpPdfPath, Buffer.from(pdfBase64, 'base64'));
 
-    const converter = new PdfConverter(tmpPdfPath);
-    await converter.convert({
-      format: 'png',
-      out_dir: path.dirname(tmpPdfPath),
-      out_prefix: 'tmp-receipt',
-      page: 1,
-      resolution: 150,
-    });
+    // Configura conversão da página 1 em PNG com resolução 150 DPI
+    const options = {
+      density: 150,
+      saveFilename: outputPrefix,
+      savePath: outputDir,
+      format: "png",
+      width: 600,
+      height: 800,
+    };
 
-    const pngBuffer = await readFile(tmpPngPath);
+    const storeAsImage = fromPath(tmpPdfPath, options);
+
+    // Converte a primeira página
+    const pageToConvert = 1;
+    const image = await storeAsImage(pageToConvert);
+
+    // Lê o arquivo PNG gerado
+    const pngBuffer = await readFile(image.path);
+
+    // Limpa arquivos temporários
     await unlink(tmpPdfPath);
-    await unlink(tmpPngPath);
+    await unlink(image.path);
 
+    // Retorna base64 com prefixo data URI
     return `data:image/png;base64,${pngBuffer.toString('base64')}`;
   } catch (err) {
     console.error('Erro ao converter PDF em imagem:', err);
@@ -34,4 +47,4 @@ async function convertPdfBase64ToImageBase64(pdfBase64) {
   }
 }
 
-module.exports = { convertPdfBase64ToImageBase64 }
+module.exports = { convertPdfBase64ToImageBase64 };
