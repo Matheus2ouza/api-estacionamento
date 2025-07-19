@@ -168,52 +168,60 @@ exports.registerPayment = async (req, res) => {
     finalPrice,
     amountReceived,
     changeGiven,
-    saleItems,
+    saleItems, // já é um array
   } = req.body;
-  const user = req.user
+
+  const user = req.user;
 
   try {
-    // Garante que a data está correta no fuso horário
+    // Data com fuso horário correto
     const local = DateTime.now().setZone("America/Belem");
 
-    // Faz o parsing da lista de produtos vendidos
-    const parsedSaleItems = JSON.parse(saleItems);
-
-    const saleItemsToInsert = parsedSaleItems.map((item) => ({
-      productId: item?.product?.id,
-      soldQuantity: item?.soldQuantity,
-      productName: item?.product?.productName,
+    // Transformação segura dos saleItems recebidos
+    const saleItemsToInsert = saleItems.map((item) => ({
+      productId: item?.product?.id || null,
+      soldQuantity: Number(item?.soldQuantity),
+      productName: item?.product?.productName || "Produto sem nome",
       unitPrice: Number(item?.product?.unitPrice),
       expirationDate: item?.product?.expirationDate || null,
     }));
 
-    // Chama o service que lida com a lógica de transação
-    const result = await productsService.registerPayment(
+    // Chamada ao service
+    const transactionId = await productsService.registerPayment(
       user.username,
       paymentMethod,
       cashRegisterId,
-      totalAmount,
-      discountValue,
-      finalPrice,
-      amountReceived,
-      changeGiven,
+      Number(totalAmount),
+      Number(discountValue),
+      Number(finalPrice),
+      Number(amountReceived),
+      Number(changeGiven),
       saleItemsToInsert,
       local
     );
 
-    const receipt = await generateReceiptPDF(user.username, paymentMethod, saleItems, totalAmount, discountValue, finalPrice)
+    // Geração de recibo (PDF base64)
+    const receipt = await generateReceiptPDF(
+      user.username,
+      paymentMethod,
+      saleItems,
+      totalAmount,
+      discountValue,
+      finalPrice
+    );
 
-    if(!receipt) {
+    if (!receipt) {
       return res.status(201).json({
         success: true,
-        message: "Pagemento registrado com sucesso, mas o comprovante de pagamento não foi gerado"
-      })
+        transactionId,
+        message: "Pagamento registrado com sucesso, mas o comprovante não foi gerado.",
+      });
     }
 
     return res.status(201).json({
       success: true,
-      receipt: receipt,
-      transactionId: result,
+      transactionId,
+      receipt,
       message: "Pagamento registrado com sucesso.",
     });
 
@@ -225,3 +233,4 @@ exports.registerPayment = async (req, res) => {
     });
   }
 };
+
