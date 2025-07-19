@@ -161,7 +161,6 @@ exports.registerPayment = async (req, res) => {
   }
 
   const {
-    operator,
     paymentMethod,
     cashRegisterId,
     totalAmount,
@@ -169,6 +168,7 @@ exports.registerPayment = async (req, res) => {
     finalPrice,
     saleItems,
   } = req.body;
+  const user = req.user
 
   try {
     // Garante que a data está correta no fuso horário
@@ -187,7 +187,7 @@ exports.registerPayment = async (req, res) => {
 
     // Chama o service que lida com a lógica de transação
     await productsService.registerPayment(
-      operator,
+      user.username,
       paymentMethod,
       cashRegisterId,
       totalAmount,
@@ -197,7 +197,7 @@ exports.registerPayment = async (req, res) => {
       local
     );
 
-    const receipt = await generateReceiptPDF(operator, paymentMethod, saleItems, totalAmount, discountValue, finalPrice)
+    const receipt = await generateReceiptPDF(user.username, paymentMethod, saleItems, totalAmount, discountValue, finalPrice)
 
     if(!receipt) {
       return res.status(201).json({

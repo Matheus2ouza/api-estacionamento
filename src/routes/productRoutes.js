@@ -28,7 +28,6 @@ router.post('/create-product',
 
 router.post('/register-payment',
   [
-    body("operator").exists().notEmpty(),
     body("paymentMethod").exists().notEmpty(),
     body("cashRegisterId").exists().notEmpty(),
     body("totalAmount").exists().notEmpty(),
