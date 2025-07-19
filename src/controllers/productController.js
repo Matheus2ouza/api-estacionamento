@@ -2,6 +2,7 @@ const { validationResult, Result } = require('express-validator');
 const productsService = require('../services/productsService');
 const { DateTime } = require("luxon");
 const { generateReceiptPDF } = require('../utils/invoicGrenerator')
+const { convertPdfBase64ToImageBase64 } = require('../utils/convertToImage')
 
 exports.listProducts = async (req, res) => {
   try {
@@ -220,7 +221,7 @@ exports.registerPayment = async (req, res) => {
     );
 
     // Geração de recibo (PDF base64)
-    const receipt = await generateReceiptPDF(
+    const receiptPdfBase64 = await generateReceiptPDF(
       user.username,
       paymentMethod,
       saleItemsToInsert,
@@ -231,18 +232,19 @@ exports.registerPayment = async (req, res) => {
       Number(changeGiven.toFixed(2)),
     );
 
-    if (!receipt) {
-      return res.status(201).json({
-        success: true,
-        transactionId,
-        message: "Pagamento registrado com sucesso, mas o comprovante não foi gerado.",
-      });
+    let receiptImageBase64 = null;
+
+    if (receiptPdfBase64) {
+      receiptImageBase64 = await convertPdfBase64ToImageBase64(receiptPdfBase64);
     }
 
     return res.status(201).json({
       success: true,
       transactionId,
-      receipt,
+      receipt: {
+        pdfBase64: receiptPdfBase64,
+        imageBase64: receiptImageBase64,
+      },
       message: "Pagamento registrado com sucesso.",
     });
 
