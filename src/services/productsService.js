@@ -135,6 +135,17 @@ async function registerPayment(
     throw new Error('Operador não encontrado');
   }
 
+  // Dentro do registerPayment
+  for (const item of saleItems) {
+    const exists = await prisma.product.findUnique({
+      where: { id: item.productId },
+    });
+
+    if (!exists) {
+      throw new Error(`Produto com ID ${item.productId} não encontrado no banco.`);
+    }
+  }
+
   try {
     const transactionId = await prisma.$transaction(async (tx) => {
       // Cria a transação do produto
@@ -209,7 +220,6 @@ async function registerPayment(
     throw new Error('Erro ao registrar pagamento: ' + error.message);
   }
 }
-
 
 module.exports = {
   listProductService,
