@@ -224,10 +224,11 @@ exports.registerPayment = async (req, res) => {
       user.username,
       paymentMethod,
       saleItems,
-      totalAmount,
-      discountValue,
-      amountReceived,
-      finalPrice
+      Number(totalAmount.toFixed(2)),
+      Number(discountValue.toFixed(2)),
+      Number(finalPrice.toFixed(2)),
+      Number(amountReceived.toFixed(2)),
+      Number(changeGiven.toFixed(2)),
     );
 
     if (!receipt) {

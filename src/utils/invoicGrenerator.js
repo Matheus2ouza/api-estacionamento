@@ -173,7 +173,6 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.text(`R$ ${Number(finalPrice).toFixed(2)}`, {
         width: printWidth,
         align: 'right',
-        underline: true,
       });
       
       doc.text('Valor Recebido R$:', doc.page.margins.left, doc.y, {
@@ -184,7 +183,6 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.text(`R$ ${Number(amountReceived).toFixed(2)}`, {
         width: printWidth,
         align: 'right',
-        underline: true,
       });
       
       doc.text('Troco R$:', doc.page.margins.left, doc.y, {
@@ -195,7 +193,6 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.text(`R$ ${Number(changeGiven).toFixed(2)}`, {
         width: printWidth,
         align: 'right',
-        underline: true,
       });
 
       doc.moveDown(0.7);
