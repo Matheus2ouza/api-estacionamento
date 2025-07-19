@@ -240,8 +240,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.y = y + lineH + 2;
       // ======= fim bloco WhatsApp =======
 
-      doc.registerFont('OpenSans-MediumItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans', 'italic', 'OpenSans-MediumItalic.ttf'));
-      doc.font('OpenSans-MediumItalic').fontSize(6);
+      doc.font('Helvetica-Oblique').fontSize(6);
       doc.text('Obrigado pela preferência', 0, doc.y, {
         align: 'center',
         width: doc.page.width
