@@ -134,7 +134,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.text('Obrigado pela preferência', 0, doc.y, { align: 'center', width: doc.page.width });
 
       doc.end();
-      
+
     } catch (error) {
       console.error("Erro ao gerar PDF:", error.message);
       reject(error);
