@@ -7,6 +7,7 @@ async function listProductService() {
       include: {
         product: {
           select: {
+            id: true,
             productName: true,
             barcode: true
           }
@@ -19,7 +20,7 @@ async function listProductService() {
     }
 
     const mapped = products.map((product) => ({
-      id: product.id,
+      id: product.product.id,
       barcode: product.product?.barcode,
       productName: product.product?.productName,
       unitPrice: Number(product.unitPrice),
