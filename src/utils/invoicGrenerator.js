@@ -1,7 +1,7 @@
 const PDFDocument = require('pdfkit');
 const path = require('path');
 
-async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmount, discountValue, finalPrice) {
+async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmount, discountValue, finalPrice, amountReceived, changeGiven) {
   return new Promise(async (resolve, reject) => {
     try {
       const baseHeight = 260; // já tem cabeçalho + rodapé básicos
@@ -175,17 +175,83 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         align: 'right',
         underline: true,
       });
+      
+      doc.text('Valor Recebido R$:', doc.page.margins.left, doc.y, {
+        width: printWidth,
+        align: 'left',
+        continued: true,
+      });
+      doc.text(`R$ ${Number(amountReceived).toFixed(2)}`, {
+        width: printWidth,
+        align: 'right',
+        underline: true,
+      });
+      
+      doc.text('Troco R$:', doc.page.margins.left, doc.y, {
+        width: printWidth,
+        align: 'left',
+        continued: true,
+      });
+      doc.text(`R$ ${Number(changeGiven).toFixed(2)}`, {
+        width: printWidth,
+        align: 'right',
+        underline: true,
+      });
 
       doc.moveDown(0.7);
 
       // ========== Mensagem final ==========
-      doc.registerFont('OpenSans-Italic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-MediumItalic.ttf'));
-      doc.font('OpenSans-Italic').fontSize(6).fillColor('black');
-      doc.text('Obrigado pela preferência!', {
+      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed-SemiBold.ttf'));
+      doc.font('OpenSans_Condensed-SemiBold').fontSize(7)
+      doc.text('HORÁRIO DE FUNCIONAMENTO: 8h às 17h', 0, doc.y, {
         align: 'center',
-        width: printWidth,
+        width: doc.page.width
+      });
+      // ======= Contato com ícone do WhatsApp =======
+      const whatsappIconPath = path.join(__dirname, 'public', 'img', 'whatsapp.png');
+      const contactText = 'CONTATO: (91) 9 8825-3139';
+      const iconSize = 10;          // ajuste se precisar
+      const gap = 4;                // espaço entre ícone e texto
+
+      // define fonte e tamanho antes de medir
+      doc.font('OpenSans_Condensed-SemiBold').fontSize(7);
+      const textWidth = doc.widthOfString(contactText);
+
+      // largura disponível para centralizar (respeitando margens)
+      const printableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+      // largura total do bloco ícone+gap+texto
+      const blockWidth = iconSize + gap + textWidth;
+
+      // calcula X de início do bloco
+      const startX = doc.page.margins.left + (printableWidth - blockWidth) / 2;
+      const y = doc.y;
+
+      // desenha ícone
+      try {
+        doc.image(whatsappIconPath, startX, y, { width: iconSize });
+      } catch (e) {
+        console.warn('Não encontrou ícone do WhatsApp:', e.message);
+      }
+
+      // desenha texto ao lado
+      doc.text(contactText, startX + iconSize + gap, y, {
+        width: textWidth,
+        align: 'left'
       });
 
+      // ajusta cursor para a próxima linha (avança pela maior altura)
+      const lineH = Math.max(iconSize, doc.currentLineHeight());
+      doc.y = y + lineH + 2;
+      // ======= fim bloco WhatsApp =======
+
+      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed-MediumItalic.ttf'));
+      doc.font('OpenSans_Condensed-MediumItalic').fontSize(6);
+      doc.text('Obrigado pela preferência', 0, doc.y, {
+        align: 'center',
+        width: doc.page.width
+      });
+      
       doc.end();
 
     } catch (error) {

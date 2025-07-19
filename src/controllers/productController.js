@@ -226,6 +226,7 @@ exports.registerPayment = async (req, res) => {
       saleItems,
       totalAmount,
       discountValue,
+      amountReceived,
       finalPrice
     );
 
