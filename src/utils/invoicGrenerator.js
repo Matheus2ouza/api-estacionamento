@@ -201,7 +201,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.moveDown(0.7);
 
       // ========== Mensagem final ==========
-      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed-SemiBold.ttf'));
+      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-SemiBold.ttf'));
       doc.font('OpenSans_Condensed-SemiBold').fontSize(7)
       doc.text('HORÁRIO DE FUNCIONAMENTO: 8h às 17h', 0, doc.y, {
         align: 'center',
@@ -245,7 +245,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.y = y + lineH + 2;
       // ======= fim bloco WhatsApp =======
 
-      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed-MediumItalic.ttf'));
+      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-MediumItalic.ttf'));
       doc.font('OpenSans_Condensed-MediumItalic').fontSize(6);
       doc.text('Obrigado pela preferência', 0, doc.y, {
         align: 'center',
