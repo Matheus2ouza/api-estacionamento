@@ -203,18 +203,20 @@ async function registerPayment(
             quantity: generalSaleRecord.quantity - item.soldQuantity,
           },
         });
-
-        await tx.cashRegister.update({
-          where: {id: cashRegisterId},
-          data: {
-            finalValue: {
-              increment: finalPrice
-            }
-          }
-        })
       }
       return transaction.id
     });
+
+    if(transactionId) {
+      await prisma.cashRegister.update({
+        where: {id: cashRegisterId},
+        data: {
+          finalValue: {
+            increment: finalPrice
+          }
+        }
+      })
+    }
 
     return transactionId
   } catch (error) {
