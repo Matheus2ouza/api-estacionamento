@@ -44,22 +44,36 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         console.warn('[PrintLayout] Falha ao carregar logo ou título:', err.message);
       }
 
-      // ========== Título ==========
+      // --- Espaço após o cabeçalho (importante para não colar no título) ---
+      doc.moveDown(0.5);
+
+      // --- Título do recibo ---
       doc.registerFont('OpenSans-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed-Bold.ttf'));
       doc.font('OpenSans-SemiBold').fontSize(8).fillColor('black');
 
-      doc.text('COMPROVANTE DE COMPRA', {
+      doc.text('COMPROVANTE DE COMPRA', doc.page.margins.left, doc.y, {
         align: 'center',
         width: printWidth,
       });
 
-      doc.moveDown(0.8);
+      doc.moveDown(1)
 
-      // ========== Informações do operador e pagamento ==========
+      // --- Informações do operador e pagamento ---
+      const leftX = doc.page.margins.left;
+
       doc.font('Helvetica').fontSize(7).fillColor('black');
-      doc.text(`Operador: ${operator}`, { width: printWidth, align: 'left' });
-      doc.text(`Pagamento: ${paymentMethod}`, { width: printWidth, align: 'left' });
-      doc.moveDown(0.5);
+
+      doc.text(`Operador: ${operator}`, leftX, doc.y, {
+        width: printWidth,
+        align: 'left',
+      });
+
+      doc.text(`Pagamento: ${paymentMethod}`, leftX, doc.y, {
+        width: printWidth,
+        align: 'left',
+      });
+
+      doc.moveDown(0.7);
 
       // ========== Itens ==========
       doc.fontSize(7);
@@ -107,7 +121,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.moveDown(0.3);
 
       // ========== Totais ==========
-      doc.font('Helvetica-Bold').fontSize(8);
+      doc.font('Helvetica-Bold').fontSize(6);
 
       const totalItems = saleItems.reduce((sum, item) => sum + item.soldQuantity, 0);
 
@@ -148,7 +162,6 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         width: printWidth,
         align: 'left',
         continued: true,
-        underline: true,
       });
       doc.text(`R$ ${Number(finalPrice).toFixed(2)}`, {
         width: printWidth,
