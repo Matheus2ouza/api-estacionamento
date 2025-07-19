@@ -177,6 +177,19 @@ exports.registerPayment = async (req, res) => {
     // Data com fuso horário correto
     const local = DateTime.now().setZone("America/Belem");
 
+    const paymentMethodMap = {
+      "Dinheiro": "DINHEIRO",
+      "Pix": "PIX",
+      "Crédito": "CREDITO",
+      "Débito": "DEBITO",
+    };
+
+    const normalizedMethod = paymentMethodMap[paymentMethod];
+
+    if (!normalizedMethod) {
+      throw new Error("Método de pagamento inválido");
+    }
+
     // Transformação segura dos saleItems recebidos
     const saleItemsToInsert = saleItems.map((item) => ({
       productId: item?.product?.id || null,
@@ -189,7 +202,7 @@ exports.registerPayment = async (req, res) => {
     // Chamada ao service
     const transactionId = await productsService.registerPayment(
       user.username,
-      paymentMethod,
+      normalizedMethod,
       cashRegisterId,
       Number(totalAmount),
       Number(discountValue),
