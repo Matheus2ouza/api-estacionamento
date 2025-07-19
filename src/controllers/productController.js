@@ -223,7 +223,7 @@ exports.registerPayment = async (req, res) => {
     const receipt = await generateReceiptPDF(
       user.username,
       paymentMethod,
-      saleItems,
+      saleItemsToInsert,
       Number(totalAmount.toFixed(2)),
       Number(discountValue.toFixed(2)),
       Number(finalPrice.toFixed(2)),
