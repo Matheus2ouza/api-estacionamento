@@ -186,7 +186,7 @@ exports.registerPayment = async (req, res) => {
     }));
 
     // Chama o service que lida com a lógica de transação
-    await productsService.registerPayment(
+    const result = await productsService.registerPayment(
       user.username,
       paymentMethod,
       cashRegisterId,
@@ -206,10 +206,10 @@ exports.registerPayment = async (req, res) => {
       })
     }
 
-    // Sucesso
     return res.status(201).json({
       success: true,
       receipt: receipt,
+      transactionId: result,
       message: "Pagamento registrado com sucesso.",
     });
 

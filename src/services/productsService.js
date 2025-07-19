@@ -134,7 +134,7 @@ async function registerPayment(
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
+    const transactionId = await prisma.$transaction(async (tx) => {
       // Cria a transação do produto
       const transaction = await tx.productTransaction.create({
         data: {
@@ -197,8 +197,10 @@ async function registerPayment(
           }
         })
       }
+      return transaction.id
     });
 
+    return transactionId
   } catch (error) {
     throw new Error('Erro ao registrar pagamento: ' + error.message);
   }
