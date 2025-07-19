@@ -18,12 +18,12 @@ async function convertPdfBase64ToImageBase64(pdfBase64) {
 
     // Configura conversão da página 1 em PNG com resolução 150 DPI
     const options = {
-      density: 150,
+      density: 150,          // resolução DPI
       saveFilename: outputPrefix,
       savePath: outputDir,
       format: "png",
-      width: 600,
-      height: 800,
+      width: 127,            // 137 - 5(margem esquerda) - 5(margem direita) = 127 pontos
+      height: 0,             // zero mantém a proporção automática pela largura
     };
 
     const storeAsImage = fromPath(tmpPdfPath, options);
