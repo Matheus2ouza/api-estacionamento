@@ -91,10 +91,10 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       const colTotalWidth = printWidth * 0.5;
 
       saleItems.forEach(item => {
-        const name = (item.product.productName?.toUpperCase() || 'PRODUTO').slice(0, 30);
-        const qty = item.product.soldQuantity.toString();
-        const unitPrice = Number(item.product.unitPrice).toFixed(2);
-        const totalItemValue = (item.product.unitPrice * item.soldQuantity).toFixed(2);
+        const name = (item.productName?.toUpperCase() || 'PRODUTO').slice(0, 30);
+        const qty = item.soldQuantity.toString();
+        const unitPrice = Number(item.unitPrice).toFixed(2);
+        const totalItemValue = (item.unitPrice * item.soldQuantity).toFixed(2);
 
         const startX = doc.page.margins.left;
         const startY = doc.y;
