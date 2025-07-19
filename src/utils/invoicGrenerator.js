@@ -4,8 +4,15 @@ const path = require('path');
 async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmount, discountValue, finalPrice) {
   return new Promise(async (resolve, reject) => {
     try {
+      const baseHeight = 260; // já tem cabeçalho + rodapé básicos
+      const extraPerItem = 20; // espaço estimado por item
+      const footerHeight = -30; // estimativa para rodapé + textos finais
+
+      const dynamicHeight = baseHeight + (saleItems.length * extraPerItem) + footerHeight;
+
+      // Criar documento com tamanho e margens específicas
       const doc = new PDFDocument({
-        size: [137, 290], // Altura reduzida, mesma largura
+        size: [137, dynamicHeight],
         margins: { top: 5, bottom: 5, left: 5, right: 5 },
       });
 
