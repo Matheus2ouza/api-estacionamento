@@ -27,7 +27,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
 
       // ========== Cabeçalho ==========
       try {
-        const logoPath = path.join(__dirname, '..', 'public', 'img', 'logo.png');
+        const logoPath = path.join(__dirname, '..', 'public', 'img', 'png','logo.png');
         const logoWidth = 40;
         const logoX = doc.page.margins.left;
         const logoY = doc.y;
@@ -37,7 +37,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         const textX = logoX + logoWidth + 5;
         const textY = logoY + 2;
 
-        doc.registerFont('Oswald-Bold', path.join(__dirname, '..', 'public', 'fonts', 'Oswald-Bold.ttf'));
+        doc.registerFont('Oswald-Bold', path.join(__dirname, '..', 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'));
         doc.font('Oswald-Bold').fillColor('black');
 
         doc.fontSize(18);
@@ -55,7 +55,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.moveDown(0.5);
 
       // --- Título do recibo ---
-      doc.registerFont('OpenSans-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed-Bold.ttf'));
+      doc.registerFont('OpenSans-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'));
       doc.font('OpenSans-SemiBold').fontSize(8).fillColor('black');
 
       doc.text('COMPROVANTE DE COMPRA', doc.page.margins.left, doc.y, {
@@ -68,7 +68,8 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       // --- Informações do operador e pagamento ---
       const leftX = doc.page.margins.left;
 
-      doc.font('Helvetica').fontSize(7).fillColor('black');
+      doc.registerFont('OpenSans_Condensed-Regular', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Regular.ttf'))
+      doc.font('OpenSans_Condensed-Regular').fontSize(7).fillColor('black');
 
       doc.text(`Operador: ${operator}`, leftX, doc.y, {
         width: printWidth,
@@ -141,7 +142,6 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         width: printWidth,
         align: 'right',
       });
-      doc.moveDown(0.2);
 
       doc.text('Valor Total R$:', doc.page.margins.left, doc.y, {
         width: printWidth,
@@ -152,7 +152,6 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         width: printWidth,
         align: 'right',
       });
-      doc.moveDown(0.2);
 
       doc.text('Desconto R$:', doc.page.margins.left, doc.y, {
         width: printWidth,
@@ -163,7 +162,6 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
         width: printWidth,
         align: 'right',
       });
-      doc.moveDown(0.2);
 
       doc.text('Total a Pagar R$:', doc.page.margins.left, doc.y, {
         width: printWidth,
@@ -198,14 +196,14 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.moveDown(0.7);
 
       // ========== Mensagem final ==========
-      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-SemiBold.ttf'));
+      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'));
       doc.font('OpenSans_Condensed-SemiBold').fontSize(7)
       doc.text('HORÁRIO DE FUNCIONAMENTO: 8h às 17h', 0, doc.y, {
         align: 'center',
         width: doc.page.width
       });
       // ======= Contato com ícone do WhatsApp =======
-      const whatsappIconPath = path.join(__dirname, 'public', 'img', 'whatsapp.png');
+      const whatsappIconPath = path.join(__dirname, '..', 'public', 'img', 'png', 'whatsapp.png');
       const contactText = 'CONTATO: (91) 9 8825-3139';
       const iconSize = 10;          // ajuste se precisar
       const gap = 4;                // espaço entre ícone e texto
@@ -242,7 +240,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       doc.y = y + lineH + 2;
       // ======= fim bloco WhatsApp =======
 
-      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-MediumItalic.ttf'));
+      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'italic', 'OpenSans_Condensed-MediumItalic.ttf'));
       doc.font('OpenSans_Condensed-MediumItalic').fontSize(6);
       doc.text('Obrigado pela preferência', 0, doc.y, {
         align: 'center',

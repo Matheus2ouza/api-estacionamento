@@ -19,7 +19,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       });
 
       // === Cabeçalho com logo ===
-      const logoPath = path.join(__dirname, '..', 'public', 'img', 'logo.png');
+      const logoPath = path.join(__dirname, '..', 'public', 'img', 'png', 'logo.png');
       try {
         const logoWidth = 40;
         const logoX = 5;
@@ -30,7 +30,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
         const textX = logoX + logoWidth - 2;
         const textY = logoY + 2;
 
-        doc.registerFont('Oswald-Bold.ttf', path.join(__dirname, '..', 'public', 'fonts', 'Oswald-Bold.ttf'));
+        doc.registerFont('Oswald-Bold.ttf', path.join(__dirname, '..', 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'));
         doc.font('Oswald-Bold.ttf').fillColor('black');
 
         doc.fontSize(18);
@@ -45,7 +45,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       }
 
       // Título centralizado
-      doc.registerFont('OpenSans_SemiCondensed-Bold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed-Bold.ttf'));
+      doc.registerFont('OpenSans_SemiCondensed-Bold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'));
       doc.font('OpenSans_SemiCondensed-Bold').fontSize(7);
       const entryText = 'Comprovante de Entrada';
       const entryTextWidth = doc.widthOfString(entryText);
@@ -97,12 +97,12 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.y = qrY + 90 + 5;
 
       doc.moveDown(0.5);
-      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-SemiBold.ttf'));
+      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'));
       doc.font('OpenSans_Condensed-SemiBold').fontSize(7);
       doc.text('TICKET PERDIDO R$: 20,00', 0, doc.y, { align: 'center', width: doc.page.width });
       doc.text('HORÁRIO DE FUNCIONAMENTO: 8h às 17h', 0, doc.y, { align: 'center', width: doc.page.width });
 
-      const whatsappIconPath = path.join(__dirname, '..', 'public', 'img', 'whatsapp.png');
+      const whatsappIconPath = path.join(__dirname, '..', 'public', 'img', 'png', 'whatsapp.png');
       const contactText = 'CONTATO: (91) 9 8825-3139';
       const iconSize = 10;
       const gap = 4;
@@ -128,7 +128,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       const lineH = Math.max(iconSize, doc.currentLineHeight());
       doc.y = y + lineH + 2;
 
-      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed-MediumItalic.ttf'));
+      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'italic', 'OpenSans_Condensed-MediumItalic.ttf'));
       doc.font('OpenSans_Condensed-MediumItalic').fontSize(6);
       doc.text('Apresente o comprovante na saída', 0, doc.y, { align: 'center', width: doc.page.width });
       doc.text('Obrigado pela preferência', 0, doc.y, { align: 'center', width: doc.page.width });
