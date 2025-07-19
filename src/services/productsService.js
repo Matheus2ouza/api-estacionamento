@@ -114,6 +114,8 @@ async function registerPayment(
   totalAmount,
   discountValue,
   finalPrice,
+  amountReceived,
+  changeGiven,
   saleItems,
   local
 ) {
@@ -145,6 +147,8 @@ async function registerPayment(
           originalAmount: totalAmount,
           discountAmount: discountValue,
           finalAmount: finalPrice,
+          amountReceived: amountReceived,
+          changeGiven: changeGiven
         },
       });
 

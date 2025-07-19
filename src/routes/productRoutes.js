@@ -33,6 +33,8 @@ router.post('/register-payment',
     body("totalAmount").exists().notEmpty(),
     body("discountValue").exists().notEmpty(),
     body("finalPrice").exists().notEmpty(),
+    body("amountReceived").exists().notEmpty(),
+    body("changeGiven").exists().notEmpty(),
     body("saleItems").exists().notEmpty()
   ],
   authMiddleware("NORMAL"),

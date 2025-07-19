@@ -166,6 +166,8 @@ exports.registerPayment = async (req, res) => {
     totalAmount,
     discountValue,
     finalPrice,
+    amountReceived,
+    changeGiven,
     saleItems,
   } = req.body;
   const user = req.user
@@ -193,6 +195,8 @@ exports.registerPayment = async (req, res) => {
       totalAmount,
       discountValue,
       finalPrice,
+      amountReceived,
+      changeGiven,
       saleItemsToInsert,
       local
     );
