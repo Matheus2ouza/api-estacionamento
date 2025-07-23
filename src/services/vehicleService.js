@@ -120,6 +120,7 @@ async function getParkedVehicles(role) {
       select: {
         id: true,
         plate: true,
+        status: true,
         entryTime: true,
         operator: true,
         category: true,
