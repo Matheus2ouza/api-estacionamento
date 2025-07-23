@@ -316,10 +316,8 @@ exports.editVehicle = async (req, res) => {
   const { id, category, plate } = req.body;
   const user = req.user
 
-  const belemTime = DateTime.now().setZone("America/Belem").toJSDate();
-  const formattedDate = DateTime.fromJSDate(belemTime)
-    .setZone("America/Belem")
-    .toFormat("dd/MM/yyyy HH:mm:ss");
+  const belemDateTime = DateTime.now().setZone("America/Belem");
+  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
 
   console.log(id)
   try {
@@ -352,11 +350,11 @@ exports.deleteVehicle = async (req, res) => {
   const { id } = req.body
   const user = req.user
 
-  const belemTime = DateTime.now().setZone("America/Belem").toJSDate();
-  const formattedDate = DateTime.fromJSDate(belemTime);
+  const belemDateTime = DateTime.now().setZone("America/Belem");
+  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
 
   try {
-    await vehicleService.deleteVehicleService(String(id), belemTime, formattedDate, user);
+    await vehicleService.deleteVehicleService(String(id), belemDateTime, formattedDate, user);
 
     return res.status(201).json({
       success: true,
