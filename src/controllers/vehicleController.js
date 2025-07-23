@@ -257,7 +257,9 @@ exports.getUniqueVehicle = async (req, res) => {
 
 exports.getParkedVehicles = async (req, res) => {
   try {
-    const vehicles = await vehicleService.getParkedVehicles();
+    const user = req.user
+
+    const vehicles = await vehicleService.getParkedVehicles(user.role);
 
     return res.status(200).json({
       success: true,
