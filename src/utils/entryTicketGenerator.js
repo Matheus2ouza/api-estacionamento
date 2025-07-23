@@ -128,8 +128,8 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       const lineH = Math.max(iconSize, doc.currentLineHeight());
       doc.y = y + lineH + 2;
 
-      doc.registerFont('OpenSans_Condensed-MediumItalic', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'italic', 'OpenSans_Condensed-MediumItalic.ttf'));
-      doc.font('OpenSans_Condensed-MediumItalic').fontSize(6);
+      doc.registerFont('OpenSans_Condensed-Medium', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Medium.ttf'));
+      doc.font('OpenSans_Condensed-Medium').fontSize(6);
       doc.text('Apresente o comprovante na saída', 0, doc.y, { align: 'center', width: doc.page.width });
       doc.text('Obrigado pela preferência', 0, doc.y, { align: 'center', width: doc.page.width });
 
