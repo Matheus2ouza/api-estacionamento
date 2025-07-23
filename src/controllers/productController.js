@@ -200,8 +200,8 @@ exports.registerPayment = async (req, res) => {
 
       return {
         productId: item.id,
-        soldQuantity: Number(item.soldQuantity),
-        productName: item.product.productName,
+        soldQuantity: Number(item.quantity),  // Alterado de item.soldQuantity para item.quantity
+        productName: item.productName,       // Alterado de item.product.productName para item.productName
         unitPrice: Number(item.unitPrice),
         expirationDate: item.expirationDate || null,
       };

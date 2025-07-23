@@ -169,7 +169,7 @@ async function registerPayment(
         productTransactionId: transaction.id,
         productId: item.productId || null,
         soldQuantity: item.soldQuantity,
-        productName: item.productName,
+        productName: item.productName,       // Mantenha consistência
         unitPrice: item.unitPrice,
         expirationDate: item.expirationDate || null,
       }));
@@ -181,12 +181,12 @@ async function registerPayment(
 
       for (const item of saleItemsData) {
 
-        const generalSaleRecord = await tx.generalSale.findFirst({
-          where: {
-            productId: item.productId,
-            expirationDate: item.expirationDate,
-          },
-        });
+          const generalSaleRecord = await tx.generalSale.findFirst({
+            where: {
+              productId: item.productId,
+              expirationDate: item.expirationDate,
+            },
+          });
 
         if (!generalSaleRecord) {
           throw new Error(`Lote do produto ${item.productName} não encontrado para atualizar estoque.`);
