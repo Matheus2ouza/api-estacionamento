@@ -194,16 +194,16 @@ exports.registerPayment = async (req, res) => {
 
     // Transformação segura dos saleItems recebidos
     const saleItemsToInsert = saleItems.map((item) => {
-      if (!item?.product?.id) {
+      if (!item?.id) {
         throw new Error("Produto sem ID. Verifique os itens do carrinho.");
       }
 
       return {
-        productId: item.product.id,
+        productId: item.id,
         soldQuantity: Number(item.soldQuantity),
         productName: item.product.productName,
-        unitPrice: Number(item.product.unitPrice),
-        expirationDate: item.product.expirationDate || null,
+        unitPrice: Number(item.unitPrice),
+        expirationDate: item.expirationDate || null,
       };
     });
 
