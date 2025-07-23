@@ -380,9 +380,13 @@ exports.reactivateVehicle = async (req, res) => {
   }
 
   const { id, plate } = req.body
+  const user = req.user
+
+  const belemDateTime = DateTime.now().setZone("America/Belem");
+  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
 
   try{
-    const vehicle = await vehicleService.reactivateVehicleService(id, plate);
+    const vehicle = await vehicleService.reactivateVehicleService(id, plate, user, formattedDate);
 
     if(vehicle.status === 'INSIDE') {
       return res.status(200).json({
@@ -397,7 +401,7 @@ exports.reactivateVehicle = async (req, res) => {
     })
   } catch (error) {
     console.log(error.message)
-    
+
     return res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'

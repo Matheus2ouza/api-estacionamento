@@ -237,26 +237,31 @@ async function deleteVehicleService(id, date, formattedDate, user) {
   }
 }
 
-async function reactivateVehicleService(id, plate) {
+async function reactivateVehicleService(id, plate, user, formattedDate) {
   const verifyPLate = await prisma.vehicleEntry.findFirst({
     where: {
       id: id,
       plate: plate
-    }
+    },
+    select: { description: true }
   })
 
   if(!verifyPLate) {
     throw new Error("Veiculo não encontrado")
   }
 
-  try{
+  const updatedDescription = `${verifyPLate.description}
+  \nRegistro apagado por ${user.username} em ${formattedDate}`
+
+  try {
     const result = await prisma.vehicleEntry.update({
       where: {
         id: id,
         plate: plate
       },
       data: {
-        status: 'INSIDE'
+        status: 'INSIDE',
+        description: updatedDescription
       },
       select: {
         plate: true,
