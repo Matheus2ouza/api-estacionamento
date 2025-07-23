@@ -112,7 +112,7 @@ async function getUniqueVehicleService(id, plate) {
 
 async function getParkedVehicles(role) {
   try {
-    const whereClause = role = 'ADMIN'
+    const whereClause = role === 'ADMIN'
       ? { OR: [{ status: 'INSIDE' }, { status: 'DELETED' }] }
       : { status: 'INSIDE' };
     const vehicles = await prisma.vehicleEntry.findMany({
