@@ -20,6 +20,7 @@
     "luxon": "^3.6.1",
     "pdf-poppler": "^0.2.1",
     "pdf2pic": "^3.2.0",
+    "pdfjs-dist": "^5.3.93",
     "pdfkit": "^0.17.1",
     "qrcode": "^1.5.4"
   },

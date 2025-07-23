@@ -103,7 +103,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.text('HORÁRIO DE FUNCIONAMENTO: 8h às 17h', 0, doc.y, { align: 'center', width: doc.page.width });
 
       const whatsappIconPath = path.join(__dirname, '..', 'public', 'img', 'png', 'whatsapp.png');
-      const contactText = 'CONTATO: (91) 9 8825-3139';
+      const contactText = 'CONTATO: (91) 9 8564-6187';
       const iconSize = 10;
       const gap = 4;
 

@@ -29,7 +29,7 @@ exports.listProducts = async (req, res) => {
   }
 };
 
-exports.fetchProduct = async(req, res) => {
+exports.fetchProduct = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -41,17 +41,17 @@ exports.fetchProduct = async(req, res) => {
 
   const { barcode } = req.params
 
-  try{
+  try {
     const product = await productsService.fetchProductService(barcode);
 
-    if(!product) {
+    if (!product) {
       console.log(`[ProductController] Tentativa de buscar produto com codigo de barra: ${barcode} mas não foi encontrado nenhum produto`);
       return res.status(404).json({
         success: false,
         message: "Nenhum produto encontrado"
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       product: product
@@ -204,6 +204,18 @@ exports.registerPayment = async (req, res) => {
         expirationDate: item.product.expirationDate || null,
       };
     });
+
+    console.log("🔍 Enviando parâmetros para registerPayment:");
+    console.log("👤 user.username:", user.username);
+    console.log("💳 normalizedMethod:", normalizedMethod);
+    console.log("🏬 cashRegisterId:", cashRegisterId);
+    console.log("💰 totalAmount:", Number(totalAmount.toFixed(2)));
+    console.log("🎁 discountValue:", Number(discountValue.toFixed(2)));
+    console.log("🧾 finalPrice:", Number(finalPrice.toFixed(2)));
+    console.log("💵 amountReceived:", Number(amountReceived.toFixed(2)));
+    console.log("💸 changeGiven:", Number(changeGiven.toFixed(2)));
+    console.log("📦 saleItemsToInsert:", saleItemsToInsert);
+    console.log("🌍 local:", local);
 
     // Chamada ao service
     const transactionId = await productsService.registerPayment(

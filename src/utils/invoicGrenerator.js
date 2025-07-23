@@ -204,7 +204,7 @@ async function generateReceiptPDF(operator, paymentMethod, saleItems, totalAmoun
       });
       // ======= Contato com ícone do WhatsApp =======
       const whatsappIconPath = path.join(__dirname, '..', 'public', 'img', 'png', 'whatsapp.png');
-      const contactText = 'CONTATO: (91) 9 8825-3139';
+      const contactText = 'CONTATO: (91) 9 8564-6187';
       const iconSize = 10;          // ajuste se precisar
       const gap = 4;                // espaço entre ícone e texto
 
