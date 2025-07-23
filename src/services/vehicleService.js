@@ -119,7 +119,8 @@ async function getParkedVehicles() {
         plate: true,
         entryTime: true,
         operator: true,
-        category: true
+        category: true,
+        description: true
       },
       orderBy: {
         entryTime: 'asc',
@@ -132,6 +133,7 @@ async function getParkedVehicles() {
       entryTime: vehicle.entryTime.toISOString(),
       operator: vehicle.operator.toUpperCase(),
       category: vehicle.category.toUpperCase(),
+      description: vehicle.description
     }));
 
     return formattedVehicles;

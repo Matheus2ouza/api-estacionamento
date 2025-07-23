@@ -358,7 +358,7 @@ exports.deleteVehicle = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Dados excluidos com sucesso'
+      message: 'Veiculo Excluido'
     });
   } catch (error) {
     console.error(`Erro ao tentar excluir o veiculo: ${error}`);
