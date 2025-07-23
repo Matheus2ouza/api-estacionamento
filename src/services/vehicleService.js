@@ -237,6 +237,39 @@ async function deleteVehicleService(id, date, formattedDate, user) {
   }
 }
 
+async function reactivateVehicleService(id, plate) {
+  const verifyPLate = await prisma.vehicleEntry.findFirst({
+    where: {
+      id: id,
+      plate: plate
+    }
+  })
+
+  if(!verifyPLate) {
+    throw new Error("Veiculo não encontrado")
+  }
+
+  try{
+    const result = await prisma.vehicleEntry.update({
+      where: {
+        id: id,
+        plate: plate
+      },
+      data: {
+        status: 'INSIDE'
+      },
+      select: {
+        plate: true,
+        status: true,
+      }
+    })
+
+    return result
+  } catch (err) {
+    throw err
+  }
+}
+
 module.exports = {
   vehicleEntry,
   getConfigParking,
@@ -246,5 +279,6 @@ module.exports = {
   getParkedVehicles,
   editVehicleService,
   deleteVehicleService,
+  reactivateVehicleService,
   hasNewVehicleEntries
 };

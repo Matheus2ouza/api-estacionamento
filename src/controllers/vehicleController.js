@@ -368,3 +368,39 @@ exports.deleteVehicle = async (req, res) => {
     })
   }
 }
+
+exports.reactivateVehicle = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id, plate } = req.body
+
+  try{
+    const vehicle = await vehicleService.reactivateVehicleService(id, plate);
+
+    if(vehicle.status === 'INSIDE') {
+      return res.status(200).json({
+        success: true,
+        message: 'Veiculo reativado'
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: 'Erro ao tentar reativar o veiculo'
+    })
+  } catch (error) {
+    console.log(error.message)
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    })
+  }
+}

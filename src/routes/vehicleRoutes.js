@@ -43,6 +43,15 @@ router.post('/deleteVehicle',
   vehicleController.deleteVehicle
 )
 
+router.post('/reactivate-vehicle',
+  [
+    body("id").exists().notEmpty(),
+    body("plate").exists().notEmpty()
+  ],
+  authMiddleware('ADMIN'),
+  vehicleController.reactivateVehicle
+)
+
 router.get('/:id/ticket',
   [
     param('id').isUUID(),
