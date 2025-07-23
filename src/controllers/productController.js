@@ -190,6 +190,8 @@ exports.registerPayment = async (req, res) => {
       throw new Error("Método de pagamento inválido");
     }
 
+    console.log(saleItems)
+
     // Transformação segura dos saleItems recebidos
     const saleItemsToInsert = saleItems.map((item) => {
       if (!item?.product?.id) {
