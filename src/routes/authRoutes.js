@@ -12,7 +12,6 @@ router.post(
     body('password').isLength({ min: 6 }).withMessage('Senha deve ter ao menos 6 caracteres'),
     body('role').isIn(['ADMIN', 'NORMAL']).withMessage('Valor inesperado no role')
   ],
-  authMiddleware('ADMIN'),
   authController.register
 );
 

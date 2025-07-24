@@ -29,4 +29,6 @@ router.post('/close-cash/:id',
   ],
   authMiddleware('NORMAL'), cashController.closeCash)
 
+router.post('/')
+
 module.exports = router;

@@ -11,7 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.10.1",
+    "@prisma/client": "^6.12.0",
     "canvas": "^3.1.2",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
@@ -22,9 +22,7 @@
     "pdf2pic": "^3.2.0",
     "pdfjs-dist": "^5.3.93",
     "pdfkit": "^0.17.1",
+    "prisma": "^6.12.0",
     "qrcode": "^1.5.4"
-  },
-  "devDependencies": {
-    "prisma": "^6.10.1"
   }
 }

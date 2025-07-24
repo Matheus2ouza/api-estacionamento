@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -7,168 +8,78 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id             String           @id @default(uuid())
-  role           AccountRole    
-  username       String           @unique
-  authentication Authentication?
+model Accounts {
+  id              String           @id
+  role            AccountRole
+  username        String           @unique
+  authentications Authentications?
 
   @@map("accounts")
 }
 
-model Authentication {
-  accountId    String   @id @map("account_id")
-  passwordHash String   @map("password_hash")
-  salt         String
-  algorithm    String   @default("bcrypt")
-  updatedAt    DateTime @default(now()) @map("updated_at")
-  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  
+model Authentications {
+  account_id    String   @id
+  password_hash String
+  salt          String
+  algorithm     String   @default("bcrypt")
+  updated_at    DateTime @default(now())
+  Accounts      Accounts @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
   @@map("authentications")
 }
 
 model CashRegister {
-  id                       String                @id @default(uuid())
-  openingDate              DateTime              @map("opening_date")
-  closingDate              DateTime?             @map("closing_date")
-  status                   CashRegisterStatus    @default(OPEN)
-  operator                 String
-
-  initialValue             Decimal               @db.Decimal(10, 2) @map("initial_value")
-  finalValue               Decimal               @db.Decimal(10, 2) @map("final_value")
-
-  vehicleEntryTotal        Decimal               @db.Decimal(10, 2) @default(0.00) @map("vehicle_entry_total")
-  generalSaleTotal         Decimal               @db.Decimal(10, 2) @default(0.00) @map("general_sale_total")
-  outgoingExpenseTotal     Decimal               @db.Decimal(10, 2) @default(0.00) @map("outgoing_expense_total")
-
-  outgoingExpenses    OutgoingExpense[]
-  vehicleTransactions VehicleTransaction[]
-  productTransactions ProductTransaction[]
+  id                     String               @id
+  opening_date           DateTime
+  closing_date           DateTime?
+  status                 CashRegisterStatus   @default(OPEN)
+  operator               String
+  initial_value          Decimal              @db.Decimal(10, 2)
+  final_value            Decimal              @db.Decimal(10, 2)
+  general_sale_total     Decimal              @default(0.00) @db.Decimal(10, 2)
+  vehicle_entry_total    Decimal              @default(0.00) @db.Decimal(10, 2)
+  outgoing_expense_total Decimal              @default(0.00) @db.Decimal(10, 2)
+  OutgoingExpense        OutgoingExpense[]
+  ProductTransaction     ProductTransaction[]
+  VehicleTransaction     VehicleTransaction[]
 
   @@map("cash_register")
 }
 
-model VehicleEntry {
-  id          String         @id @default(uuid())
-  plate       String
-  category    VehicleCategory
-  operator    String
-  entryTime   DateTime       @default(now()) @map("entry_time")
-  exitTime    DateTime?      @map("exit_time")
-  status      VehicleStatus  @default(INSIDE)
-  deletedAt   DateTime?      @map("deleted_at")
-  description String?        @default("")
-
-  vehicleTransactions VehicleTransaction[]
-
-  @@map("vehicle_entries")
-  @@index([plate])
-}
-
-model Product {
-  id           String         @id @default(uuid())
-  productName  String         @map("product_name")
-  barcode      String?        @unique
-  
-  
-  generalSales GeneralSale[]
-  saleItems SaleItem[]
-
-  @@map("products")
-}
-
-model GeneralSale {
-  id                String         @id @default(uuid())
-  productId         String         @map("product_id")
-  unitPrice         Decimal        @db.Decimal(10, 2)  @map("unit_price")
-  quantity          Int
-  expirationDate    DateTime?      @map("expiration_date") 
-
-  product           Product        @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  @@map("general_sale")
-}
-
-model VehicleTransaction {
-  id               String        @id @default(uuid())
-  vehicleId        String        @map("vehicle_id")
-  operator         String
-  paymentMethod    PaymentMethod
-  transactionDate  DateTime      @map("transaction_date")
-  cashRegisterId   String        @map("cash_register_id")
-
-  originalAmount   Decimal       @db.Decimal(10, 2) @map("original_amount")
-  discountAmount   Decimal       @db.Decimal(10, 2) @default(0) @map("discount_amount")
-  finalAmount      Decimal       @db.Decimal(10, 2) @map("final_amount")
-  amountReceived   Decimal       @db.Decimal(10, 2) @default(0.00) @map("amount_received")
-  changeGiven      Decimal       @db.Decimal(10, 2) @default(0.00) @map("change_given")
-
-  vehicleEntry     VehicleEntry  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  cashRegister     CashRegister  @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
-
-  @@map("vehicle_transaction")
-}
-
-model ProductTransaction {
-  id               String        @id @default(uuid())
-  operator         String
-  paymentMethod    PaymentMethod
-  transactionDate  DateTime      @map("transaction_date")
-  cashRegisterId   String        @map("cash_register_id")
-  
-  originalAmount   Decimal       @db.Decimal(10, 2) @map("original_amount")
-  discountAmount   Decimal       @db.Decimal(10, 2) @default(0) @map("discount_amount")
-  finalAmount      Decimal       @db.Decimal(10, 2) @map("final_amount")
-  amountReceived   Decimal       @db.Decimal(10, 2) @default(0.00) @map("amount_received")
-  changeGiven      Decimal       @db.Decimal(10, 2) @default(0.00) @map("change_given")
-
-  cashRegister     CashRegister  @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
-  saleItems        SaleItem[]
-
-  @@map("product_transaction")
-}
-
-model SaleItem {
-  id                   String             @id @default(uuid())
-  productTransactionId String             @map("product_transaction_id")
-  productId            String?            @map("product_id")
-  soldQuantity         Int
-
-  productName          String
-  unitPrice            Decimal            @db.Decimal(10, 2)
-  expirationDate       DateTime?
-
-  product              Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
-  productTransaction   ProductTransaction @relation(fields: [productTransactionId], references: [id], onDelete: Cascade)
-
-  @@map("sale_items")
-}
-
-
-model OutgoingExpense {
-  id                String         @id @default(uuid())
-  description       String         @map("description")
-  amount            Decimal        @db.Decimal(10, 2) @map("amount")
-  transactionDate   DateTime       @default(now()) @map("transaction_date")
-  cashRegisterId    String         @map("cash_register_id")
-  operator          String
-
-  cashRegister      CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
-
-  @@map("outgoing_expense")
-}
-
 model FinancialMovement {
-  id                String         @id @default(uuid())
-  description       String
-  amount            Decimal        @db.Decimal(10, 2) @map("amount")
-  paymentMethod     PaymentMethod
-  transactionDate   DateTime       @default(now()) @map("transaction_date")
+  id               String        @id
+  description      String
+  amount           Decimal       @db.Decimal(10, 2)
+  transaction_date DateTime      @default(now())
+  paymentMethod    PaymentMethod
 
   @@map("financial_movement")
 }
 
-model PatioConfig {
+model GeneralSale {
+  id              String   @id
+  product_id      String
+  unit_price      Decimal  @db.Decimal(10, 2)
+  quantity        Int
+  expiration_date DateTime?
+  Products        Products @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@map("general_sale")
+}
+
+model OutgoingExpense {
+  id               String       @id
+  description      String
+  amount           Decimal      @db.Decimal(10, 2)
+  transaction_date DateTime     @default(now())
+  cash_register_id String
+  operator         String
+  CashRegister     CashRegister @relation(fields: [cash_register_id], references: [id], onDelete: SetNull)
+
+  @@map("outgoing_expense")
+}
+
+model PatioConfigs {
   id               String @id @default("singleton")
   maxCars          Int
   maxMotorcycles   Int
@@ -177,44 +88,110 @@ model PatioConfig {
   @@map("patio_configs")
 }
 
-/// Representa os tipos de veículos disponíveis no sistema (ex: carro, moto)
-model VehicleType {
-  id                  String                @id
-  name                String
-  billingMethodRules  BillingMethodRule[]
+model ProductTransaction {
+  id               String         @id
+  operator         String
+  paymentMethod    PaymentMethod
+  transaction_date DateTime
+  cash_register_id String
+  original_amount  Decimal        @db.Decimal(10, 2)
+  discount_amount  Decimal        @default(0) @db.Decimal(10, 2)
+  final_amount     Decimal        @db.Decimal(10, 2)
+  amount_received  Decimal        @default(0.00) @db.Decimal(10, 2)
+  change_given     Decimal        @default(0.00) @db.Decimal(10, 2)
+  CashRegister     CashRegister   @relation(fields: [cash_register_id], references: [id], onDelete: SetNull)
+  SaleItems        SaleItems[]
+
+  @@map("product_transaction")
 }
 
-/// Representa os métodos de cobrança disponíveis (ex: por hora, por minuto, taxa fixa)
+model Products {
+  id           String        @id
+  product_name String
+  barcode      String?       @unique
+  GeneralSale  GeneralSale[]
+  SaleItems    SaleItems[]
+
+  @@map("products")
+}
+
+model SaleItems {
+  id                     String             @id
+  product_transaction_id String
+  product_id             String?
+  soldQuantity           Int
+  productName            String
+  unitPrice              Decimal            @db.Decimal(10, 2)
+  expirationDate         DateTime?
+  Products               Products?          @relation(fields: [product_id], references: [id])
+  ProductTransaction     ProductTransaction @relation(fields: [product_transaction_id], references: [id], onDelete: Cascade)
+
+  @@map("sale_items")
+}
+
+model VehicleEntries {
+  id                  String             @id
+  plate               String
+  entry_time          DateTime           @default(now())
+  category            VehicleCategory
+  operator            String
+  deleted_at          DateTime?
+  description         String?            @default("")
+  exit_time           DateTime?
+  status              VehicleStatus      @default(INSIDE)
+  VehicleTransaction  VehicleTransaction[]
+
+  @@index([plate])
+
+  @@map("vehicle_entries")
+}
+
+model VehicleTransaction {
+  id               String          @id
+  vehicle_id       String
+  operator         String
+  paymentMethod    PaymentMethod
+  transaction_date DateTime
+  cash_register_id String
+  amount_received  Decimal         @default(0.00) @db.Decimal(10, 2)
+  change_given     Decimal         @default(0.00) @db.Decimal(10, 2)
+  discount_amount  Decimal         @default(0) @db.Decimal(10, 2)
+  final_amount     Decimal         @db.Decimal(10, 2)
+  original_amount  Decimal         @db.Decimal(10, 2)
+  CashRegister     CashRegister    @relation(fields: [cash_register_id], references: [id], onDelete: SetNull)
+  VehicleEntries   VehicleEntries  @relation(fields: [vehicle_id], references: [id], onDelete: SetNull)
+
+  @@map("vehicle_transaction")
+}
+
 model BillingMethod {
-  id                  String                 @id
-  name                String
-  description         String?
-  vehicleSpecific     Boolean                @default(false)
-  tolerance           Boolean                @default(false)
-  inputs              BillingMethodInput[]
-  rules               BillingMethodRule[]
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  tolerance   Float?   // campo opcional, pode ser nulo
+  BillingRule BillingRule[]
+
+  @@map("billing_method")
 }
 
-/// Define os campos configuráveis de cada método de cobrança (ex: valor por hora, valor fixo)
-model BillingMethodInput {
-  id                Int           @id @default(autoincrement())
-  billingMethod     BillingMethod @relation(fields: [billingMethodId], references: [id], onDelete: Cascade)
-  billingMethodId   String
-  key               String
-  label             String
-  placeholder       String?
-  type              String // ex: "number"
+model BillingRule {
+  id                  String      @id @default(uuid())
+  billingMethodId     String
+  vehicleType         String      
+  baseTime            Int?        
+  price               Float       
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  billingMethod   BillingMethod @relation(fields: [billingMethodId], references: [id])
+
+  @@map("billing_rule")
 }
 
-/// Armazena os valores definidos para os campos dos métodos, por tipo de veículo
-model BillingMethodRule {
-  id                Int           @id @default(autoincrement())
-  billingMethod     BillingMethod @relation(fields: [billingMethodId], references: [id], onDelete: Cascade)
-  billingMethodId   String
-  vehicleType       VehicleType   @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
-  vehicleTypeId     String
-  key               String
-  value             Decimal
+enum InputType {
+  number
+  text
+  select
 }
 
 enum AccountRole {
@@ -237,11 +214,10 @@ enum PaymentMethod {
 enum VehicleCategory {
   carro
   moto
-  carroGrande
 }
 
 enum VehicleStatus {
-  INSIDE     // veículo está no pátio
-  EXITED     // veículo saiu do pátio
-  DELETED    // registro foi "apagado" mas pode ser restaurado
+  INSIDE
+  EXITED
+  DELETED
 }
