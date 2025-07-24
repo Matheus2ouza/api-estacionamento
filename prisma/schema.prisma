@@ -177,6 +177,46 @@ model PatioConfig {
   @@map("patio_configs")
 }
 
+/// Representa os tipos de veículos disponíveis no sistema (ex: carro, moto)
+model VehicleType {
+  id                  String                @id
+  name                String
+  billingMethodRules  BillingMethodRule[]
+}
+
+/// Representa os métodos de cobrança disponíveis (ex: por hora, por minuto, taxa fixa)
+model BillingMethod {
+  id                  String                 @id
+  name                String
+  description         String?
+  vehicleSpecific     Boolean                @default(false)
+  tolerance           Boolean                @default(false)
+  inputs              BillingMethodInput[]
+  rules               BillingMethodRule[]
+}
+
+/// Define os campos configuráveis de cada método de cobrança (ex: valor por hora, valor fixo)
+model BillingMethodInput {
+  id                Int           @id @default(autoincrement())
+  billingMethod     BillingMethod @relation(fields: [billingMethodId], references: [id], onDelete: Cascade)
+  billingMethodId   String
+  key               String
+  label             String
+  placeholder       String?
+  type              String // ex: "number"
+}
+
+/// Armazena os valores definidos para os campos dos métodos, por tipo de veículo
+model BillingMethodRule {
+  id                Int           @id @default(autoincrement())
+  billingMethod     BillingMethod @relation(fields: [billingMethodId], references: [id], onDelete: Cascade)
+  billingMethodId   String
+  vehicleType       VehicleType   @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+  vehicleTypeId     String
+  key               String
+  value             Decimal
+}
+
 enum AccountRole {
   ADMIN
   NORMAL
