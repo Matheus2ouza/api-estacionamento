@@ -121,7 +121,7 @@ async function BillingMethodService() {
   try {
     const methods = await prisma.billingMethod.findMany({
       include: {
-        billingRule
+        billingRule: true
       },
     });
 

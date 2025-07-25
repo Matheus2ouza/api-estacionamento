@@ -159,6 +159,9 @@ exports.BillingMethod = async (req, res) => {
     });
   } catch (error) {
     console.error("Erro na rota de métodos de cobrança:", error);
-    return res.status(500).json({ message: 'Erro ao buscar métodos de cobrança' });
+    return res.status(500).json({ 
+      success: false,
+      message: 'Erro ao buscar métodos de cobrança' 
+    });
   }
 };
