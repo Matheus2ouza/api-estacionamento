@@ -168,21 +168,21 @@ model BillingMethod {
   name        String
   description String
   tolerance   Float?
-  billingRule BillingRule? @relation("OneToOneBillingRule")
+  billingRule BillingRule? @relation("OneToOneBillingRule") // lado A da relação
 
   @@map("billing_method")
 }
 
 model BillingRule {
   id              String   @id @default(uuid())
-  billingMethodId String   @unique // <- UNIQUE garante que um método tenha apenas uma regra
+  billingMethodId String   @unique
   vehicleType     String
   baseTime        Int?
   price           Float
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  billingMethod BillingMethod @relation("OneToOneBillingRule", fields: [billingMethodId], references: [id])
+  billingMethod   BillingMethod @relation("OneToOneBillingRule", fields: [billingMethodId], references: [id]) // lado B da relação
 
   @@map("billing_rule")
 }
