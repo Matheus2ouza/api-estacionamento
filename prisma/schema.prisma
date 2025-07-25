@@ -167,8 +167,8 @@ model BillingMethod {
   id          String       @id @default(uuid())
   name        String
   description String
-  tolerance   Float? // campo opcional, pode ser nulo
-  billingRule BillingRule? @relation("OneToOneBillingRule") // agora é um único BillingRule
+  tolerance   Float?
+  billingRule BillingRule? @relation("OneToOneBillingRule")
 
   @@map("billing_method")
 }
