@@ -123,15 +123,14 @@ async function BillingMethodService() {
       select: {
         name: true,
         description: true,
-        hasTolerance: true,
+        tolerance: true,
         billingRules: {
           select: {
             billingMethodId: true,
             vehicleType: true,
-            price: true,
-            
+            price: true
           }
-        } 
+        }
       }
     });
 
@@ -141,6 +140,7 @@ async function BillingMethodService() {
     throw error;
   }
 }
+
 
 
 module.exports = {
