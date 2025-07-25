@@ -117,9 +117,26 @@ async function geralCashDataService(id) {
   }
 }
 
+async function BillingMethodService() {
+  try {
+    const methods = await prisma.billingMethod.findMany({
+      include: {
+        billingRule: true, // inclui a regra associada (se houver)
+      },
+    });
+
+    return methods;
+  } catch (error) {
+    console.error('Erro ao buscar métodos de cobrança:', error);
+    throw error;
+  }
+}
+
+
 module.exports = {
   statusCashService,
   openCashService,
   closeCashService,
-  geralCashDataService
+  geralCashDataService,
+  BillingMethodService
 }

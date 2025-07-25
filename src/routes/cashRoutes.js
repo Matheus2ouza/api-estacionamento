@@ -30,4 +30,6 @@ router.post('/close-cash/:id',
   authMiddleware('NORMAL'), cashController.closeCash
 )
 
+router.get('/billing-method', authMiddleware('NORMAL'), cashController.BillingMethod)
+
 module.exports = router;

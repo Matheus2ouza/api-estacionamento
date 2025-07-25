@@ -141,3 +141,24 @@ exports.geralCashData = async (req, res) => {
     })
   }
 }
+
+exports.BillingMethod = async (req, res) => {
+  try {
+    const methods = await cashService.BillingMethodService();
+
+    if(!methods) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nenhuma regra encontrada'
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      methods: methods
+    });
+  } catch (error) {
+    console.error("Erro na rota de métodos de cobrança:", error);
+    return res.status(500).json({ message: 'Erro ao buscar métodos de cobrança' });
+  }
+};
