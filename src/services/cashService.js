@@ -120,9 +120,19 @@ async function geralCashDataService(id) {
 async function BillingMethodService() {
   try {
     const methods = await prisma.billingMethod.findMany({
-      include: {
-        billingRule: true
-      },
+      select: {
+        name: true,
+        description: true,
+        hasTolerance: true,
+        billingRules: {
+          select: {
+            billingMethodId: true,
+            vehicleType: true,
+            price: true,
+            
+          }
+        } 
+      }
     });
 
     return methods;

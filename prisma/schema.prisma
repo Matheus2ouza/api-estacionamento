@@ -164,25 +164,25 @@ model VehicleTransaction {
 }
 
 model BillingMethod {
-  id          String       @id @default(uuid())
+  id          String         @id @default(uuid())
   name        String
   description String
   tolerance   Float?
-  billingRule BillingRule? @relation("OneToOneBillingRule") // lado A da relação
+  billingRules BillingRule[]  // <- Agora é uma lista (1:N)
 
   @@map("billing_method")
 }
 
 model BillingRule {
   id              String   @id @default(uuid())
-  billingMethodId String   @unique
+  billingMethodId String
   vehicleType     String
   baseTime        Int?
   price           Float
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  billingMethod   BillingMethod @relation("OneToOneBillingRule", fields: [billingMethodId], references: [id]) // lado B da relação
+  billingMethod   BillingMethod @relation(fields: [billingMethodId], references: [id])
 
   @@map("billing_rule")
 }
