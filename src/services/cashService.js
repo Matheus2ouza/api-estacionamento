@@ -141,12 +141,32 @@ async function BillingMethodService() {
   }
 }
 
+async function cashDataService(id) {
+  try{
+    const result = await prisma.cashRegister.findFirst({
+      where: {id: id, status: 'OPEN'},
+      select: {
+        initialValue: true,
+        finalValue: true,
+        outgoingExpenseTotal: true,
+      },
+      include: {
+        vehicleTransactions: true,
+        productTransactions: true
+      }
+    })
 
+    return result
+  } catch (error) {
+    throw error
+  }
+}
 
 module.exports = {
   statusCashService,
   openCashService,
   closeCashService,
   geralCashDataService,
-  BillingMethodService
+  BillingMethodService,
+  cashDataService
 }

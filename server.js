@@ -12,8 +12,8 @@ app.get('/', (req, res) => {
 
 const authRoutes = require('./src/routes/authRoutes');
 const vehicleRoutes = require('./src/routes/vehicleRoutes');
-const cashRoutes = require('./src/routes/cashRoutes')
-const productRoutes = require('./src/routes/productRoutes')
+const cashRoutes = require('./src/routes/cashRoutes');
+const productRoutes = require('./src/routes/productRoutes');
 
 app.use('/auth', authRoutes);
 app.use('/vehicles', vehicleRoutes);

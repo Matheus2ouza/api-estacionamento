@@ -165,3 +165,63 @@ exports.BillingMethod = async (req, res) => {
     });
   }
 };
+
+exports.cashData = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id } = req.body;
+
+  try {
+    const cash = await cashService.cashDataService(id);
+
+    if (!cash) {
+      return res.status(404).json({
+        success: false,
+        message: 'Caixa não encontrado ou não está aberto.',
+      });
+    }
+
+    // inicializa os totais por método
+    const payments = { DINHEIRO: 0, CREDITO: 0, DEBITO: 0, PIX: 0 };
+
+    // soma das transações de produtos
+    cash.productTransactions.forEach(tx => {
+      if (payments[tx.paymentMethod] !== undefined) {
+        payments[tx.paymentMethod] += parseFloat(tx.final_amount);
+      }
+    });
+
+    // soma das transações de veículos
+    cash.vehicleTransactions.forEach(tx => {
+      if (payments[tx.paymentMethod] !== undefined) {
+        payments[tx.paymentMethod] += parseFloat(tx.final_amount);
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        initialValue: parseFloat(cash.initialValue),
+        totalCash: payments.DINHEIRO,
+        totalCredit: payments.CREDITO,
+        totalDebit: payments.DEBITO,
+        totalPix: payments.PIX,
+        outgoingExpenseTotal: parseFloat(cash.outgoingExpenseTotal),
+        finalValue: parseFloat(cash.finalValue),
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar dados do caixa:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar dados do caixa.'
+    });
+  }
+}
