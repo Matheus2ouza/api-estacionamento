@@ -27,8 +27,7 @@ router.post('/close-cash/:id',
     param('id').isUUID(),
     body('finalValue').isFloat({min: 0})
   ],
-  authMiddleware('NORMAL'), cashController.closeCash)
-
-router.post('/')
+  authMiddleware('NORMAL'), cashController.closeCash
+)
 
 module.exports = router;
