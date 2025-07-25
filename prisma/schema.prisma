@@ -165,25 +165,25 @@ model VehicleTransaction {
 }
 
 model BillingMethod {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
   description String
-  tolerance   Float?   // campo opcional, pode ser nulo
-  BillingRule BillingRule[]
+  tolerance   Float?       // campo opcional, pode ser nulo
+  billingRule BillingRule? @relation("OneToOneBillingRule") // agora é um único BillingRule
 
   @@map("billing_method")
 }
 
 model BillingRule {
-  id                  String      @id @default(uuid())
-  billingMethodId     String
-  vehicleType         String      
-  baseTime            Int?        
-  price               Float       
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id              String         @id @default(uuid())
+  billingMethodId String         @unique  // <- UNIQUE garante que um método tenha apenas uma regra
+  vehicleType     String
+  baseTime        Int?
+  price           Float
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  billingMethod   BillingMethod @relation(fields: [billingMethodId], references: [id])
+  billingMethod   BillingMethod  @relation("OneToOneBillingRule", fields: [billingMethodId], references: [id])
 
   @@map("billing_rule")
 }
