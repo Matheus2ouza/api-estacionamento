@@ -36,6 +36,7 @@ router.get('/cash-data/:id',
   [
     param('id').exists().isString()
   ],
-  authMiddleware('ADMIN'), cashController.cashData)
+  authMiddleware('ADMIN'), cashController.cashData
+)
 
 module.exports = router;

@@ -176,7 +176,7 @@ exports.cashData = async (req, res) => {
     });
   }
 
-  const { id } = req.body;
+  const { id } = req.params;
 
   try {
     const cash = await cashService.cashDataService(id);
