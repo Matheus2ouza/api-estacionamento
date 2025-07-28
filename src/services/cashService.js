@@ -162,7 +162,7 @@ export async function cashDataService(id) {
     const productTransactions = await prisma.productTransaction.findMany({
       where: { cashRegisterId: id },
       select: {
-        paymentMethod: true,
+        payment_method: true,
         finalAmount: true
       }
     });
@@ -171,7 +171,7 @@ export async function cashDataService(id) {
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
       where: { cashRegisterId: id },
       select: {
-        payment_method: true,
+        paymentMethod: true,
         finalAmount: true
       }
     });
