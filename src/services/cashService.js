@@ -143,8 +143,12 @@ async function BillingMethodService() {
 
 export async function cashDataService(id) {
   try {
+    // Busca os dados principais do caixa
     const baseData = await prisma.cashRegister.findFirst({
-      where: { id, status: "OPEN" },
+      where: {
+        id,
+        status: "OPEN"
+      },
       select: {
         id: true,
         initialValue: true,
@@ -154,38 +158,54 @@ export async function cashDataService(id) {
     });
 
     if (!baseData) throw new Error("Caixa não encontrado ou fechado.");
+    console.log(baseData)
 
-    // Versão segura que trata possíveis diferenças de nomenclatura
-    const getPaymentMethod = (transaction) => {
-      return transaction.method || transaction.method;
-    };
-
+    // Busca transações de produtos
     const productTransactions = await prisma.productTransaction.findMany({
-      where: { cashRegisterId: baseData.id }
-    });
+      where: {cashRegisterId: baseData.id },
+      select: {
+        Method: true,
+        finalAmount: true,
+      }
+    })
 
+    // Busca transações de veículos
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
-      where: { cashRegisterId: baseData.id }
+      where: { cashRegisterId: baseData.id },
+      select: {
+        Method: true,  // Isso está correto - Prisma Client usa o nome do modelo
+        finalAmount: true
+      }
     });
 
-    const sumByPayment = (transactions, type) => {
-      return transactions.reduce((acc, t) => {
-        const method = getPaymentMethod(t);
-        return method === type ? acc + parseFloat(t.finalAmount || t.final_amount || 0) : acc;
-      }, 0);
+    // Função de somatório por tipo de pagamento
+    const sumByPayment = (list, type) => {
+      return list
+        .filter(t => t.Method === type)
+        .reduce((acc, t) => acc + parseFloat(t.finalAmount), 0);
     };
 
-    const totals = {
-      initialValue: parseFloat(baseData.initialValue || baseData.initial_value || 0),
-      totalCash: sumByPayment(vehicleTransactions, "DINHEIRO") + sumByPayment(productTransactions, "DINHEIRO"),
-      totalCredit: sumByPayment(vehicleTransactions, "CREDITO") + sumByPayment(productTransactions, "CREDITO"),
-      totalDebit: sumByPayment(vehicleTransactions, "DEBITO") + sumByPayment(productTransactions, "DEBITO"),
-      totalPix: sumByPayment(vehicleTransactions, "PIX") + sumByPayment(productTransactions, "PIX"),
-      outgoingExpenseTotal: parseFloat(baseData.outgoingExpenseTotal || baseData.outgoing_expense_total || 0),
-      finalValue: parseFloat(baseData.finalValue || baseData.final_value || 0)
-    };
+    const totalCash = sumByPayment(vehicleTransactions, "DINHEIRO") +
+                      sumByPayment(productTransactions, "DINHEIRO");
 
-    return totals;
+    const totalCredit = sumByPayment(vehicleTransactions, "CREDITO") +
+                        sumByPayment(productTransactions, "CREDITO");
+
+    const totalDebit = sumByPayment(vehicleTransactions, "DEBITO") +
+                       sumByPayment(productTransactions, "DEBITO");
+
+    const totalPix = sumByPayment(vehicleTransactions, "PIX") +
+                     sumByPayment(productTransactions, "PIX");
+
+    return {
+      initialValue: parseFloat(baseData.initialValue),
+      totalCash,
+      totalCredit,
+      totalDebit,
+      totalPix,
+      outgoingExpenseTotal: parseFloat(baseData.outgoingExpenseTotal),
+      finalValue: parseFloat(baseData.finalValue)
+    };
   } catch (error) {
     console.error("Erro em cashDataService:", error);
     throw error;
