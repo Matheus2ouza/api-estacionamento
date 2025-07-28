@@ -77,9 +77,9 @@ async function closeCashService(id, finalValue, date) {
     return false
   }
 
-  try{
+  try {
     const closeCash = await prisma.cashRegister.update({
-      where: {id: id},
+      where: { id: id },
       data: {
         closingDate: date,
         status: 'CLOSED',
@@ -99,18 +99,18 @@ async function closeCashService(id, finalValue, date) {
 
 async function geralCashDataService(id) {
   const verifyCash = await prisma.cashRegister.findUnique({
-    where: {id: id}
+    where: { id: id }
   })
 
-  if(!verifyCash) {
+  if (!verifyCash) {
     return false
   }
 
-  try{
-    const result =  await prisma.cashRegister.findFirst({
-      where: {id: id}
+  try {
+    const result = await prisma.cashRegister.findFirst({
+      where: { id: id }
     })
-    
+
     return result
   } catch (error) {
     throw error
@@ -141,26 +141,72 @@ async function BillingMethodService() {
   }
 }
 
-async function cashDataService(id) {
-  try{
-    const result = await prisma.cashRegister.findFirst({
-      where: {id: id, status: 'OPEN'},
-      select: {
-        initialValue: true,
-        finalValue: true,
-        outgoingExpenseTotal: true,
-      },
-      include: {
-        vehicleTransactions: true,
-        productTransactions: true
-      }
-    })
+import { prisma } from "../generated/prisma"; // ajuste conforme seu path
 
-    return result
+export async function cashDataService(id) {
+  try {
+    const baseData = await prisma.cashRegister.findFirst({
+      where: {
+        id,
+        status: "OPEN"
+      },
+      select: {
+        initial_value: true,
+        final_value: true,
+        outgoing_expense_total: true,
+        VehicleTransaction: {
+          select: {
+            paymentMethod: true,
+            final_amount: true
+          }
+        },
+        ProductTransaction: {
+          select: {
+            paymentMethod: true,
+            final_amount: true
+          }
+        }
+      }
+    });
+
+    if (!baseData) throw new Error("Caixa não encontrado ou fechado.");
+
+    const sumByPayment = (list, type) => {
+      return list
+        .filter(t => t.paymentMethod === type)
+        .reduce((acc, t) => acc + parseFloat(t.final_amount), 0);
+    };
+
+    const totalCash = sumByPayment(baseData.VehicleTransaction, "DINHEIRO") +
+                      sumByPayment(baseData.ProductTransaction, "DINHEIRO");
+
+    const totalCredit = sumByPayment(baseData.VehicleTransaction, "CREDITO") +
+                        sumByPayment(baseData.ProductTransaction, "CREDITO");
+
+    const totalDebit = sumByPayment(baseData.VehicleTransaction, "DEBITO") +
+                       sumByPayment(baseData.ProductTransaction, "DEBITO");
+
+    const totalPix = sumByPayment(baseData.VehicleTransaction, "PIX") +
+                     sumByPayment(baseData.ProductTransaction, "PIX");
+
+    const result = {
+      initialValue: parseFloat(baseData.initial_value),
+      totalCash,
+      totalCredit,
+      totalDebit,
+      totalPix,
+      outgoingExpenseTotal: parseFloat(baseData.outgoing_expense_total),
+      finalValue: parseFloat(baseData.final_value)
+    };
+
+    return result;
   } catch (error) {
-    throw error
+    console.error("Erro em cashDataService:", error);
+    throw error;
   }
 }
+
+
 
 module.exports = {
   statusCashService,
