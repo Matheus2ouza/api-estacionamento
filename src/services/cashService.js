@@ -141,8 +141,6 @@ async function BillingMethodService() {
   }
 }
 
-import { prisma } from "../generated/prisma"; // ajuste conforme seu path
-
 export async function cashDataService(id) {
   try {
     const baseData = await prisma.cashRegister.findFirst({
@@ -205,8 +203,6 @@ export async function cashDataService(id) {
     throw error;
   }
 }
-
-
 
 module.exports = {
   statusCashService,
