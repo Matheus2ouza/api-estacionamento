@@ -157,7 +157,7 @@ export async function cashDataService(id) {
 
     // Versão segura que trata possíveis diferenças de nomenclatura
     const getPaymentMethod = (transaction) => {
-      return transaction.paymentMethod || transaction.payment_method;
+      return transaction.method || transaction.method;
     };
 
     const productTransactions = await prisma.productTransaction.findMany({
