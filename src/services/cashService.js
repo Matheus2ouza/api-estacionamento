@@ -164,7 +164,7 @@ export async function cashDataService(id) {
     const productTransactions = await prisma.productTransaction.findMany({
       where: {cashRegisterId: baseData.id },
       select: {
-        Method: true,
+        method: true,
         finalAmount: true,
       }
     })
@@ -173,7 +173,7 @@ export async function cashDataService(id) {
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
       where: { cashRegisterId: baseData.id },
       select: {
-        Method: true,  // Isso está correto - Prisma Client usa o nome do modelo
+        method: true,  // Isso está correto - Prisma Client usa o nome do modelo
         finalAmount: true
       }
     });
@@ -181,7 +181,7 @@ export async function cashDataService(id) {
     // Função de somatório por tipo de pagamento
     const sumByPayment = (list, type) => {
       return list
-        .filter(t => t.Method === type)
+        .filter(t => t.method === type)
         .reduce((acc, t) => acc + parseFloat(t.finalAmount), 0);
     };
 
