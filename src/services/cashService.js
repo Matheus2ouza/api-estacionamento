@@ -152,13 +152,13 @@ export async function cashDataService(id) {
         initialValue: true,
         finalValue: true,
         outgoingExpenses: true,
-        VehicleTransaction: {
+        productTransactions: {
           select: {
             paymentMethod: true,
-            finalValue: true
+            finalAmount: true
           }
         },
-        ProductTransaction: {
+        vehicleTransactions: {
           select: {
             paymentMethod: true,
             finalAmount: true
