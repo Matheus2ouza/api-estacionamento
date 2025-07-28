@@ -20,62 +20,61 @@ model Accounts {
 model Authentications {
   accountId    String   @id @map("account_id")
   passwordHash String   @map("password_hash")
-  salt          String
-  algorithm     String   @default("bcrypt")
+  salt         String
+  algorithm    String   @default("bcrypt")
   updatedAt    DateTime @default(now()) @map("updated_at")
-  Accounts      Accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  Accounts     Accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("authentications")
 }
 
 model CashRegister {
-  id                     String               @id @default(uuid())
-  openingDate           DateTime             @map("opening_date")
-  closingDate           DateTime?            @map("closing_date")
-  status                 CashRegisterStatus   @default(OPEN)
-  operator               String
-  initialValue          Decimal              @db.Decimal(10, 2) @map("initial_value")
-  finalValue            Decimal              @db.Decimal(10, 2) @map("final_value")
-  generalSaleTotal     Decimal              @default(0.00) @db.Decimal(10, 2) @map("general_sale_total")
-  vehicleEntryTotal    Decimal              @default(0.00) @db.Decimal(10, 2) @map("vehicle_entry_total")
-  outgoingExpenseTotal Decimal              @default(0.00) @db.Decimal(10, 2) @map("outgoing_expense_total")
-  OutgoingExpense        OutgoingExpense[]
-
-  ProductTransactions      ProductTransaction[]
-  vehicleTransactions      VehicleTransaction[]
+  id                   String               @id @default(uuid())
+  openingDate          DateTime             @map("opening_date")
+  closingDate          DateTime?            @map("closing_date")
+  status               CashRegisterStatus   @default(OPEN)
+  operator             String
+  initialValue         Decimal              @map("initial_value") @db.Decimal(10, 2)
+  finalValue           Decimal              @map("final_value") @db.Decimal(10, 2)
+  generalSaleTotal     Decimal              @default(0.00) @map("general_sale_total") @db.Decimal(10, 2)
+  vehicleEntryTotal    Decimal              @default(0.00) @map("vehicle_entry_total") @db.Decimal(10, 2)
+  outgoingExpenseTotal Decimal              @default(0.00) @map("outgoing_expense_total") @db.Decimal(10, 2)
+  OutgoingExpense      OutgoingExpense[]
+  ProductTransactions  ProductTransaction[]
+  vehicleTransactions  VehicleTransaction[]
 
   @@map("cash_register")
 }
 
 model FinancialMovement {
-  id               String        @id @default(uuid())
-  description      String
-  amount           Decimal       @db.Decimal(10, 2)
+  id              String        @id @default(uuid())
+  description     String
+  amount          Decimal       @db.Decimal(10, 2)
   transactionDate DateTime      @default(now()) @map("transaction_date")
-  paymentMethod    PaymentMethod @map("payment_method")
+  paymentMethod   PaymentMethod @map("payment_method")
 
   @@map("financial_movement")
 }
 
 model GeneralSale {
-  id              String    @id @default(uuid())
-  productId      String     @map("product_id")
-  unitPrice      Decimal   @db.Decimal(10, 2) @map("unit_price")
-  quantity        Int
+  id             String    @id @default(uuid())
+  productId      String    @map("product_id")
+  unitPrice      Decimal   @map("unit_price") @db.Decimal(10, 2)
+  quantity       Int
   expirationDate DateTime? @map("expiration_date")
-  Products        Products  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  Products       Products  @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@map("general_sale")
 }
 
 model OutgoingExpense {
-  id               String       @id @default(uuid())
-  description      String
-  amount           Decimal      @db.Decimal(10, 2)
+  id              String       @id @default(uuid())
+  description     String
+  amount          Decimal      @db.Decimal(10, 2)
   transactionDate DateTime     @default(now()) @map("transaction_date")
-  cashRegisterId String       @map("cash_register_id")
-  operator         String
-  CashRegister     CashRegister @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+  cashRegisterId  String       @map("cash_register_id")
+  operator        String
+  CashRegister    CashRegister @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
 
   @@map("outgoing_expense")
 }
@@ -83,49 +82,49 @@ model OutgoingExpense {
 model PatioConfigs {
   id               String @id @default("singleton")
   maxCars          Int    @map("max_cars")
-  maxMotorcycles   Int    @map("max_motorcycles")
   maxLargeVehicles Int    @map("max_large_vehicles")
+  maxMotorcycles   Int    @map("max_motorcycles")
 
   @@map("patio_configs")
 }
 
 model ProductTransaction {
-  id               String        @id @default(uuid())
-  operator         String
-  paymentMethod    PaymentMethod @map("payment_method")
+  id              String        @id @default(uuid())
+  operator        String
   transactionDate DateTime      @map("transaction_date")
-  cashRegisterId   String        @map("cash_register_id")
-  originalAmount  Decimal       @db.Decimal(10, 2) @map("original_amount")
-  discountAmount  Decimal       @default(0) @db.Decimal(10, 2) @map("discount_amount")
-  finalAmount     Decimal       @db.Decimal(10, 2) @map("final_amount")
-  amountReceived  Decimal       @default(0.00) @db.Decimal(10, 2) @map("amount_received")
-  changeGiven     Decimal       @default(0.00) @db.Decimal(10, 2) @map("change_given")
-  CashRegister     CashRegister  @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
-  SaleItems        SaleItems[]
+  cashRegisterId  String        @map("cash_register_id")
+  originalAmount  Decimal       @map("original_amount") @db.Decimal(10, 2)
+  discountAmount  Decimal       @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  finalAmount     Decimal       @map("final_amount") @db.Decimal(10, 2)
+  amountReceived  Decimal       @default(0.00) @map("amount_received") @db.Decimal(10, 2)
+  changeGiven     Decimal       @default(0.00) @map("change_given") @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod @map("payment_method")
+  CashRegister    CashRegister  @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+  SaleItems       SaleItems[]
 
   @@map("product_transaction")
 }
 
 model Products {
-  id           String        @id @default(uuid())
+  id          String        @id @default(uuid())
   productName String        @map("product_name")
-  barcode      String?       @unique
-  GeneralSale  GeneralSale[]
-  SaleItems    SaleItems[]
+  barcode     String?       @unique
+  GeneralSale GeneralSale[]
+  SaleItems   SaleItems[]
 
   @@map("products")
 }
 
 model SaleItems {
-  id                     String             @id @default(uuid())
+  id                   String             @id @default(uuid())
   productTransactionId String             @map("product_transaction_id")
-  productId             String?            @map("product_id")
-  soldQuantity           Int                @map("sold_quantity")
-  productName            String             @map("product_name")
-  unitPrice              Decimal            @db.Decimal(10, 2) @map("unit_price")
-  expirationDate         DateTime?          @map("expiration_date")
-  Products               Products?          @relation(fields: [productId], references: [id])
-  ProductTransaction     ProductTransaction @relation(fields: [productTransactionId], references: [id], onDelete: Cascade)
+  productId            String?            @map("product_id")
+  expirationDate       DateTime?          @map("expiration_date")
+  productName          String             @map("product_name")
+  soldQuantity         Int                @map("sold_quantity")
+  unitPrice            Decimal            @map("unit_price") @db.Decimal(10, 2)
+  Products             Products?          @relation(fields: [productId], references: [id])
+  ProductTransaction   ProductTransaction @relation(fields: [productTransactionId], references: [id], onDelete: Cascade)
 
   @@map("sale_items")
 }
@@ -133,12 +132,12 @@ model SaleItems {
 model VehicleEntries {
   id                 String               @id @default(uuid())
   plate              String
-  entryTime         DateTime             @default(now()) @map("entry_time")
+  entryTime          DateTime             @default(now()) @map("entry_time")
   category           VehicleCategory
   operator           String
-  deletedAt         DateTime?            @map("deleted_at")
+  deletedAt          DateTime?            @map("deleted_at")
   description        String?              @default("")
-  exitTime          DateTime?            @map("exit_time")
+  exitTime           DateTime?            @map("exit_time")
   status             VehicleStatus        @default(INSIDE)
   VehicleTransaction VehicleTransaction[]
 
@@ -147,43 +146,41 @@ model VehicleEntries {
 }
 
 model VehicleTransaction {
-  id               String         @id @default(uuid())
-  vehicleId        String         @map("vehicle_id")
-  operator         String
-  paymentMethod    PaymentMethod @map("payment_method")
+  id              String         @id @default(uuid())
+  vehicleId       String         @map("vehicle_id")
+  operator        String
   transactionDate DateTime       @map("transaction_date")
-  cashRegisterId   String         @map("cash_register_id")
-  amountReceived   Decimal        @default(0.00) @db.Decimal(10, 2) @map("amount_received")
-  changeGiven      Decimal        @default(0.00) @db.Decimal(10, 2) @map("change_given")
-  discountAmount   Decimal        @default(0) @db.Decimal(10, 2) @map("discount_amount")
-  finalAmount      Decimal        @db.Decimal(10, 2) @map("final_amount")
-  originalAmount   Decimal        @db.Decimal(10, 2) @map("original_amount")
-
-  CashRegister     CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
-  VehicleEntries   VehicleEntries @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  cashRegisterId  String         @map("cash_register_id")
+  amountReceived  Decimal        @default(0.00) @map("amount_received") @db.Decimal(10, 2)
+  changeGiven     Decimal        @default(0.00) @map("change_given") @db.Decimal(10, 2)
+  discountAmount  Decimal        @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  finalAmount     Decimal        @map("final_amount") @db.Decimal(10, 2)
+  originalAmount  Decimal        @map("original_amount") @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod  @map("payment_method")
+  CashRegister    CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: SetNull)
+  VehicleEntries  VehicleEntries @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
 
   @@map("vehicle_transaction")
 }
 
 model BillingMethod {
-  id          String         @id @default(uuid())
-  name        String
-  description String
-  tolerance   Float?
+  id           String        @id @default(uuid())
+  name         String
+  description  String
+  tolerance    Float?
   billingRules BillingRule[]
 
   @@map("billing_method")
 }
 
 model BillingRule {
-  id              String   @id @default(uuid())
-  billingMethodId String   @map("billing_method_id")
-  vehicleType     String   @map("vehicle_type")
-  baseTime        Int?     @map("base_time")
+  id              String        @id @default(uuid())
   price           Float
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
+  baseTime        Int?          @map("base_time")
+  billingMethodId String        @map("billing_method_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  vehicleType     String        @map("vehicle_type")
   billingMethod   BillingMethod @relation(fields: [billingMethodId], references: [id])
 
   @@map("billing_rule")

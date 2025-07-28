@@ -143,8 +143,8 @@ async function BillingMethodService() {
 
 export async function cashDataService(id) {
   try {
-    // Buscar dados do caixa
-    const cash = await prisma.cashRegister.findFirst({
+    // Busca os dados principais do caixa
+    const baseData = await prisma.cashRegister.findFirst({
       where: {
         id,
         status: "OPEN"
@@ -156,31 +156,27 @@ export async function cashDataService(id) {
       }
     });
 
-    if (!cash) throw new Error("Caixa não encontrado ou fechado.");
+    if (!baseData) throw new Error("Caixa não encontrado ou fechado.");
 
-    // Buscar transações de produtos
+    // Busca transações de produtos
     const productTransactions = await prisma.productTransaction.findMany({
-      where: {
-        cashRegisterId: id
-      },
+      where: { cashRegisterId: id },
       select: {
         paymentMethod: true,
         finalAmount: true
       }
     });
 
-    // Buscar transações de veículos
+    // Busca transações de veículos
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
-      where: {
-        cashRegisterId: id
-      },
+      where: { cashRegisterId: id },
       select: {
         paymentMethod: true,
         finalAmount: true
       }
     });
 
-    // Função para somar valores por método de pagamento
+    // Função de somatório por tipo de pagamento
     const sumByPayment = (list, type) => {
       return list
         .filter(t => t.paymentMethod === type)
@@ -199,25 +195,20 @@ export async function cashDataService(id) {
     const totalPix = sumByPayment(vehicleTransactions, "PIX") +
                      sumByPayment(productTransactions, "PIX");
 
-    // Montar resultado final
-    const result = {
-      initialValue: parseFloat(cash.initialValue),
+    return {
+      initialValue: parseFloat(baseData.initialValue),
       totalCash,
       totalCredit,
       totalDebit,
       totalPix,
-      outgoingExpenseTotal: parseFloat(cash.outgoingExpenseTotal),
-      finalValue: parseFloat(cash.finalValue)
+      outgoingExpenseTotal: parseFloat(baseData.outgoingExpenseTotal),
+      finalValue: parseFloat(baseData.finalValue)
     };
-
-    return result;
-
   } catch (error) {
     console.error("Erro em cashDataService:", error);
     throw error;
   }
 }
-
 
 module.exports = {
   statusCashService,
