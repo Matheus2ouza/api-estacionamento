@@ -149,19 +149,19 @@ export async function cashDataService(id) {
         status: "OPEN"
       },
       select: {
-        initial_value: true,
-        final_value: true,
-        outgoing_expense_total: true,
+        initialValue: true,
+        finalValue: true,
+        outgoingExpenses: true,
         VehicleTransaction: {
           select: {
             paymentMethod: true,
-            final_amount: true
+            finalValue: true
           }
         },
         ProductTransaction: {
           select: {
             paymentMethod: true,
-            final_amount: true
+            finalAmount: true
           }
         }
       }
