@@ -173,7 +173,7 @@ export async function cashDataService(id) {
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
       where: { cashRegisterId: baseData.id },
       select: {
-        method: true,  // Isso está correto - Prisma Client usa o nome do modelo
+        method: true,
         finalAmount: true
       }
     });

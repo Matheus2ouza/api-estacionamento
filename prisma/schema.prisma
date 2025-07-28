@@ -157,7 +157,7 @@ model VehicleTransaction {
   discountAmount  Decimal        @default(0) @map("discount_amount") @db.Decimal(10, 2)
   finalAmount     Decimal        @map("final_amount") @db.Decimal(10, 2)
   originalAmount  Decimal        @map("original_amount") @db.Decimal(10, 2)
-  Method          Method         @map("method")
+  method          Method         @map("method")
   
   CashRegister    CashRegister   @relation(fields: [cashRegisterId], references: [id], onDelete: Restrict)
   VehicleEntries  VehicleEntries @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
