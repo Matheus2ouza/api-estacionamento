@@ -193,8 +193,8 @@ export async function cashDataService(id) {
       totalCredit,
       totalDebit,
       totalPix,
-      outgoingExpenseTotal: parseFloat(baseData.outgoing_expense_total),
-      finalValue: parseFloat(baseData.final_value)
+      outgoingExpenseTotal: parseFloat(baseData.outgoingExpenseTotal),
+      finalValue: parseFloat(baseData.finalValue)
     };
 
     return result;
