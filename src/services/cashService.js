@@ -150,6 +150,7 @@ export async function cashDataService(id) {
         status: "OPEN"
       },
       select: {
+        id: true,
         initialValue: true,
         finalValue: true,
         outgoingExpenseTotal: true
@@ -160,16 +161,16 @@ export async function cashDataService(id) {
 
     // Busca transações de produtos
     const productTransactions = await prisma.productTransaction.findMany({
-      where: { cashRegisterId: id },
+      where: { cashRegisterId: baseData.id },
       select: {
-        payment_method: true,
+        paymentMethod: true,
         finalAmount: true
       }
     });
 
     // Busca transações de veículos
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
-      where: { cashRegisterId: id },
+      where: { cashRegisterId: baseData.id },
       select: {
         paymentMethod: true,
         finalAmount: true
