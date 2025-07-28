@@ -158,12 +158,13 @@ export async function cashDataService(id) {
     });
 
     if (!baseData) throw new Error("Caixa não encontrado ou fechado.");
+    console.log(baseData)
 
     // Busca transações de produtos
     const productTransactions = await prisma.productTransaction.findMany({
       where: { cashRegisterId: baseData.id },
       select: {
-        paymentMethod: true,
+        paymentMethod: true,  // Isso está correto - Prisma Client usa o nome do modelo
         finalAmount: true
       }
     });
@@ -172,7 +173,7 @@ export async function cashDataService(id) {
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
       where: { cashRegisterId: baseData.id },
       select: {
-        paymentMethod: true,
+        paymentMethod: true,  // Isso está correto - Prisma Client usa o nome do modelo
         finalAmount: true
       }
     });
@@ -180,7 +181,7 @@ export async function cashDataService(id) {
     // Função de somatório por tipo de pagamento
     const sumByPayment = (list, type) => {
       return list
-        .filter(t => t.paymentMethod === type)
+        .filter(t => t.paymentMethod === type)  // Usar o nome do campo no modelo
         .reduce((acc, t) => acc + parseFloat(t.finalAmount), 0);
     };
 
