@@ -375,64 +375,75 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   const VehicleCategory = {
     CARRO: 'carro',
     MOTO: 'moto',
-    CAMINHAO: 'caminhao'
   };
 
   try {
-    console.log('Iniciando transaction para salvar método (limpando tudo)', { methodId });
+    console.log('Iniciando transaction para salvar método', { methodId });
 
     return await prisma.$transaction(async (tx) => {
-      // Validação dos tipos de veículo
+      // 1. Validação dos dados de entrada
       const normalizedRules = rules.map(rule => {
         const vehicleType = rule.vehicle_type?.toString().toLowerCase().trim();
 
         if (!Object.values(VehicleCategory).includes(vehicleType)) {
-          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Permitidos: ${Object.values(VehicleCategory).join(', ')}`);
+          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores permitidos: ${Object.values(VehicleCategory).join(', ')}`);
         }
 
         return {
-          ...rule,
+          price: rule.price,
+          base_time_minutes: rule.base_time_minutes,
           vehicle_type: vehicleType
         };
       });
 
-      // ✅ Deleta TODA a tabela billing_rule
-      console.warn('Apagando TODAS as regras da tabela billing_rule');
-      await tx.billing_rule.deleteMany({});
-
-      // ✅ Insere as novas regras
-      const created = await tx.billing_rule.createMany({
-        data: normalizedRules.map(rule => ({
-          price: rule.price,
-          base_time_minutes: rule.base_time_minutes,
-          vehicle_type: rule.vehicle_type,
-          billing_method_id: methodId,
-          is_active: true
-        }))
+      // 2. Desativa todos os métodos existentes (opcional, se quiser apenas um método ativo)
+      await tx.billing_method.updateMany({
+        data: { is_active: false }
       });
 
-      // Atualiza tolerância do método
+      // 3. Remove APENAS as regras do método atual (não toda a tabela)
+      console.log(`Removendo regras existentes para o método ${methodId}`);
+      await tx.billing_rule.deleteMany({
+        where: { billing_method_id: methodId }
+      });
+
+      // 4. Cria as novas regras
+      const createdRules = await Promise.all(
+        normalizedRules.map(rule => 
+          tx.billing_rule.create({
+            data: {
+              ...rule,
+              billing_method_id: methodId,
+              is_active: true
+            }
+          })
+        )
+      );
+
+      // 5. Atualiza o método principal
       await tx.billing_method.update({
         where: { id: methodId },
-        data: { tolerance: toleranceMinutes }
+        data: { 
+          tolerance: toleranceMinutes,
+          is_active: true // Ativa este método
+        }
       });
 
-      console.log('Regras salvas com sucesso', {
+      console.log('Configuração salva com sucesso', {
         methodId,
-        total: created.count
+        rulesCreated: createdRules.length
       });
 
-      return { totalRules: created.count };
+      return createdRules;
     });
 
   } catch (error) {
-    console.error('Erro ao salvar método:', {
+    console.error('Falha ao salvar método:', {
       methodId,
-      message: error.message,
+      error: error.message,
       stack: error.stack
     });
-
-    throw new Error(`Erro ao salvar regras: ${error.message}`);
+    throw new Error(`Erro ao salvar configuração: ${error.message}`);
   }
 }
 

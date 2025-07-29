@@ -28,6 +28,7 @@ model billing_method {
   name         String
   description  String
   tolerance    Float?
+  is_active    Boolean        @default(false)
   billing_rule billing_rule[]
 }
 
@@ -39,11 +40,8 @@ model billing_rule {
   created_at        DateTime       @default(now())
   updated_at        DateTime       @updatedAt
   vehicle_type      VehicleCategory
-  is_active         Boolean        @default(true)
 
   billing_method    billing_method @relation(fields: [billing_method_id], references: [id])
-
-  @@unique([billing_method_id, vehicle_type, is_active], name: "unique_active_rule_per_type")
 }
 
 model cash_register {
