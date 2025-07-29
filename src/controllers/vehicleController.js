@@ -408,3 +408,20 @@ exports.reactivateVehicle = async (req, res) => {
     })
   }
 }
+
+exports.parkingOnly = async (req, res) => {
+  try {
+    const parking = await vehicleService.parkingSpaces();
+
+    return res.status(200).json({
+      success: true,
+      data: { parking }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar vagas:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar dados de vagas.'
+    });
+  }
+};

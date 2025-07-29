@@ -74,4 +74,6 @@ router.get('/parked',authMiddleware('NORMAL'), vehicleController.getParkedVehicl
 
 router.get('/check-update',authMiddleware('NORMAL'), vehicleController.checkForUpdates)
 
+router.get('/parking-data', authMiddleware('NORMAL'), vehicleController.parkingOnly)
+
 module.exports = router

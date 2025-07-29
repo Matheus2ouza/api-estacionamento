@@ -274,6 +274,40 @@ async function reactivateVehicleService(id, plate, user, formattedDate) {
   }
 }
 
+async function parkingSpaces() {
+  try {
+    const parkingConfig = await prisma.patio_configs.findUnique({
+      where: { id: 'singleton' },
+      select: {
+        max_cars: true,
+        max_motorcycles: true
+      }
+    })
+
+    const vehicles = await prisma.vehicle_entries.findMany({
+      where: {status: 'INSIDE'},
+      select: {
+        category: true
+      }
+    })
+
+    const totalCarsInside = vehicles.filter(v => v.category === 'carro').length;
+    const totalMotosInside = vehicles.filter(v => v.category === 'moto').length;
+
+    const carVacancies = Math.max(0, Number(parkingConfig.max_cars) - totalCarsInside);
+    const motorcycleVacancies = Math.max(0, Number(parkingConfig.max_motorcycles) - totalMotosInside);
+
+    return {
+      carVacancies,
+      motorcycleVacancies,
+      totalCarsInside,
+      totalMotosInside,
+    };
+  } catch (err) {
+    throw err
+  }
+}
+
 module.exports = {
   vehicleEntry,
   getConfigParking,
@@ -284,5 +318,6 @@ module.exports = {
   editVehicleService,
   deleteVehicleService,
   reactivateVehicleService,
-  hasNewVehicleEntries
+  hasNewVehicleEntries,
+  parkingSpaces
 };
