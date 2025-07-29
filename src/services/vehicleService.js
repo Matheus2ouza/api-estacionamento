@@ -370,48 +370,58 @@ async function methodActiveService() {
     throw new Error('Erro ao buscar método de cobrança ativo');
   }
 }
-
 async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   try {
-    // Primeiro desativamos todas as regras existentes para este método
-    await prisma.billing_rule.updateMany({
-      where: { billing_method_id: methodId },
-      data: { is_active: false }
-    });
-
-    // Depois criamos/reativamos as novas regras
-    const results = [];
-    for (const rule of rules) {
-      const result = await prisma.billing_rule.upsert({
-        where: {
-          billing_method_id_vehicle_type: {
-            billing_method_id: methodId,
-            vehicle_type: rule.vehicle_type
-          }
-        },
-        update: {
-          price: rule.price,
-          base_time_minutes: rule.base_time_minutes,
-          is_active: true
-        },
-        create: {
-          price: rule.price,
-          base_time_minutes: rule.base_time_minutes,
-          vehicle_type: rule.vehicle_type,
-          billing_method_id: methodId,
-          is_active: true
-        }
+    return await prisma.$transaction(async (prisma) => {
+      // First deactivate all existing rules for this method
+      await prisma.billing_rule.updateMany({
+        where: { billing_method_id: methodId },
+        data: { is_active: false }
       });
-      results.push(result);
-    }
 
-    // Atualizamos a tolerância no método
-    await prisma.billing_method.update({
-      where: { id: methodId },
-      data: { tolerance: toleranceMinutes }
+      // Then create/reactivate the new rules
+      const results = [];
+      for (const rule of rules) {
+        // First delete any potential inactive duplicates to avoid unique constraint issues
+        await prisma.billing_rule.deleteMany({
+          where: {
+            billing_method_id: methodId,
+            vehicle_type: rule.vehicle_type,
+            is_active: false
+          }
+        });
+
+        const result = await prisma.billing_rule.upsert({
+          where: {
+            billing_method_id_vehicle_type: {
+              billing_method_id: methodId,
+              vehicle_type: rule.vehicle_type
+            }
+          },
+          update: {
+            price: rule.price,
+            base_time_minutes: rule.base_time_minutes,
+            is_active: true
+          },
+          create: {
+            price: rule.price,
+            base_time_minutes: rule.base_time_minutes,
+            vehicle_type: rule.vehicle_type,
+            billing_method_id: methodId,
+            is_active: true
+          }
+        });
+        results.push(result);
+      }
+
+      // Update tolerance in the method
+      await prisma.billing_method.update({
+        where: { id: methodId },
+        data: { tolerance: toleranceMinutes }
+      });
+
+      return results;
     });
-
-    return results;
   } catch (error) {
     console.error('Erro ao salvar método:', error);
     throw new Error('Erro ao salvar método de cobrança');
