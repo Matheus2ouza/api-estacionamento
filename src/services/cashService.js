@@ -153,7 +153,7 @@ async function cashDataService(id) {
         id: true,
         initial_value: true,
         final_value: true,
-        outgoing_expense: true
+        outgoing_expense_total: true
       }
     });
 
@@ -202,7 +202,7 @@ async function cashDataService(id) {
       totalCredit,
       totalDebit,
       totalPix,
-      outgoingExpenseTotal: parseFloat(baseData.outgoing_expense),
+      outgoingExpenseTotal: parseFloat(baseData.outgoing_expense_total),
       finalValue: parseFloat(baseData.final_value)
     };
   } catch (error) {
