@@ -30,7 +30,7 @@ function authMiddleware(minRole = Roles.NORMAL) {
       const userId = decoded.id;
       console.log(`[authMiddleware] Buscando usuário no banco com id: ${userId}`);
 
-      const user = await prisma.account.findUnique({
+      const user = await prisma.accounts.findUnique({
         where: { id: userId },
         select: { id: true, username: true, role: true }
       });
