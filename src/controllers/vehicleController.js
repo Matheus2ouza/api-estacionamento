@@ -571,7 +571,7 @@ exports.calculateOutstanding = async (req, res) => {
   try {
     const ruleSet = await vehicleService.methodActiveService();
 
-    console.log(ruleSet.rules)
+    console.log(ruleSet)
 
     if (!ruleSet) {
       return res.status(404).json({
