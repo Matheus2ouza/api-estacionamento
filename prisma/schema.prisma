@@ -32,13 +32,14 @@ model billing_method {
 }
 
 model billing_rule {
-  id                String         @id            @default(uuid())
-  price             Float
-  base_time         Int?
+  id                String         @id @default(uuid())
+  price             Float                         // Preço por base_time (ex: R$5 por 30 min)
+  base_time_minutes Int                           // Tempo base em minutos (ex: 30)
   billing_method_id String
   created_at        DateTime       @default(now())
-  updated_at        DateTime
-  vehicle_type      String
+  updated_at        DateTime       @updatedAt      // Atualiza automaticamente
+  vehicle_type      String                          // Ex: "CARRO", "MOTO"
+
   billing_method    billing_method @relation(fields: [billing_method_id], references: [id])
 }
 

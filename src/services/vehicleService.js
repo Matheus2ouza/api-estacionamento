@@ -312,6 +312,33 @@ async function parkingSpaces() {
   }
 }
 
+async function billingMethodService() {
+  try {
+    const result = await prisma.billing_method.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        tolerance: true,
+        billing_rule: {
+          select: {
+            id: true,
+            price: true,
+            base_time_minutes: true,
+            vehicle_type: true,
+            created_at: true,
+            updated_at: true
+          }
+        }
+      }
+    });
+    return result;
+  } catch (error) {
+    console.error('Erro ao buscar billing methods:', error);
+    throw new Error('Erro ao buscar métodos de cobrança');
+  }
+}
+
 module.exports = {
   vehicleEntry,
   getConfigParking,
@@ -323,5 +350,6 @@ module.exports = {
   deleteVehicleService,
   reactivateVehicleService,
   hasNewVehicleEntries,
-  parkingSpaces
+  parkingSpaces,
+  billingMethodService
 };
