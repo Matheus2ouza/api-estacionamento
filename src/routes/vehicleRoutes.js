@@ -23,14 +23,14 @@ router.post('/entries',
 
 router.post('/configParking',
   [
-    body('maxCars').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
-    body('maxMotorcycles').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
+    body('maxCars').isInt({ min: 0 }).withMessage('Quantidade de vagas fora do valor esperado'),
+    body('maxMotorcycles').isInt({ min: 0 }).withMessage('Quantidade de vagas fora do valor esperado'),
   ],
   authMiddleware('ADMIN'),
   vehicleController.ConfigurationParking
 )
 
-router.post('/editVehicle', 
+router.post('/editVehicle',
   [
     body('id').notEmpty().withMessage('O id é obrigatorio'),
     body('category').notEmpty().withMessage('A categoria é obrigatoria'),
@@ -40,7 +40,7 @@ router.post('/editVehicle',
   vehicleController.editVehicle
 )
 
-router.post('/deleteVehicle', 
+router.post('/deleteVehicle',
   [
     body('id').notEmpty().withMessage('O id é obrigatorio'),
   ],
@@ -61,7 +61,7 @@ router.get('/:id/ticket',
   [
     param('id').isUUID(),
   ],
-  authMiddleware('NORMAL'), 
+  authMiddleware('NORMAL'),
   vehicleController.generateTicketDuplicate
 );
 
@@ -76,9 +76,9 @@ router.get('/:id/:plate/vehicle',
 
 router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
 
-router.get('/parked',authMiddleware('NORMAL'), vehicleController.getParkedVehicles);
+router.get('/parked', authMiddleware('NORMAL'), vehicleController.getParkedVehicles);
 
-router.get('/check-update',authMiddleware('NORMAL'), vehicleController.checkForUpdates)
+router.get('/check-update', authMiddleware('NORMAL'), vehicleController.checkForUpdates)
 
 router.get('/parking-data', authMiddleware('NORMAL'), vehicleController.parkingOnly)
 
@@ -87,4 +87,15 @@ router.get('/billing-method', authMiddleware('ADMIN'), vehicleController.billing
 router.get('/billing-method-active', authMiddleware('ADMIN'), vehicleController.methodActive)
 
 router.post('/save-payment-config', authMiddleware('ADMIN'), vehicleController.methodSave)
+
+router.post('/calculate-outstanding',
+  [
+    body("stayDuration")
+      .exists()
+      .matches(/^\d{2}:\d{2}:\d{2}$/),
+    body('category').notEmpty().isIn(["carro", "moto"]),
+
+  ], authMiddleware('NORMAL'),
+  vehicleController.calculateOutstanding
+)
 module.exports = router

@@ -547,3 +547,82 @@ exports.methodSave = async (req, res) => {
     });
   }
 };
+
+exports.calculateOutstanding = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { stayDuration, category } = req.body;
+
+  // Converter HH:mm:ss para minutos
+  function convertHHMMSSToMinutes(hhmmss) {
+    const [hours, minutes, seconds] = hhmmss.split(':').map(Number);
+    return hours * 60 + minutes + Math.floor(seconds / 60);
+  }
+
+  const stayMinutes = convertHHMMSSToMinutes(stayDuration);
+
+  try {
+    const ruleSet = await vehicleService.methodActiveService();
+
+    if (!ruleSet) {
+      return res.status(404).json({
+        success: false,
+        message: "Nenhuma regra de cobrança ativa encontrada.",
+      });
+    }
+
+    const { tolerance } = ruleSet.method;
+
+    // Normaliza para comparar corretamente
+    const normalizedCategory = category.toLowerCase();
+
+    // Encontra a regra correspondente
+    const rule = ruleSet.rules.find(r => r.vehicle_type === normalizedCategory);
+
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        message: `Regra de cobrança não encontrada para a categoria: ${category}`,
+      });
+    }
+
+    const { base_time_minutes, price } = rule;
+
+    // Lógica de cobrança com tolerância
+    const totalCobrado = (() => {
+      if (stayMinutes <= base_time_minutes + tolerance) {
+        return price;
+      }
+
+      const excessTime = stayMinutes - tolerance;
+      const slots = Math.ceil(excessTime / base_time_minutes);
+      return slots * price;
+    })();
+
+    return res.status(200).json({
+      success: true,
+      amount: totalCobrado,
+      stayMinutes,
+      ruleUsed: {
+        base_time_minutes,
+        price,
+        tolerance,
+        vehicle_type: normalizedCategory
+      }
+    });
+
+  } catch (error) {
+    console.error("Erro ao calcular cobrança:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Erro ao calcular cobrança.",
+    });
+  }
+};
