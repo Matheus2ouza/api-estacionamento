@@ -374,10 +374,8 @@ async function methodActiveService() {
 async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   // Definindo os tipos de veículo válidos conforme o enum no Prisma
   const VehicleCategory = {
-    CARRO: 'CARRO',
-    MOTO: 'MOTO',
-    CAMINHAO: 'CAMINHAO'
-    // Adicione outros valores conforme definido no seu schema.prisma
+    CARRO: 'carro',
+    MOTO: 'moto',
   };
 
   try {
