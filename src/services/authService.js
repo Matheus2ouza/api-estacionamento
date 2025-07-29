@@ -46,7 +46,7 @@ async function registerUser(username, password, role) {
 
 async function loginUser(username, password) {
   try {
-    const account = await prisma.account.findUnique({
+    const account = await prisma.accounts.findUnique({
       where: { username },
       include: { authentication: true },
     });

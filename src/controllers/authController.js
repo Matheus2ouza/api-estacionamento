@@ -43,9 +43,6 @@ exports.login = async (req, res) => {
 
   const { username, password } = req.body;
 
-  console.log(username)
-  console.log(password)
-
   try {
     const token = await authService.loginUser(username.trim().toLowerCase(), password.trim());
     console.log(`[authController] Login bem-sucedido para usuário: ${username}`);
