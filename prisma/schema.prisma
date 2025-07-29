@@ -43,7 +43,7 @@ model billing_rule {
 }
 
 model cash_register {
-  id                     String                @id
+  id                     String                @id            @default(uuid())
   opening_date           DateTime
   closing_date           DateTime?
   status                 CashRegisterStatus    @default(OPEN)
