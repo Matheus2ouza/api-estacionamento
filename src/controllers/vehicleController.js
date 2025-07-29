@@ -449,13 +449,19 @@ exports.methodActive = async (req, res) => {
   }
 };
 
+
 exports.methodSave = async (req, res) => {
   const startTime = Date.now();
-  console.log('Iniciando salvamento de método', { body: req.body });
+  console.log('Iniciando salvamento de método', { 
+    methodName: req.body.methodId,
+    toleranceMinutes: req.body.toleranceMinutes,
+    rulesCount: req.body.rules.length 
+  });
   
   try {
     const { methodId: methodName, toleranceMinutes, rules } = req.body;
     
+    // Validação básica
     if (!methodName || !rules) {
       console.warn('Campos obrigatórios faltando', { methodName, rules });
       return res.status(400).json({ 
@@ -464,9 +470,16 @@ exports.methodSave = async (req, res) => {
       });
     }
 
-    console.log('Buscando método por nome', { methodName });
+    // Busca o método pelo nome
+    console.log('Buscando método por nome no banco de dados', { methodName });
     const billingMethod = await prisma.billing_method.findFirst({
-      where: { name: methodName }
+      where: { 
+        name: methodName 
+      },
+      select: {
+        id: true,
+        name: true
+      }
     });
 
     if (!billingMethod) {
@@ -477,14 +490,13 @@ exports.methodSave = async (req, res) => {
       });
     }
 
-    console.log('Chamando service para salvar método', { 
+    console.log('Método encontrado', { 
       methodId: billingMethod.id,
-      methodName,
-      toleranceMinutes,
-      rulesCount: rules.length 
+      methodName: billingMethod.name 
     });
 
-    const result = await vehicleService.methodSaveService({
+    // Chama o service com o ID correto
+    const result = await methodSaveService({
       methodId: billingMethod.id,
       toleranceMinutes: toleranceMinutes || 0,
       rules

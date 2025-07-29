@@ -382,7 +382,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   try {
     console.log('Iniciando transaction para salvar método', { methodId });
     
-    return await prisma.$transaction(async (prisma) => {
+    return await prisma.$transaction(async (tx) => {
       // Validação e normalização das regras
       const normalizedRules = rules.map(rule => {
         // Converte para lowercase e remove espaços
@@ -400,7 +400,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
       });
 
       console.log('Desativando regras existentes', { methodId });
-      await prisma.billing_rule.updateMany({
+      await tx.billing_rule.updateMany({
         where: { billing_method_id: methodId },
         data: { is_active: false }
       });
@@ -408,7 +408,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
       const results = [];
       console.log('Processando regras', { totalRules: normalizedRules.length });
       
-      // Processamento das regras com tratamento individual de erros
+      // Processamento das regras
       for (const rule of normalizedRules) {
         try {
           console.debug('Processando regra para', { 
@@ -417,7 +417,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
           });
 
           // Remove duplicados inativos
-          const deleteResult = await prisma.billing_rule.deleteMany({
+          const deleteResult = await tx.billing_rule.deleteMany({
             where: {
               billing_method_id: methodId,
               vehicle_type: rule.vehicle_type,
@@ -432,11 +432,13 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
             });
           }
 
-          const result = await prisma.billing_rule.upsert({
+          // CORREÇÃO PRINCIPAL: Usando a constraint correta do schema
+          const result = await tx.billing_rule.upsert({
             where: {
-              billing_method_id_vehicle_type: {
+              unique_active_rule_per_type: { // Nome exato da constraint definida no schema
                 billing_method_id: methodId,
-                vehicle_type: rule.vehicle_type
+                vehicle_type: rule.vehicle_type,
+                is_active: true
               }
             },
             update: {
@@ -466,7 +468,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
       }
 
       console.log('Atualizando tolerância do método', { toleranceMinutes });
-      await prisma.billing_method.update({
+      await tx.billing_method.update({
         where: { id: methodId },
         data: { tolerance: toleranceMinutes }
       });
