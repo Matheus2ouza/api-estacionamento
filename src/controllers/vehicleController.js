@@ -2,6 +2,8 @@ const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
 const { DateTime } = require("luxon");
 const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
