@@ -415,7 +415,7 @@ exports.parkingOnly = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: { parking }
+      data: parking
     });
   } catch (error) {
     console.error('Erro ao buscar vagas:', error);
