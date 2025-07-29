@@ -214,6 +214,7 @@ async function cashDataService(id) {
 async function parkingSpaces() {
   try {
     const parkingConfig = await prisma.patio_configs.findUnique({
+      where: { id: 'singleton' },
       select: {
         max_cars: true,
         max_motorcycles: true
