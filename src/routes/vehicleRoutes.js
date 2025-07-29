@@ -82,6 +82,8 @@ router.get('/check-update',authMiddleware('NORMAL'), vehicleController.checkForU
 
 router.get('/parking-data', authMiddleware('NORMAL'), vehicleController.parkingOnly)
 
-router.get('/billing_method', authMiddleware('ADMIN'), vehicleController.billingMethod);
+router.get('/billing-method', authMiddleware('ADMIN'), vehicleController.billingMethod);
+
+router.get('/billing-method-active', authMiddleware('ADMIN'), vehicleController.methodActive)
 
 module.exports = router
