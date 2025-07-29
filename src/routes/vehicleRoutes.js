@@ -1,5 +1,5 @@
 const express = require('express');
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const multer = require('multer');
 const vehicleController = require('../controllers/vehicleController');
 const authMiddleware = require('../middlewares/authMiddleware');
