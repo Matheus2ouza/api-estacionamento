@@ -372,7 +372,6 @@ async function methodActiveService() {
 }
 
 async function methodSaveService({ methodId, toleranceMinutes, rules }) {
-  // Definindo os tipos de veículo válidos conforme o enum no Prisma
   const VehicleCategory = {
     CARRO: 'carro',
     MOTO: 'moto',
@@ -380,15 +379,15 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   };
 
   try {
-    console.log('Iniciando transaction para salvar método', { methodId });
-    
+    console.log('Iniciando transaction para salvar método (limpando tudo)', { methodId });
+
     return await prisma.$transaction(async (tx) => {
-      // Validação e normalização das regras
+      // Validação dos tipos de veículo
       const normalizedRules = rules.map(rule => {
         const vehicleType = rule.vehicle_type?.toString().toLowerCase().trim();
-        
+
         if (!Object.values(VehicleCategory).includes(vehicleType)) {
-          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores aceitos: ${Object.values(VehicleCategory).join(', ')}`);
+          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Permitidos: ${Object.values(VehicleCategory).join(', ')}`);
         }
 
         return {
@@ -397,72 +396,46 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
         };
       });
 
-      // CORREÇÃO PRINCIPAL: Limpa TODAS as regras existentes para este método
-      console.log('Removendo todas as regras existentes', { methodId });
-      await tx.billing_rule.deleteMany({
-        where: { billing_method_id: methodId }
+      // ✅ Deleta TODA a tabela billing_rule
+      console.warn('Apagando TODAS as regras da tabela billing_rule');
+      await tx.billing_rule.deleteMany({});
+
+      // ✅ Insere as novas regras
+      const created = await tx.billing_rule.createMany({
+        data: normalizedRules.map(rule => ({
+          price: rule.price,
+          base_time_minutes: rule.base_time_minutes,
+          vehicle_type: rule.vehicle_type,
+          billing_method_id: methodId,
+          is_active: true
+        }))
       });
 
-      const results = [];
-      console.log('Criando novas regras', { totalRules: normalizedRules.length });
-      
-      // Cria as novas regras
-      for (const rule of normalizedRules) {
-        try {
-          console.debug('Criando regra para', { 
-            vehicleType: rule.vehicle_type,
-            price: rule.price 
-          });
-
-          const result = await tx.billing_rule.create({
-            data: {
-              price: rule.price,
-              base_time_minutes: rule.base_time_minutes,
-              vehicle_type: rule.vehicle_type,
-              billing_method_id: methodId,
-              is_active: true
-            }
-          });
-          
-          results.push(result);
-        } catch (ruleError) {
-          console.error('Erro ao criar regra:', {
-            rule,
-            error: ruleError.message,
-            stack: ruleError.stack
-          });
-          throw new Error(`Falha ao criar regra para ${rule.vehicle_type}: ${ruleError.message}`);
-        }
-      }
-
-      console.log('Atualizando tolerância do método', { toleranceMinutes });
+      // Atualiza tolerância do método
       await tx.billing_method.update({
         where: { id: methodId },
         data: { tolerance: toleranceMinutes }
       });
 
-      console.log('Transaction concluída com sucesso', { 
+      console.log('Regras salvas com sucesso', {
         methodId,
-        rulesSaved: results.length 
+        total: created.count
       });
-      
-      return results;
+
+      return { totalRules: created.count };
     });
+
   } catch (error) {
-    console.error('Erro na transaction:', {
+    console.error('Erro ao salvar método:', {
       methodId,
-      error: error.message,
-      stack: error.stack,
-      toleranceMinutes,
-      rules: rules?.map(r => ({ 
-        vehicle_type: r.vehicle_type,
-        price: r.price 
-      }))
+      message: error.message,
+      stack: error.stack
     });
-    
-    throw new Error(`Falha ao salvar método: ${error.message}`);
+
+    throw new Error(`Erro ao salvar regras: ${error.message}`);
   }
 }
+
 
 module.exports = {
   vehicleEntry,
