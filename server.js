@@ -23,5 +23,5 @@ app.use('/products', productRoutes)
 // Exportação para a Vercel
 const server = require('http').createServer(app);
 module.exports = (req, res) => {
-    return app(req, res); // Vercel precisa dessa função handler
+    return app(req, res);
 };
