@@ -92,8 +92,8 @@ router.post('/calculate-outstanding',
   [
     body("stayDuration")
       .exists()
-      .matches(/^\d{2}:\d{2}:\d{2}$/),
-    body('category').notEmpty().isIn(["carro", "moto"]),
+      .matches(/^\d{2}:\d{2}:\d{2}$/).withMessage("Formato inválido de duração (esperado HH:mm:ss)"),
+    body('category').notEmpty().isIn(["carro", "moto"]).withMessage("Categoria fora do formato esperado"),
 
   ], authMiddleware('NORMAL'),
   vehicleController.calculateOutstanding

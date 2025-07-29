@@ -550,8 +550,8 @@ exports.methodSave = async (req, res) => {
 
 exports.calculateOutstanding = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
+    console.log(errors.array())
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
