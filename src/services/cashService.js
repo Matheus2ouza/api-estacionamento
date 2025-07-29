@@ -57,7 +57,7 @@ async function openCashService(user, initialValue, localDateTime) {
     data: {
       opening_date: localDateTime.toJSDate(), // armazena em UTC
       operator: user.username,
-      initial_value,
+      initial_value: initialValue,
       final_value: initialValue,
       status: 'OPEN',
       closing_date: null,
