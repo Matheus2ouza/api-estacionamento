@@ -192,10 +192,10 @@ exports.ConfigurationParking = async (req, res) => {
     });
   }
 
-  const { maxCars, maxMotorcycles, maxLargeVehicles } = req.body;
+  const { maxCars, maxMotorcycles } = req.body;
 
   try {
-    const result = await vehicleService.configParking(maxCars, maxMotorcycles, maxLargeVehicles);
+    const result = await vehicleService.configParking(maxCars, maxMotorcycles);
 
     return res.status(200).json({
       success: true,

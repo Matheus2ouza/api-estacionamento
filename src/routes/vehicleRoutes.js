@@ -19,7 +19,6 @@ router.post('/configParking',
   [
     body('maxCars').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
     body('maxMotorcycles').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
-    body('maxLargeVehicles').isInt({min: 0}).withMessage('Quantidade de vagas fora do valor esperado'),
   ],
   authMiddleware('ADMIN'),
   vehicleController.ConfigurationParking
