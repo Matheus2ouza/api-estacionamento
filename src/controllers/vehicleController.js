@@ -14,6 +14,7 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   let { plate, category, operatorId, observation } = req.body;
+  const user = req.user
 
   const photoBuffer = req.file ? req.file.buffer : null;
   const photoMimeType = req.file ? req.file.mimetype : null;
@@ -37,7 +38,7 @@ exports.vehicleEntry = async (req, res) => {
     const result = await vehicleService.vehicleEntry(
       plate,
       category,
-      operatorId,
+      user.id,
       belemDateTime,
       formattedDate,
       observation || null,
