@@ -372,28 +372,25 @@ async function methodActiveService() {
 }
 
 async function methodSaveService({ methodId, toleranceMinutes, rules }) {
+  // Definindo os tipos de veículo válidos conforme o enum no Prisma
   const VehicleCategory = {
     CARRO: 'carro',
     MOTO: 'moto',
+    CAMINHAO: 'caminhao'
   };
 
   try {
-    // Verificação inicial do método
-    const billingMethod = await prisma.billing_method.findUnique({
-      where: { id: methodId }
-    });
-
-    if (!billingMethod) {
-      throw new Error(`Método de cobrança não encontrado para o ID: ${methodId}`);
-    }
-
+    console.log('Iniciando transaction para salvar método', { methodId });
+    
     return await prisma.$transaction(async (prisma) => {
-      // Normalização das regras
+      // Validação e normalização das regras
       const normalizedRules = rules.map(rule => {
+        // Converte para lowercase e remove espaços
         const vehicleType = rule.vehicle_type?.toString().toLowerCase().trim();
         
+        // Verifica se o tipo é válido
         if (!Object.values(VehicleCategory).includes(vehicleType)) {
-          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}`);
+          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores aceitos: ${Object.values(VehicleCategory).join(', ')}`);
         }
 
         return {
@@ -402,29 +399,42 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
         };
       });
 
-      // Desativa regras existentes
+      console.log('Desativando regras existentes', { methodId });
       await prisma.billing_rule.updateMany({
         where: { billing_method_id: methodId },
         data: { is_active: false }
       });
 
       const results = [];
+      console.log('Processando regras', { totalRules: normalizedRules.length });
       
+      // Processamento das regras com tratamento individual de erros
       for (const rule of normalizedRules) {
         try {
-          // Remove regras inativas duplicadas
-          await prisma.billing_rule.deleteMany({
+          console.debug('Processando regra para', { 
+            vehicleType: rule.vehicle_type,
+            price: rule.price 
+          });
+
+          // Remove duplicados inativos
+          const deleteResult = await prisma.billing_rule.deleteMany({
             where: {
               billing_method_id: methodId,
               vehicle_type: rule.vehicle_type,
               is_active: false
             }
           });
+          
+          if (deleteResult.count > 0) {
+            console.debug('Regras inativas removidas', {
+              count: deleteResult.count,
+              vehicleType: rule.vehicle_type
+            });
+          }
 
-          // Cria/atualiza regra ativa
           const result = await prisma.billing_rule.upsert({
             where: {
-              billing_method_id_vehicle_type: { // Nome correto da constraint
+              billing_method_id_vehicle_type: {
                 billing_method_id: methodId,
                 vehicle_type: rule.vehicle_type
               }
@@ -443,36 +453,46 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
               is_active: true
             }
           });
-
+          
           results.push(result);
         } catch (ruleError) {
-          console.error('Erro na regra:', {
+          console.error('Erro ao processar regra:', {
             rule,
-            error: ruleError.message
+            error: ruleError.message,
+            stack: ruleError.stack
           });
-          throw new Error(`Falha ao processar regra para ${rule.vehicle_type}`);
+          throw new Error(`Falha ao processar regra para ${rule.vehicle_type}: ${ruleError.message}`);
         }
       }
 
-      // Atualiza tolerância
+      console.log('Atualizando tolerância do método', { toleranceMinutes });
       await prisma.billing_method.update({
         where: { id: methodId },
         data: { tolerance: toleranceMinutes }
       });
 
+      console.log('Transaction concluída com sucesso', { 
+        methodId,
+        rulesSaved: results.length 
+      });
+      
       return results;
     });
   } catch (error) {
-    console.error('Erro completo:', {
-      message: error.message,
-      stack: error.stack,
+    console.error('Erro na transaction:', {
       methodId,
-      rules
+      error: error.message,
+      stack: error.stack,
+      toleranceMinutes,
+      rules: rules?.map(r => ({ 
+        vehicle_type: r.vehicle_type,
+        price: r.price 
+      }))
     });
-    throw error;
+    
+    throw new Error(`Falha ao salvar método: ${error.message}`);
   }
 }
-
 
 module.exports = {
   vehicleEntry,

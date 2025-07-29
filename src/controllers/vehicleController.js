@@ -448,30 +448,71 @@ exports.methodActive = async (req, res) => {
 };
 
 exports.methodSave = async (req, res) => {
+  const startTime = Date.now();
+  console.log('Iniciando salvamento de método', { body: req.body });
+  
   try {
-    const { methodId, toleranceMinutes, rules } = req.body;
+    const { methodId: methodName, toleranceMinutes, rules } = req.body;
     
-    if (!methodId || !rules) {
+    if (!methodName || !rules) {
+      console.warn('Campos obrigatórios faltando', { methodName, rules });
       return res.status(400).json({ 
         success: false, 
-        message: 'Campos obrigatórios faltando: methodId e rules' 
+        message: 'Campos obrigatórios faltando: methodId (nome) e rules' 
       });
     }
 
+    console.log('Buscando método por nome', { methodName });
+    const billingMethod = await prisma.billing_method.findFirst({
+      where: { name: methodName }
+    });
+
+    if (!billingMethod) {
+      console.warn('Método não encontrado', { methodName });
+      return res.status(404).json({
+        success: false,
+        message: `Método de cobrança "${methodName}" não encontrado`
+      });
+    }
+
+    console.log('Chamando service para salvar método', { 
+      methodId: billingMethod.id,
+      methodName,
+      toleranceMinutes,
+      rulesCount: rules.length 
+    });
+
     const result = await vehicleService.methodSaveService({
-      methodId,
+      methodId: billingMethod.id,
       toleranceMinutes: toleranceMinutes || 0,
       rules
     });
 
-    res.status(200).json({ 
+    const duration = Date.now() - startTime;
+    console.log('Método salvo com sucesso', { 
+      methodName,
+      durationMs: duration,
+      rulesSaved: result.length 
+    });
+
+    return res.status(200).json({ 
       success: true, 
       message: 'Configuração salva com sucesso',
-      data: result
+      data: {
+        method: billingMethod.name,
+        rules: result
+      }
     });
   } catch (error) {
-    console.error('Erro ao salvar método:', error);
-    res.status(500).json({ 
+    const duration = Date.now() - startTime;
+    console.error('Erro ao salvar método:', {
+      error: error.message,
+      stack: error.stack,
+      durationMs: duration,
+      body: req.body
+    });
+    
+    return res.status(500).json({ 
       success: false, 
       message: error.message || 'Erro ao salvar configuração' 
     });
