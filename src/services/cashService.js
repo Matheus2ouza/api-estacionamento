@@ -171,7 +171,7 @@ async function cashDataService(id) {
 
     // Busca transações de veículos
     const vehicleTransactions = await prisma.vehicle_transaction.findMany({
-      where: { cashRegisterId: baseData.id },
+      where: { cash_register_id: baseData.id },
       select: {
         method: true,
         final_amount: true
