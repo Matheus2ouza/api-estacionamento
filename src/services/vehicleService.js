@@ -371,6 +371,52 @@ async function methodActiveService() {
   }
 }
 
+async function methodSaveService({ methodId, toleranceMinutes, rules }) {
+  try {
+    // Primeiro desativamos todas as regras existentes para este método
+    await prisma.billing_rule.updateMany({
+      where: { billing_method_id: methodId },
+      data: { is_active: false }
+    });
+
+    // Depois criamos/reativamos as novas regras
+    const results = [];
+    for (const rule of rules) {
+      const result = await prisma.billing_rule.upsert({
+        where: {
+          billing_method_id_vehicle_type: {
+            billing_method_id: methodId,
+            vehicle_type: rule.vehicle_type
+          }
+        },
+        update: {
+          price: rule.price,
+          base_time_minutes: rule.base_time_minutes,
+          is_active: true
+        },
+        create: {
+          price: rule.price,
+          base_time_minutes: rule.base_time_minutes,
+          vehicle_type: rule.vehicle_type,
+          billing_method_id: methodId,
+          is_active: true
+        }
+      });
+      results.push(result);
+    }
+
+    // Atualizamos a tolerância no método
+    await prisma.billing_method.update({
+      where: { id: methodId },
+      data: { tolerance: toleranceMinutes }
+    });
+
+    return results;
+  } catch (error) {
+    console.error('Erro ao salvar método:', error);
+    throw new Error('Erro ao salvar método de cobrança');
+  }
+}
 
 module.exports = {
   vehicleEntry,
@@ -385,5 +431,6 @@ module.exports = {
   hasNewVehicleEntries,
   parkingSpaces,
   billingMethodService,
-  methodActiveService
+  methodActiveService,
+  methodSaveService
 };

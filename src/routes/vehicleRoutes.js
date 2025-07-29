@@ -86,4 +86,5 @@ router.get('/billing-method', authMiddleware('ADMIN'), vehicleController.billing
 
 router.get('/billing-method-active', authMiddleware('ADMIN'), vehicleController.methodActive)
 
+router.post('/save-payment-config', authMiddleware('ADMIN'), vehicleController.methodSave)
 module.exports = router

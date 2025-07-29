@@ -446,3 +446,34 @@ exports.methodActive = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.methodSave = async (req, res) => {
+  try {
+    const { methodId, toleranceMinutes, rules } = req.body;
+    
+    if (!methodId || !rules) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Campos obrigatórios faltando: methodId e rules' 
+      });
+    }
+
+    const result = await vehicleService.methodSaveService({
+      methodId,
+      toleranceMinutes: toleranceMinutes || 0,
+      rules
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Configuração salva com sucesso',
+      data: result
+    });
+  } catch (error) {
+    console.error('Erro ao salvar método:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Erro ao salvar configuração' 
+    });
+  }
+};

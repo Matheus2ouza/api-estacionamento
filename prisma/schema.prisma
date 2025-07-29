@@ -46,7 +46,6 @@ model billing_rule {
   @@unique([billing_method_id, vehicle_type, is_active], name: "unique_active_rule_per_type")
 }
 
-
 model cash_register {
   id                     String                @id            @default(uuid())
   opening_date           DateTime
