@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function vehicleEntry(plate, category, operatorId, date, formattedDate, observation, photo) {
+async function vehicleEntry(plate, category, operatorId, date, formattedDate, observation, photoBuffer, photoMimeType) {
   try {
     const verifyPlate = await prisma.vehicle_entries.findFirst({
       where: {
@@ -31,7 +31,8 @@ async function vehicleEntry(plate, category, operatorId, date, formattedDate, ob
         entry_time: date,
         description: `Registro criado pelo operador ${operator.username} em ${formattedDate}`,
         observation: observation || null,
-        photo: photo || null
+        photo: photoBuffer || null,
+        photo_type: photoMimeType || null,
       }
     });
 
@@ -40,7 +41,6 @@ async function vehicleEntry(plate, category, operatorId, date, formattedDate, ob
     throw error;
   }
 }
-
 
 async function getConfigParking() {
   try {

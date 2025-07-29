@@ -127,13 +127,14 @@ model sale_items {
 }
 
 model vehicle_entries {
-  id                  String                @id            @default(uuid())
+  id                  String                @id @default(uuid())
   plate               String
   entry_time          DateTime              @default(now())
   category            VehicleCategory
   operator            String
   observation         String?               @default("")
-  photo_url           String?               @default("")
+  photo               Bytes?                // campo para o buffer da foto
+  photo_type          String?               // campo para o mime type da foto
   deleted_at          DateTime?
   description         String?               @default("")
   exit_time           DateTime?

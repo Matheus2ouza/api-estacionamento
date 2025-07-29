@@ -1,11 +1,18 @@
 const express = require('express');
-const { body, param } = require('express-validator');
+const { body } = require('express-validator');
+const multer = require('multer');
 const vehicleController = require('../controllers/vehicleController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
+const upload = multer({
+  storage: multer.memoryStorage(), // mantém o arquivo na memória (buffer)
+  limits: { fileSize: 10 * 1024 * 1024 } // limite de 10MB (ajuste se quiser)
+});
+
 router.post('/entries',
+  upload.single('photo'),  // <-- multer processa o campo 'photo'
   [
     body('plate').notEmpty().withMessage("Placa é obrigatória"),
     body('category').notEmpty().isIn(["carro", "moto"]).withMessage("Categoria fora do formato esperado"),

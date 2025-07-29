@@ -5,17 +5,21 @@ const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
+      errors: errors.array(),
     });
   }
 
-  let { plate, category, operatorId, observation, photo } = req.body;
+  let { plate, category, operatorId, observation } = req.body;
+
+  const photoBuffer = req.file ? req.file.buffer : null;
+  const photoMimeType = req.file ? req.file.mimetype : null;
 
   plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+
   const belemDateTime = DateTime.now().setZone("America/Belem");
   const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
 
@@ -23,7 +27,6 @@ exports.vehicleEntry = async (req, res) => {
   const isMercosulPattern = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(plate);
 
   if (!(isOldPattern || isMercosulPattern)) {
-    console.log(`[VehicleController] A placa está fora do formato esperado ${plate}`);
     return res.status(400).json({
       success: false,
       message: 'Placa fora do formato esperado'
@@ -38,7 +41,8 @@ exports.vehicleEntry = async (req, res) => {
       belemDateTime,
       formattedDate,
       observation || null,
-      photo || null
+      photoBuffer,
+      photoMimeType
     );
 
     console.log('[Entrada Registrada]', {
@@ -49,7 +53,7 @@ exports.vehicleEntry = async (req, res) => {
       entryTime: result.entry_time
     });
 
-    const dt = DateTime.fromJSDate(result.entryTime).setZone("America/Belem");
+    const dt = DateTime.fromJSDate(result.entry_time).setZone("America/Belem");
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
     const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
@@ -93,7 +97,6 @@ exports.vehicleEntry = async (req, res) => {
     });
   }
 };
-
 
 exports.generateTicketDuplicate = async (req, res) => {
   const errors = validationResult(req);

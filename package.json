@@ -18,6 +18,7 @@
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "luxon": "^3.6.1",
+    "multer": "^2.0.2",
     "pdf-poppler": "^0.2.1",
     "pdf2pic": "^3.2.0",
     "pdfjs-dist": "^5.3.93",
