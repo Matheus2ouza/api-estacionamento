@@ -144,6 +144,7 @@ model vehicle_entries {
   @@index([plate])
 }
 
+
 model vehicle_transaction {
   id               String          @id            @default(uuid())
   vehicle_id       String
