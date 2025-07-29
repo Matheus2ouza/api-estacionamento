@@ -24,7 +24,7 @@ model authentications {
 }
 
 model billing_method {
-  id           String         @id
+  id           String         @id            @default(uuid())
   name         String
   description  String
   tolerance    Float?
@@ -32,7 +32,7 @@ model billing_method {
 }
 
 model billing_rule {
-  id                String         @id
+  id                String         @id            @default(uuid())
   price             Float
   base_time         Int?
   billing_method_id String
@@ -59,7 +59,7 @@ model cash_register {
 }
 
 model financial_movement {
-  id               String   @id
+  id               String   @id            @default(uuid())
   description      String
   amount           Decimal  @db.Decimal(10, 2)
   transaction_date DateTime @default(now())
@@ -67,7 +67,7 @@ model financial_movement {
 }
 
 model general_sale {
-  id              String    @id
+  id              String    @id            @default(uuid())
   product_id      String
   unit_price      Decimal   @db.Decimal(10, 2)
   quantity        Int
@@ -76,7 +76,7 @@ model general_sale {
 }
 
 model outgoing_expense {
-  id               String        @id
+  id               String        @id            @default(uuid())
   description      String
   amount           Decimal       @db.Decimal(10, 2)
   transaction_date DateTime      @default(now())
@@ -93,7 +93,7 @@ model patio_configs {
 }
 
 model product_transaction {
-  id               String        @id
+  id               String        @id            @default(uuid())
   operator         String
   transaction_date DateTime
   cash_register_id String
@@ -108,7 +108,7 @@ model product_transaction {
 }
 
 model products {
-  id           String         @id
+  id           String         @id            @default(uuid())
   product_name String
   barcode      String?        @unique
   general_sale general_sale[]
@@ -116,7 +116,7 @@ model products {
 }
 
 model sale_items {
-  id                     String              @id
+  id                     String              @id            @default(uuid())
   product_transaction_id String
   product_id             String?
   expiration_date        DateTime?
@@ -128,7 +128,7 @@ model sale_items {
 }
 
 model vehicle_entries {
-  id                  String                @id
+  id                  String                @id            @default(uuid())
   plate               String
   entry_time          DateTime              @default(now())
   category            VehicleCategory
@@ -143,7 +143,7 @@ model vehicle_entries {
 }
 
 model vehicle_transaction {
-  id               String          @id
+  id               String          @id            @default(uuid())
   vehicle_id       String
   operator         String
   transaction_date DateTime
