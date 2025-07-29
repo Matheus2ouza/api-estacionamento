@@ -3,12 +3,12 @@ const prisma = new PrismaClient();
 
 async function listProductService() {
   try {
-    const products = await prisma.generalSale.findMany({
+    const products = await prisma.general_sale.findMany({
       include: {
-        product: {
+        products: {
           select: {
             id: true,
-            productName: true,
+            product_name: true,
             barcode: true
           }
         }
@@ -20,12 +20,12 @@ async function listProductService() {
     }
 
     const mapped = products.map((product) => ({
-      id: product.product.id,
-      barcode: product.product?.barcode,
-      productName: product.product?.productName,
-      unitPrice: Number(product.unitPrice),
+      id: product.products.id,
+      barcode: product.products?.barcode,
+      productName: product.products?.product_name,
+      unitPrice: Number(product.products),
       quantity: product.quantity,
-      expirationDate: product.expirationDate,
+      expirationDate: product.expiration_date,
     }));
 
     return mapped;
@@ -36,17 +36,17 @@ async function listProductService() {
 
 async function fetchProductService(barcode) {
   try {
-    const result = await prisma.product.findFirst({
+    const result = await prisma.products.findFirst({
       where: { barcode },
       select: {
         id: true,
-        productName: true,
+        product_name: true,
         barcode: true,
-        generalSales: {
+        general_sale: {
           select: {
-            unitPrice: true,
+            unit_price: true,
             quantity: true,
-            expirationDate: true,
+            expiration_date: true,
           },
           take: 1, // Pega só o primeiro registro
         },
@@ -55,15 +55,15 @@ async function fetchProductService(barcode) {
 
     if (!result) return null;
 
-    const generalSale = result.generalSales[0] || {};
+    const generalSale = result.general_sale[0] || {};
 
     const product = {
       id: result.id,
-      productName: result.productName,
+      productName: result.product_name,
       barcode: result.barcode,
-      unitPrice: generalSale.unitPrice ?? null,
+      unitPrice: generalSale.unit_price ?? null,
       quantity: generalSale.quantity ?? null,
-      expirationDate: generalSale.expirationDate ?? null,
+      expirationDate: generalSale.expiration_date ?? null,
     };
 
     return product;
@@ -73,8 +73,8 @@ async function fetchProductService(barcode) {
 }
 
 async function createProductService(productName, barcode, unitPrice, quantity, expirationDate) {
-  const verifyProduct = await prisma.product.findFirst({
-    where: { productName }
+  const verifyProduct = await prisma.products.findFirst({
+    where: { product_name }
   });
 
   if (verifyProduct) {
@@ -83,9 +83,9 @@ async function createProductService(productName, barcode, unitPrice, quantity, e
 
   try {
     await prisma.$transaction(async (tx) => {
-      const registerNameProduct = await tx.product.create({
+      const registerNameProduct = await tx.products.create({
         data: {
-          productName: productName,
+          product_name: productName,
           barcode: barcode
         }
       });
@@ -94,10 +94,10 @@ async function createProductService(productName, barcode, unitPrice, quantity, e
         productId: registerNameProduct.id,
         unitPrice,
         quantity,
-        ...(expirationDate && { expirationDate })
+        ...(expirationDate && { expiration_date })
       };
 
-      await tx.generalSale.create({
+      await tx.general_sale.create({
         data: generalSaleData
       });
     });
@@ -120,7 +120,8 @@ async function registerPayment(
   saleItems,
   local
 ) {
-  const verifyCash = await prisma.cashRegister.findUnique({
+  // Verificar se o caixa existe
+  const verifyCash = await prisma.cash_register.findUnique({
     where: { id: cashRegisterId },
   });
 
@@ -128,7 +129,8 @@ async function registerPayment(
     throw new Error('Caixa não encontrado');
   }
 
-  const verifyOperator = await prisma.account.findUnique({
+  // Verificar se o operador existe
+  const verifyOperator = await prisma.accounts.findUnique({
     where: { username: operator },
   });
 
@@ -136,9 +138,9 @@ async function registerPayment(
     throw new Error('Operador não encontrado');
   }
 
-  // Dentro do registerPayment
+  // Verificar se todos os produtos existem
   for (const item of saleItems) {
-    const exists = await prisma.product.findUnique({
+    const exists = await prisma.products.findUnique({
       where: { id: item.productId },
     });
 
@@ -150,75 +152,82 @@ async function registerPayment(
   try {
     const transactionId = await prisma.$transaction(async (tx) => {
       // Cria a transação do produto
-      const transaction = await tx.productTransaction.create({
+      const transaction = await tx.product_transaction.create({
         data: {
           operator: verifyOperator.username,
-          paymentMethod,
-          transactionDate: local,
-          cashRegisterId: verifyCash.id,
-          originalAmount: totalAmount,
-          discountAmount: discountValue,
-          finalAmount: finalPrice,
-          amountReceived: amountReceived,
-          changeGiven: changeGiven
+          method: paymentMethod,
+          transaction_date: local,
+          cash_register_id: verifyCash.id,
+          original_amount: totalAmount,
+          discount_amount: discountValue,
+          final_amount: finalPrice,
+          amount_received: amountReceived,
+          change_given: changeGiven
         },
       });
 
       // Prepara os saleItems com o id da transação
       const saleItemsData = saleItems.map((item) => ({
-        productTransactionId: transaction.id,
-        productId: item.productId || null,
-        soldQuantity: item.soldQuantity,
-        productName: item.productName,       // Mantenha consistência
-        unitPrice: item.unitPrice,
-        expirationDate: item.expirationDate || null,
+        product_transaction_id: transaction.id,
+        product_id: item.productId || null,
+        sold_quantity: item.soldQuantity,
+        product_name: item.productName,
+        unit_price: item.unitPrice,
+        expiration_date: item.expirationDate || null,
       }));
 
       // Insere os SaleItems
-      await tx.saleItem.createMany({
+      await tx.sale_items.createMany({
         data: saleItemsData,
       });
 
+      // Atualiza o estoque em general_sale
       for (const item of saleItemsData) {
-
-          const generalSaleRecord = await tx.generalSale.findFirst({
+        if (item.product_id) {
+          const generalSaleRecord = await tx.general_sale.findFirst({
             where: {
-              productId: item.productId,
-              expirationDate: item.expirationDate,
+              product_id: item.product_id,
+              expiration_date: item.expiration_date,
             },
           });
 
-        if (!generalSaleRecord) {
-          throw new Error(`Lote do produto ${item.productName} não encontrado para atualizar estoque.`);
-        }
+          if (!generalSaleRecord) {
+            throw new Error(`Lote do produto ${item.product_name} não encontrado para atualizar estoque.`);
+          }
 
-        if (generalSaleRecord.quantity < item.soldQuantity) {
-          throw new Error(`Quantidade insuficiente para o produto ${item.productName}.`);
-        }
+          if (generalSaleRecord.quantity < item.sold_quantity) {
+            throw new Error(`Quantidade insuficiente para o produto ${item.product_name}.`);
+          }
 
-        // Atualiza diminuindo a quantidade
-        await tx.generalSale.update({
-          where: { id: generalSaleRecord.id },
-          data: {
-            quantity: generalSaleRecord.quantity - item.soldQuantity,
-          },
-        });
+          // Atualiza diminuindo a quantidade
+          await tx.general_sale.update({
+            where: { id: generalSaleRecord.id },
+            data: {
+              quantity: generalSaleRecord.quantity - item.sold_quantity,
+            },
+          });
+        }
       }
-      return transaction.id
+      
+      return transaction.id;
     });
 
-    if(transactionId) {
-      await prisma.cashRegister.update({
-        where: {id: cashRegisterId},
+    // Atualiza o valor final do caixa
+    if (transactionId) {
+      await prisma.cash_register.update({
+        where: { id: cashRegisterId },
         data: {
-          finalValue: {
+          final_value: {
+            increment: finalPrice
+          },
+          general_sale_total: {
             increment: finalPrice
           }
         }
-      })
+      });
     }
 
-    return transactionId
+    return transactionId;
   } catch (error) {
     throw new Error('Erro ao registrar pagamento: ' + error.message);
   }

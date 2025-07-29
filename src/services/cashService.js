@@ -13,9 +13,9 @@ async function statusCashService(date) {
     console.log("Início do dia (UTC):", startOfDay);
     console.log("Fim do dia (UTC):", endOfDay);
 
-    const result = await prisma.cashRegister.findFirst({
+    const result = await prisma.cash_register.findFirst({
       where: {
-        openingDate: {
+        opening_date: {
           gte: startOfDay,
           lte: endOfDay,
         },
@@ -38,9 +38,9 @@ async function openCashService(user, initialValue, localDateTime) {
   console.log("[opencashService] Intervalo UTC - startOfDay:", startOfDay);
   console.log("[opencashService] Intervalo UTC - endOfDay:", endOfDay);
 
-  const existingCash = await prisma.cashRegister.findFirst({
+  const existingCash = await prisma.cash_register.findFirst({
     where: {
-      openingDate: {
+      opening_date: {
         gte: startOfDay,
         lte: endOfDay,
       },
@@ -53,14 +53,14 @@ async function openCashService(user, initialValue, localDateTime) {
     return false;
   }
 
-  const newCash = await prisma.cashRegister.create({
+  const newCash = await prisma.cash_register.create({
     data: {
-      openingDate: localDateTime.toJSDate(), // armazena em UTC
+      opening_date: localDateTime.toJSDate(), // armazena em UTC
       operator: user.username,
-      initialValue,
-      finalValue: initialValue,
+      initial_value,
+      final_value: initialValue,
       status: 'OPEN',
-      closingDate: null,
+      closing_date: null,
     },
   });
 
@@ -69,7 +69,7 @@ async function openCashService(user, initialValue, localDateTime) {
 }
 
 async function closeCashService(id, finalValue, date) {
-  const verifyCash = await prisma.cashRegister.findUnique({
+  const verifyCash = await prisma.cash_register.findUnique({
     where: { id: id }
   })
 
@@ -78,12 +78,12 @@ async function closeCashService(id, finalValue, date) {
   }
 
   try {
-    const closeCash = await prisma.cashRegister.update({
+    const closeCash = await prisma.cash_register.update({
       where: { id: id },
       data: {
-        closingDate: date,
+        closing_date: date,
         status: 'CLOSED',
-        finalValue: finalValue
+        final_value: finalValue
       },
       select: {
         id: true,
@@ -98,7 +98,7 @@ async function closeCashService(id, finalValue, date) {
 }
 
 async function geralCashDataService(id) {
-  const verifyCash = await prisma.cashRegister.findUnique({
+  const verifyCash = await prisma.cash_register.findUnique({
     where: { id: id }
   })
 
@@ -107,7 +107,7 @@ async function geralCashDataService(id) {
   }
 
   try {
-    const result = await prisma.cashRegister.findFirst({
+    const result = await prisma.cash_register.findFirst({
       where: { id: id }
     })
 
@@ -119,15 +119,15 @@ async function geralCashDataService(id) {
 
 async function BillingMethodService() {
   try {
-    const methods = await prisma.billingMethod.findMany({
+    const methods = await prisma.billing_method.findMany({
       select: {
         name: true,
         description: true,
         tolerance: true,
-        billingRules: {
+        billing_rule: {
           select: {
-            billingMethodId: true,
-            vehicleType: true,
+            billing_method_id: true,
+            vehicle_type: true,
             price: true
           }
         }
@@ -144,16 +144,16 @@ async function BillingMethodService() {
 export async function cashDataService(id) {
   try {
     // Busca os dados principais do caixa
-    const baseData = await prisma.cashRegister.findFirst({
+    const baseData = await prisma.cash_register.findFirst({
       where: {
         id,
         status: "OPEN"
       },
       select: {
         id: true,
-        initialValue: true,
-        finalValue: true,
-        outgoingExpenseTotal: true
+        initial_value: true,
+        final_value: true,
+        outgoing_expense: true
       }
     });
 
@@ -161,20 +161,20 @@ export async function cashDataService(id) {
     console.log(baseData)
 
     // Busca transações de produtos
-    const productTransactions = await prisma.productTransaction.findMany({
-      where: {cashRegisterId: baseData.id },
+    const productTransactions = await prisma.product_transaction.findMany({
+      where: {cash_register_id: baseData.id },
       select: {
         method: true,
-        finalAmount: true,
+        final_amount: true,
       }
     })
 
     // Busca transações de veículos
-    const vehicleTransactions = await prisma.vehicleTransaction.findMany({
+    const vehicleTransactions = await prisma.vehicle_transaction.findMany({
       where: { cashRegisterId: baseData.id },
       select: {
         method: true,
-        finalAmount: true
+        final_amount: true
       }
     });
 
@@ -182,7 +182,7 @@ export async function cashDataService(id) {
     const sumByPayment = (list, type) => {
       return list
         .filter(t => t.method === type)
-        .reduce((acc, t) => acc + parseFloat(t.finalAmount), 0);
+        .reduce((acc, t) => acc + parseFloat(t.final_amount), 0);
     };
 
     const totalCash = sumByPayment(vehicleTransactions, "DINHEIRO") +
@@ -198,13 +198,13 @@ export async function cashDataService(id) {
                      sumByPayment(productTransactions, "PIX");
 
     return {
-      initialValue: parseFloat(baseData.initialValue),
+      initialValue: parseFloat(baseData.initial_value),
       totalCash,
       totalCredit,
       totalDebit,
       totalPix,
-      outgoingExpenseTotal: parseFloat(baseData.outgoingExpenseTotal),
-      finalValue: parseFloat(baseData.finalValue)
+      outgoingExpenseTotal: parseFloat(baseData.outgoing_expense),
+      finalValue: parseFloat(baseData.final_value)
     };
   } catch (error) {
     console.error("Erro em cashDataService:", error);
