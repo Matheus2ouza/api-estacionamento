@@ -8,8 +8,7 @@ const router = express.Router();
 router.post('/entries',
   [
     body('plate').notEmpty().withMessage("Placa é obrigatória"),
-    body('category').notEmpty().isIn(["carro", "moto", "carroGrande"]).withMessage("Categoria fora do formato esperado"),
-    body('operatorId').notEmpty().withMessage("O id do operador é obrigatorio")
+    body('category').notEmpty().isIn(["carro", "moto"]).withMessage("Categoria fora do formato esperado"),
   ],
   authMiddleware('NORMAL'),
   vehicleController.vehicleEntry

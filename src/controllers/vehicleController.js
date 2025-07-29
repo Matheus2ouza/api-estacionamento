@@ -13,7 +13,7 @@ exports.vehicleEntry = async (req, res) => {
     });
   }
 
-  let { plate, category, operatorId } = req.body;
+  let { plate, category, operatorId, observation, photo } = req.body;
 
   plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
   const belemDateTime = DateTime.now().setZone("America/Belem");
@@ -23,7 +23,7 @@ exports.vehicleEntry = async (req, res) => {
   const isMercosulPattern = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(plate);
 
   if (!(isOldPattern || isMercosulPattern)) {
-    console.log(`[VehicleController] A placa esta fora do formato esperado ${plate}`)
+    console.log(`[VehicleController] A placa está fora do formato esperado ${plate}`);
     return res.status(400).json({
       success: false,
       message: 'Placa fora do formato esperado'
@@ -31,14 +31,14 @@ exports.vehicleEntry = async (req, res) => {
   }
 
   try {
-    console.log(`${belemDateTime}`);
-    console.log(`${formattedDate}`);
     const result = await vehicleService.vehicleEntry(
       plate,
       category,
       operatorId,
       belemDateTime,
-      formattedDate
+      formattedDate,
+      observation || null,
+      photo || null
     );
 
     console.log('[Entrada Registrada]', {
@@ -46,16 +46,13 @@ exports.vehicleEntry = async (req, res) => {
       plate: result.plate,
       operator: result.operator,
       category: result.category,
-      entryTime: result.entryTime
+      entryTime: result.entry_time
     });
 
     const dt = DateTime.fromJSDate(result.entryTime).setZone("America/Belem");
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
     const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
-    console.log('[Data Formatada]', { formattedDateOnly, formattedTimeOnly });
-
-    // Geração do ticket com timeout de 15s
     const ticketPromise = generateEntryTicketPDF(
       result.id,
       result.plate,
@@ -96,6 +93,7 @@ exports.vehicleEntry = async (req, res) => {
     });
   }
 };
+
 
 exports.generateTicketDuplicate = async (req, res) => {
   const errors = validationResult(req);

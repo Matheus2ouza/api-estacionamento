@@ -132,6 +132,8 @@ model vehicle_entries {
   entry_time          DateTime              @default(now())
   category            VehicleCategory
   operator            String
+  observation         String?               @default("")
+  photo_url           String?               @default("")
   deleted_at          DateTime?
   description         String?               @default("")
   exit_time           DateTime?
