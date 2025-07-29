@@ -372,128 +372,91 @@ async function methodActiveService() {
 }
 
 async function methodSaveService({ methodId, toleranceMinutes, rules }) {
-  // Definindo os tipos de veículo válidos conforme o enum no Prisma
   const VehicleCategory = {
     CARRO: 'carro',
     MOTO: 'moto',
   };
 
   try {
-    console.log('Iniciando transaction para salvar método', { methodId });
+    let resolvedMethodId = methodId;
+
+    // Se não tiver ID, tenta buscar por nome (caso você adapte o controller futuramente)
+    if (!resolvedMethodId) {
+      throw new Error("ID do método de cobrança é obrigatório.");
+    }
 
     return await prisma.$transaction(async (prisma) => {
-      // Validação e normalização das regras
       const normalizedRules = rules.map(rule => {
-        // Converte para uppercase e remove espaços
         const vehicleType = rule.vehicle_type?.toString().toUpperCase().trim();
 
-        // Verifica se o tipo é válido
         if (!VehicleCategory[vehicleType]) {
-          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores aceitos: ${Object.values(VehicleCategory).join(', ')}`);
+          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}`);
         }
 
         return {
           ...rule,
-          vehicle_type: VehicleCategory[vehicleType] // Usa o valor exato do enum
+          vehicle_type: VehicleCategory[vehicleType]
         };
       });
 
-      console.log('Desativando regras existentes', { methodId });
+      // Desativa regras antigas
       await prisma.billing_rule.updateMany({
-        where: { billing_method_id: methodId },
+        where: { billing_method_id: resolvedMethodId },
         data: { is_active: false }
       });
 
       const results = [];
-      console.log('Processando regras', { totalRules: normalizedRules.length });
 
-      // Processamento das regras com tratamento individual de erros
       for (const rule of normalizedRules) {
-        try {
-          console.debug('Processando regra para', {
-            vehicleType: rule.vehicle_type,
-            price: rule.price
-          });
-
-          // Remove duplicados inativos
-          const deleteResult = await prisma.billing_rule.deleteMany({
-            where: {
-              billing_method_id: methodId,
-              vehicle_type: rule.vehicle_type,
-              is_active: false
-            }
-          });
-
-          if (deleteResult.count > 0) {
-            console.debug('Regras inativas removidas', {
-              count: deleteResult.count,
-              vehicleType: rule.vehicle_type
-            });
+        // Apaga duplicatas inativas
+        await prisma.billing_rule.deleteMany({
+          where: {
+            billing_method_id: resolvedMethodId,
+            vehicle_type: rule.vehicle_type,
+            is_active: false
           }
+        });
 
-          const result = await prisma.billing_rule.upsert({
-            where: {
-              unique_active_rule_per_type: {
-                billing_method_id: methodId,
-                vehicle_type: rule.vehicle_type,
-                is_active: true
-              }
-            },
-
-            update: {
-              price: rule.price,
-              base_time_minutes: rule.base_time_minutes,
-              is_active: true,
-              updated_at: new Date()
-            },
-            create: {
-              price: rule.price,
-              base_time_minutes: rule.base_time_minutes,
+        // Upsert regra ativa
+        const result = await prisma.billing_rule.upsert({
+          where: {
+            unique_active_rule_per_type: {
+              billing_method_id: resolvedMethodId,
               vehicle_type: rule.vehicle_type,
-              billing_method_id: methodId,
               is_active: true
             }
-          });
+          },
+          update: {
+            price: rule.price,
+            base_time_minutes: rule.base_time_minutes,
+            updated_at: new Date(),
+            is_active: true
+          },
+          create: {
+            price: rule.price,
+            base_time_minutes: rule.base_time_minutes,
+            billing_method_id: resolvedMethodId,
+            vehicle_type: rule.vehicle_type,
+            is_active: true
+          }
+        });
 
-          results.push(result);
-        } catch (ruleError) {
-          console.error('Erro ao processar regra:', {
-            rule,
-            error: ruleError.message,
-            stack: ruleError.stack
-          });
-          throw new Error(`Falha ao processar regra para ${rule.vehicle_type}: ${ruleError.message}`);
-        }
+        results.push(result);
       }
 
-      console.log('Atualizando tolerância do método', { toleranceMinutes });
       await prisma.billing_method.update({
-        where: { id: methodId },
+        where: { id: resolvedMethodId },
         data: { tolerance: toleranceMinutes }
-      });
-
-      console.log('Transaction concluída com sucesso', {
-        methodId,
-        rulesSaved: results.length
       });
 
       return results;
     });
   } catch (error) {
-    console.error('Erro na transaction:', {
-      methodId,
-      error: error.message,
-      stack: error.stack,
-      toleranceMinutes,
-      rules: rules?.map(r => ({
-        vehicle_type: r.vehicle_type,
-        price: r.price
-      }))
-    });
-
-    throw new Error(`Falha ao salvar método ${methodId}: ${error.message}`);
+    console.error("Erro ao salvar método de cobrança:", error.message);
+    throw new Error(`Falha ao salvar método de cobrança: ${error.message}`);
   }
 }
+
 
 module.exports = {
   vehicleEntry,
