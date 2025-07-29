@@ -370,26 +370,54 @@ async function methodActiveService() {
     throw new Error('Erro ao buscar método de cobrança ativo');
   }
 }
+
 async function methodSaveService({ methodId, toleranceMinutes, rules }) {
+  const validVehicleTypes = ['CARRO', 'MOTO', 'CAMINHAO']; // Ajuste conforme seu enum
+  
   try {
+    console.log('Iniciando transaction para salvar método', { methodId });
+    
     return await prisma.$transaction(async (prisma) => {
-      // First deactivate all existing rules for this method
+      // Validação dos tipos de veículo
+      for (const rule of rules) {
+        const vehicleTypeUpper = rule.vehicle_type?.toUpperCase();
+        if (!validVehicleTypes.includes(vehicleTypeUpper)) {
+          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}`);
+        }
+        rule.vehicle_type = vehicleTypeUpper; // Padroniza para uppercase
+      }
+
+      console.log('Desativando regras existentes', { methodId });
       await prisma.billing_rule.updateMany({
         where: { billing_method_id: methodId },
         data: { is_active: false }
       });
 
-      // Then create/reactivate the new rules
       const results = [];
-      for (const rule of rules) {
-        // First delete any potential inactive duplicates to avoid unique constraint issues
-        await prisma.billing_rule.deleteMany({
+      console.log('Processando regras', { totalRules: rules.length });
+      
+      // Usando Promise.all para melhor performance com muitos registros
+      await Promise.all(rules.map(async (rule) => {
+        console.debug('Processando regra para', { 
+          vehicleType: rule.vehicle_type,
+          price: rule.price 
+        });
+
+        // Remove duplicados inativos
+        const deleteResult = await prisma.billing_rule.deleteMany({
           where: {
             billing_method_id: methodId,
             vehicle_type: rule.vehicle_type,
             is_active: false
           }
         });
+        
+        if (deleteResult.count > 0) {
+          console.debug('Regras inativas removidas', {
+            count: deleteResult.count,
+            vehicleType: rule.vehicle_type
+          });
+        }
 
         const result = await prisma.billing_rule.upsert({
           where: {
@@ -401,7 +429,8 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
           update: {
             price: rule.price,
             base_time_minutes: rule.base_time_minutes,
-            is_active: true
+            is_active: true,
+            updated_at: new Date()
           },
           create: {
             price: rule.price,
@@ -411,23 +440,38 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
             is_active: true
           }
         });
+        
         results.push(result);
-      }
+      }));
 
-      // Update tolerance in the method
+      console.log('Atualizando tolerância do método', { toleranceMinutes });
       await prisma.billing_method.update({
         where: { id: methodId },
         data: { tolerance: toleranceMinutes }
       });
 
+      console.log('Transaction concluída com sucesso', { 
+        methodId,
+        rulesSaved: results.length 
+      });
+      
       return results;
     });
   } catch (error) {
-    console.error('Erro ao salvar método:', error);
-    throw new Error('Erro ao salvar método de cobrança');
+    console.error('Erro na transaction:', {
+      methodId,
+      error: error.message,
+      stack: error.stack,
+      toleranceMinutes,
+      rules: rules?.map(r => ({ 
+        vehicle_type: r.vehicle_type,
+        price: r.price 
+      }))
+    });
+    
+    throw new Error(`Falha ao salvar método ${methodId}: ${error.message}`);
   }
 }
-
 module.exports = {
   vehicleEntry,
   getConfigParking,
