@@ -217,6 +217,5 @@ module.exports = {
   closeCashService,
   geralCashDataService,
   BillingMethodService,
-  cashDataService,
-  parkingSpaces
+  cashDataService
 }
