@@ -442,13 +442,26 @@ exports.billingMethod = async (req, res) => {
 exports.methodActive = async (req, res) => {
   try {
     const result = await vehicleService.methodActiveService();
-    res.status(200).json({ success: true, data: result });
+    
+    if (!result) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Nenhum método de cobrança ativo encontrado' 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      data: result 
+    });
   } catch (error) {
     console.error('Erro ao buscar métodos ativos:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Erro ao buscar métodos ativos' 
+    });
   }
 };
-
 
 exports.methodSave = async (req, res) => {
   const startTime = Date.now();
