@@ -141,7 +141,7 @@ async function BillingMethodService() {
   }
 }
 
-export async function cashDataService(id) {
+async function cashDataService(id) {
   try {
     // Busca os dados principais do caixa
     const baseData = await prisma.cash_register.findFirst({
