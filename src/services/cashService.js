@@ -158,7 +158,6 @@ async function cashDataService(id) {
     });
 
     if (!baseData) throw new Error("Caixa não encontrado ou fechado.");
-    console.log(baseData)
 
     // Busca transações de produtos
     const productTransactions = await prisma.product_transaction.findMany({
