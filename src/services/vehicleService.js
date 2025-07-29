@@ -405,9 +405,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
 
       // 3. Remove todas as regras do método atual
       console.log(`Removendo regras existentes para o método ${methodId}`);
-      await tx.billing_rule.deleteMany({
-        where: { billing_method_id: methodId }
-      });
+      await tx.billing_rule.deleteMany({});
 
       // 4. Cria as novas regras
       console.log('Criando novas regras', { count: normalizedRules.length });
