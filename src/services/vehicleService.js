@@ -378,82 +378,98 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   };
 
   try {
-    let resolvedMethodId = methodId;
+    // Verificação inicial do método
+    const billingMethod = await prisma.billing_method.findUnique({
+      where: { id: methodId }
+    });
 
-    // Se não tiver ID, tenta buscar por nome (caso você adapte o controller futuramente)
-    if (!resolvedMethodId) {
-      throw new Error("ID do método de cobrança é obrigatório.");
+    if (!billingMethod) {
+      throw new Error(`Método de cobrança não encontrado para o ID: ${methodId}`);
     }
 
     return await prisma.$transaction(async (prisma) => {
+      // Normalização das regras
       const normalizedRules = rules.map(rule => {
-        const vehicleType = rule.vehicle_type?.toString().toUpperCase().trim();
-
-        if (!VehicleCategory[vehicleType]) {
+        const vehicleType = rule.vehicle_type?.toString().toLowerCase().trim();
+        
+        if (!Object.values(VehicleCategory).includes(vehicleType)) {
           throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}`);
         }
 
         return {
           ...rule,
-          vehicle_type: VehicleCategory[vehicleType]
+          vehicle_type: vehicleType
         };
       });
 
-      // Desativa regras antigas
+      // Desativa regras existentes
       await prisma.billing_rule.updateMany({
-        where: { billing_method_id: resolvedMethodId },
+        where: { billing_method_id: methodId },
         data: { is_active: false }
       });
 
       const results = [];
-
+      
       for (const rule of normalizedRules) {
-        // Apaga duplicatas inativas
-        await prisma.billing_rule.deleteMany({
-          where: {
-            billing_method_id: resolvedMethodId,
-            vehicle_type: rule.vehicle_type,
-            is_active: false
-          }
-        });
-
-        // Upsert regra ativa
-        const result = await prisma.billing_rule.upsert({
-          where: {
-            unique_active_rule_per_type: {
-              billing_method_id: resolvedMethodId,
+        try {
+          // Remove regras inativas duplicadas
+          await prisma.billing_rule.deleteMany({
+            where: {
+              billing_method_id: methodId,
               vehicle_type: rule.vehicle_type,
+              is_active: false
+            }
+          });
+
+          // Cria/atualiza regra ativa
+          const result = await prisma.billing_rule.upsert({
+            where: {
+              billing_method_id_vehicle_type: { // Nome correto da constraint
+                billing_method_id: methodId,
+                vehicle_type: rule.vehicle_type
+              }
+            },
+            update: {
+              price: rule.price,
+              base_time_minutes: rule.base_time_minutes,
+              is_active: true,
+              updated_at: new Date()
+            },
+            create: {
+              price: rule.price,
+              base_time_minutes: rule.base_time_minutes,
+              vehicle_type: rule.vehicle_type,
+              billing_method_id: methodId,
               is_active: true
             }
-          },
-          update: {
-            price: rule.price,
-            base_time_minutes: rule.base_time_minutes,
-            updated_at: new Date(),
-            is_active: true
-          },
-          create: {
-            price: rule.price,
-            base_time_minutes: rule.base_time_minutes,
-            billing_method_id: resolvedMethodId,
-            vehicle_type: rule.vehicle_type,
-            is_active: true
-          }
-        });
+          });
 
-        results.push(result);
+          results.push(result);
+        } catch (ruleError) {
+          console.error('Erro na regra:', {
+            rule,
+            error: ruleError.message
+          });
+          throw new Error(`Falha ao processar regra para ${rule.vehicle_type}`);
+        }
       }
 
+      // Atualiza tolerância
       await prisma.billing_method.update({
-        where: { id: resolvedMethodId },
+        where: { id: methodId },
         data: { tolerance: toleranceMinutes }
       });
 
       return results;
     });
   } catch (error) {
-    console.error("Erro ao salvar método de cobrança:", error.message);
-    throw new Error(`Falha ao salvar método de cobrança: ${error.message}`);
+    console.error('Erro completo:', {
+      message: error.message,
+      stack: error.stack,
+      methodId,
+      rules
+    });
+    throw error;
   }
 }
 
