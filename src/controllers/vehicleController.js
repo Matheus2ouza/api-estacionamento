@@ -496,7 +496,7 @@ exports.methodSave = async (req, res) => {
     });
 
     // Chama o service com o ID correto
-    const result = await vehicleService.methodSaveService({
+    const result = await methodSaveService({
       methodId: billingMethod.id,
       toleranceMinutes: toleranceMinutes || 0,
       rules

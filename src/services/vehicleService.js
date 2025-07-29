@@ -372,19 +372,20 @@ async function methodActiveService() {
 }
 
 async function methodSaveService({ methodId, toleranceMinutes, rules }) {
+  // Definindo os tipos de veículo válidos conforme o enum no Prisma
   const VehicleCategory = {
     CARRO: 'carro',
-    MOTO: 'moto',
+    MOTO: 'moto'
   };
 
   try {
     console.log('Iniciando transaction para salvar método', { methodId });
-
+    
     return await prisma.$transaction(async (tx) => {
       // 1. Validação dos dados de entrada
       const normalizedRules = rules.map(rule => {
         const vehicleType = rule.vehicle_type?.toString().toLowerCase().trim();
-
+        
         if (!Object.values(VehicleCategory).includes(vehicleType)) {
           throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores permitidos: ${Object.values(VehicleCategory).join(', ')}`);
         }
@@ -396,36 +397,38 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
         };
       });
 
-      // 2. Desativa todos os métodos existentes (opcional, se quiser apenas um método ativo)
+      // 2. Desativa todos os métodos existentes (para garantir apenas um ativo)
+      console.log('Desativando todos os métodos existentes');
       await tx.billing_method.updateMany({
         data: { is_active: false }
       });
 
-      // 3. Remove APENAS as regras do método atual (não toda a tabela)
+      // 3. Remove todas as regras do método atual
       console.log(`Removendo regras existentes para o método ${methodId}`);
       await tx.billing_rule.deleteMany({
         where: { billing_method_id: methodId }
       });
 
       // 4. Cria as novas regras
+      console.log('Criando novas regras', { count: normalizedRules.length });
       const createdRules = await Promise.all(
         normalizedRules.map(rule => 
           tx.billing_rule.create({
             data: {
               ...rule,
-              billing_method_id: methodId,
-              is_active: true
+              billing_method_id: methodId
             }
           })
         )
       );
 
-      // 5. Atualiza o método principal
+      // 5. Ativa e atualiza o método principal
+      console.log('Ativando método principal', { methodId });
       await tx.billing_method.update({
         where: { id: methodId },
         data: { 
           tolerance: toleranceMinutes,
-          is_active: true // Ativa este método
+          is_active: true
         }
       });
 
@@ -446,7 +449,6 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
     throw new Error(`Erro ao salvar configuração: ${error.message}`);
   }
 }
-
 
 module.exports = {
   vehicleEntry,
