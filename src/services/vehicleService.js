@@ -119,7 +119,7 @@ async function getParkedVehicles(role) {
     const whereClause = role === 'ADMIN'
       ? { OR: [{ status: 'INSIDE' }, { status: 'DELETED' }] }
       : { status: 'INSIDE' };
-    
+
     const vehicles = await prisma.vehicle_entries.findMany({
       where: whereClause,
       select: {
@@ -289,7 +289,7 @@ async function parkingSpaces() {
     })
 
     const vehicles = await prisma.vehicle_entries.findMany({
-      where: {status: 'INSIDE'},
+      where: { status: 'INSIDE' },
       select: {
         category: true
       }
@@ -380,13 +380,13 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
 
   try {
     console.log('Iniciando transaction para salvar método', { methodId });
-    
+
     return await prisma.$transaction(async (prisma) => {
       // Validação e normalização das regras
       const normalizedRules = rules.map(rule => {
         // Converte para uppercase e remove espaços
         const vehicleType = rule.vehicle_type?.toString().toUpperCase().trim();
-        
+
         // Verifica se o tipo é válido
         if (!VehicleCategory[vehicleType]) {
           throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores aceitos: ${Object.values(VehicleCategory).join(', ')}`);
@@ -406,24 +406,24 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
 
       const results = [];
       console.log('Processando regras', { totalRules: normalizedRules.length });
-      
+
       // Processamento das regras com tratamento individual de erros
       for (const rule of normalizedRules) {
         try {
-          console.debug('Processando regra para', { 
+          console.debug('Processando regra para', {
             vehicleType: rule.vehicle_type,
-            price: rule.price 
+            price: rule.price
           });
 
           // Remove duplicados inativos
           const deleteResult = await prisma.billing_rule.deleteMany({
             where: {
               billing_method_id: methodId,
-              vehicle_type: rule.vehicle_type, // Já está no formato correto
+              vehicle_type: rule.vehicle_type,
               is_active: false
             }
           });
-          
+
           if (deleteResult.count > 0) {
             console.debug('Regras inativas removidas', {
               count: deleteResult.count,
@@ -433,11 +433,13 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
 
           const result = await prisma.billing_rule.upsert({
             where: {
-              billing_method_id_vehicle_type: {
+              unique_active_rule_per_type: {
                 billing_method_id: methodId,
-                vehicle_type: rule.vehicle_type
+                vehicle_type: rule.vehicle_type,
+                is_active: true
               }
             },
+
             update: {
               price: rule.price,
               base_time_minutes: rule.base_time_minutes,
@@ -452,7 +454,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
               is_active: true
             }
           });
-          
+
           results.push(result);
         } catch (ruleError) {
           console.error('Erro ao processar regra:', {
@@ -470,11 +472,11 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
         data: { tolerance: toleranceMinutes }
       });
 
-      console.log('Transaction concluída com sucesso', { 
+      console.log('Transaction concluída com sucesso', {
         methodId,
-        rulesSaved: results.length 
+        rulesSaved: results.length
       });
-      
+
       return results;
     });
   } catch (error) {
@@ -483,12 +485,12 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
       error: error.message,
       stack: error.stack,
       toleranceMinutes,
-      rules: rules?.map(r => ({ 
+      rules: rules?.map(r => ({
         vehicle_type: r.vehicle_type,
-        price: r.price 
+        price: r.price
       }))
     });
-    
+
     throw new Error(`Falha ao salvar método ${methodId}: ${error.message}`);
   }
 }
