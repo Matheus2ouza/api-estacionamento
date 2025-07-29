@@ -7,7 +7,7 @@ async function registerUser(username, password, role) {
   const { salt, hash } = await createHash(password);
   console.log('[authService] Hash de senha criado com sucesso');
 
-  const verifyUsername = await prisma.account.findUnique({
+  const verifyUsername = await prisma.accounts.findUnique({
     where: {
       username
     }
@@ -19,17 +19,17 @@ async function registerUser(username, password, role) {
   }
 
   try {
-    const user = await prisma.account.create({
+    const user = await prisma.accounts.create({
       data: {
         username,
         role,
       },
     });
 
-    await prisma.authentication.create({
+    await prisma.authentications.create({
       data: {
-        accountId: user.id,
-        passwordHash: hash,
+        account_id: user.id,
+        password_hash: hash,
         salt: salt,
       }
     });
@@ -48,17 +48,17 @@ async function loginUser(username, password) {
   try {
     const account = await prisma.accounts.findUnique({
       where: { username },
-      include: { authentication: true },
+      include: { authentications: true },
     });
 
-    if (!account || !account.authentication) {
+    if (!account || !account.authentications) {
       throw new Error('Usuario Invalido ou não cadastrado');
     }
 
     const isPasswordValid = await verifyPassword(
       password,
-      account.authentication.salt,
-      account.authentication.passwordHash
+      account.authentications.salt,
+      account.authentications.password_hash
     );
 
     if (!isPasswordValid) {
@@ -81,14 +81,14 @@ async function loginUser(username, password) {
 
 async function editUser(id, username, password, role) {
   try {
-    const user = await prisma.account.findUnique({
+    const user = await prisma.accounts.findUnique({
       where: { id },
       select: {
         username: true,
         role: true,
-        authentication: {
+        authentications: {
           select: {
-            passwordHash: true,
+            password_hash: true,
             salt: true,
           },
         },
@@ -121,15 +121,15 @@ async function editUser(id, username, password, role) {
 
     // Atualiza dados da tabela Account
     if (Object.keys(updateData).length > 0) {
-      await prisma.account.update({
+      await prisma.accounts.update({
         where: { id },
         data: updateData,
       });
     }
 
-    // Atualiza dados da tabela Authentication
+    // Atualiza dados da tabela authentications
     if (Object.keys(authUpdateData).length > 0) {
-      await prisma.authentication.update({
+      await prisma.authentications.update({
         where: { accountId: id },
         data: authUpdateData,
       });
@@ -146,7 +146,7 @@ async function editUser(id, username, password, role) {
 
 async function deleteUser(id) {
   try {
-    const verifyUser = await prisma.account.findUnique({
+    const verifyUser = await prisma.accounts.findUnique({
       where: {
         id
       },
@@ -156,7 +156,7 @@ async function deleteUser(id) {
       throw new Error('Usuário não encontrado')
     }
 
-    const user = await prisma.account.delete({
+    const user = await prisma.accounts.delete({
       where: { id }
     })
 
@@ -171,7 +171,7 @@ async function deleteUser(id) {
 
 async function listUsers() {
   try{
-    const list = await prisma.account.findMany({
+    const list = await prisma.accounts.findMany({
       select: {
         id: true,
         username: true,
