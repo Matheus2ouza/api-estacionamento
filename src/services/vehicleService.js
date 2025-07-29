@@ -385,10 +385,8 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
     return await prisma.$transaction(async (tx) => {
       // Validação e normalização das regras
       const normalizedRules = rules.map(rule => {
-        // Converte para lowercase e remove espaços
         const vehicleType = rule.vehicle_type?.toString().toLowerCase().trim();
         
-        // Verifica se o tipo é válido
         if (!Object.values(VehicleCategory).includes(vehicleType)) {
           throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores aceitos: ${Object.values(VehicleCategory).join(', ')}`);
         }
@@ -399,55 +397,25 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
         };
       });
 
-      console.log('Desativando regras existentes', { methodId });
-      await tx.billing_rule.updateMany({
-        where: { billing_method_id: methodId },
-        data: { is_active: false }
+      // CORREÇÃO PRINCIPAL: Limpa TODAS as regras existentes para este método
+      console.log('Removendo todas as regras existentes', { methodId });
+      await tx.billing_rule.deleteMany({
+        where: { billing_method_id: methodId }
       });
 
       const results = [];
-      console.log('Processando regras', { totalRules: normalizedRules.length });
+      console.log('Criando novas regras', { totalRules: normalizedRules.length });
       
-      // Processamento das regras
+      // Cria as novas regras
       for (const rule of normalizedRules) {
         try {
-          console.debug('Processando regra para', { 
+          console.debug('Criando regra para', { 
             vehicleType: rule.vehicle_type,
             price: rule.price 
           });
 
-          // Remove duplicados inativos
-          const deleteResult = await tx.billing_rule.deleteMany({
-            where: {
-              billing_method_id: methodId,
-              vehicle_type: rule.vehicle_type,
-              is_active: false
-            }
-          });
-          
-          if (deleteResult.count > 0) {
-            console.debug('Regras inativas removidas', {
-              count: deleteResult.count,
-              vehicleType: rule.vehicle_type
-            });
-          }
-
-          // CORREÇÃO PRINCIPAL: Usando a constraint correta do schema
-          const result = await tx.billing_rule.upsert({
-            where: {
-              unique_active_rule_per_type: { // Nome exato da constraint definida no schema
-                billing_method_id: methodId,
-                vehicle_type: rule.vehicle_type,
-                is_active: true
-              }
-            },
-            update: {
-              price: rule.price,
-              base_time_minutes: rule.base_time_minutes,
-              is_active: true,
-              updated_at: new Date()
-            },
-            create: {
+          const result = await tx.billing_rule.create({
+            data: {
               price: rule.price,
               base_time_minutes: rule.base_time_minutes,
               vehicle_type: rule.vehicle_type,
@@ -458,12 +426,12 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
           
           results.push(result);
         } catch (ruleError) {
-          console.error('Erro ao processar regra:', {
+          console.error('Erro ao criar regra:', {
             rule,
             error: ruleError.message,
             stack: ruleError.stack
           });
-          throw new Error(`Falha ao processar regra para ${rule.vehicle_type}: ${ruleError.message}`);
+          throw new Error(`Falha ao criar regra para ${rule.vehicle_type}: ${ruleError.message}`);
         }
       }
 
