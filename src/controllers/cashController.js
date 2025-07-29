@@ -10,7 +10,7 @@ exports.statusCash = async (req, res) => {
     const data = await cashService.statusCashService(date);
     console.log(data)
 
-    if(!data) {
+    if (!data) {
       return res.status(404).json({
         success: false,
         message: 'Nenhum caixa encontrado',
@@ -80,10 +80,10 @@ exports.closeCash = async (req, res) => {
   const { id } = req.params
   const { finalValue } = req.body
   const date = DateTime.now().setZone("America/Belem")
-  try{
+  try {
     const cash = await cashService.closeCashService(id, finalValue, date);
 
-    if(!cash) {
+    if (!cash) {
       return res.status(404).json({
         success: false,
         message: 'Caixa não encontrado',
@@ -115,8 +115,8 @@ exports.geralCashData = async (req, res) => {
   }
 
   const { id } = req.params;
-  
-  try{
+
+  try {
     const data = await cashService.geralCashDataService(id);
     if (!data) {
       return res.status(404).json({
@@ -146,7 +146,7 @@ exports.BillingMethod = async (req, res) => {
   try {
     const methods = await cashService.BillingMethodService();
 
-    if(!methods) {
+    if (!methods) {
       return res.status(404).json({
         success: false,
         message: 'Nenhuma regra encontrada'
@@ -159,9 +159,9 @@ exports.BillingMethod = async (req, res) => {
     });
   } catch (error) {
     console.error("Erro na rota de métodos de cobrança:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Erro ao buscar métodos de cobrança' 
+      message: 'Erro ao buscar métodos de cobrança'
     });
   }
 };
@@ -177,27 +177,40 @@ exports.cashData = async (req, res) => {
   }
 
   const { id } = req.params;
+  const user = req.user;
 
   try {
-    const cash = await cashService.cashDataService(id);
+    let data = {};
 
-    if (!cash) {
-      return res.status(404).json({
-        success: false,
-        message: 'Caixa não encontrado ou não está aberto.',
-      });
+    if (user.role === 'ADMIN') {
+      const cash = await cashService.cashDataService(id);
+      const parking = await cashService.parkingSpaces();
+
+      if (!cash) {
+        return res.status(404).json({
+          success: false,
+          message: 'Caixa não encontrado ou não está aberto.',
+        });
+      }
+
+      data = {
+        cash,
+        parking
+      };
+    } else {
+      const parking = await cashService.parkingSpaces();
+      data = { parking };
     }
 
-    console.log(cash)
     return res.status(200).json({
       success: true,
-      data: cash
+      data
     });
   } catch (error) {
     console.error('Erro ao buscar dados do caixa:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro interno ao buscar dados do caixa.'
+      message: 'Erro interno ao buscar dados.'
     });
   }
-}
+};
