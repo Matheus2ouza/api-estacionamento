@@ -220,13 +220,24 @@ exports.OutgoingExpense = async (req, res) => {
   try {
     const response = await cashService.OutgoingExpenseService(id);
 
-    if (!response || response.length === 0) {
+    // Caixa não encontrado
+    if (response === null) {
       return res.status(404).json({
         success: false,
-        message: 'Nenhuma despesa encontrada para esse caixa.'
+        message: 'Caixa não encontrado.'
       });
     }
 
+    // Caixa existe mas não há despesas
+    if (response.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Nenhuma despesa registrada para este caixa.',
+        data: []
+      });
+    }
+
+    // Retorno com sucesso e dados
     return res.status(200).json({
       success: true,
       message: 'Despesas encontradas com sucesso.',
@@ -242,4 +253,5 @@ exports.OutgoingExpense = async (req, res) => {
     });
   }
 };
+
 

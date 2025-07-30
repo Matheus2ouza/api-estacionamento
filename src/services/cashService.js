@@ -212,23 +212,28 @@ async function cashDataService(id) {
 }
 
 async function OutgoingExpenseService(id) {
-  const verifyCash = await prisma.general_sale.findUnique({
-    where: { id }
-  });
-
   try {
+    const verifyCash = await prisma.general_sale.findUnique({
+      where: { id }
+    });
+
+    // Se o caixa não existir, retorne null
+    if (!verifyCash) {
+      return null;
+    }
+
     const outgoing = await prisma.outgoing_expense.findMany({
       where: { cash_register_id: verifyCash.id }
     });
 
-    // Aqui formatamos os dados retornados
+    // Mesmo que não tenha despesas, retornamos array vazio
     const outgoingFormatted = outgoing.map(item => ({
       id: item.id,
       amount: item.amount,
       description: item.description,
       category: item.category,
       operator: item.operator,
-      date: item.date.toISOString(), // ou outro formato de data
+      date: item.date.toISOString(),
     }));
 
     return outgoingFormatted;
@@ -238,6 +243,7 @@ async function OutgoingExpenseService(id) {
     throw error;
   }
 }
+
 
 
 module.exports = {
