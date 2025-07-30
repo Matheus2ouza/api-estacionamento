@@ -390,10 +390,10 @@ exports.reactivateVehicle = async (req, res) => {
   const belemDateTime = DateTime.now().setZone("America/Belem");
   const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
 
-  try{
+  try {
     const vehicle = await vehicleService.reactivateVehicleService(id, plate, user, formattedDate);
 
-    if(vehicle.status === 'INSIDE') {
+    if (vehicle.status === 'INSIDE') {
       return res.status(200).json({
         success: true,
         message: 'Veiculo reativado'
@@ -444,53 +444,53 @@ exports.billingMethod = async (req, res) => {
 exports.methodActive = async (req, res) => {
   try {
     const result = await vehicleService.methodActiveService();
-    
+
     console.log(result)
     if (!result) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Nenhum método de cobrança ativo encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Nenhum método de cobrança ativo encontrado'
       });
     }
 
-    res.status(200).json({ 
-      success: true, 
-      data: result 
+    res.status(200).json({
+      success: true,
+      data: result
     });
   } catch (error) {
     console.error('Erro ao buscar métodos ativos:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message || 'Erro ao buscar métodos ativos' 
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erro ao buscar métodos ativos'
     });
   }
 };
 
 exports.methodSave = async (req, res) => {
   const startTime = Date.now();
-  console.log('Iniciando salvamento de método', { 
+  console.log('Iniciando salvamento de método', {
     methodName: req.body.methodId,
     toleranceMinutes: req.body.toleranceMinutes,
-    rulesCount: req.body.rules.length 
+    rulesCount: req.body.rules.length
   });
-  
+
   try {
     const { methodId: methodName, toleranceMinutes, rules } = req.body;
-    
+
     // Validação básica
     if (!methodName || !rules) {
       console.warn('Campos obrigatórios faltando', { methodName, rules });
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Campos obrigatórios faltando: methodId (nome) e rules' 
+      return res.status(400).json({
+        success: false,
+        message: 'Campos obrigatórios faltando: methodId (nome) e rules'
       });
     }
 
     // Busca o método pelo nome
     console.log('Buscando método por nome no banco de dados', { methodName });
     const billingMethod = await prisma.billing_method.findFirst({
-      where: { 
-        name: methodName 
+      where: {
+        name: methodName
       },
       select: {
         id: true,
@@ -506,9 +506,9 @@ exports.methodSave = async (req, res) => {
       });
     }
 
-    console.log('Método encontrado', { 
+    console.log('Método encontrado', {
       methodId: billingMethod.id,
-      methodName: billingMethod.name 
+      methodName: billingMethod.name
     });
 
     // Chama o service com o ID correto
@@ -519,14 +519,14 @@ exports.methodSave = async (req, res) => {
     });
 
     const duration = Date.now() - startTime;
-    console.log('Método salvo com sucesso', { 
+    console.log('Método salvo com sucesso', {
       methodName,
       durationMs: duration,
-      rulesSaved: result.length 
+      rulesSaved: result.length
     });
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       message: 'Configuração salva com sucesso',
       data: {
         method: billingMethod.name,
@@ -541,10 +541,10 @@ exports.methodSave = async (req, res) => {
       durationMs: duration,
       body: req.body
     });
-    
-    return res.status(500).json({ 
-      success: false, 
-      message: error.message || 'Erro ao salvar configuração' 
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Erro ao salvar configuração'
     });
   }
 };
@@ -704,16 +704,24 @@ exports.exitsRegister = async (req, res) => {
 
     console.log("✅ Registro de saída criado:", register?.id || register);
 
-    const receipt = await generateVehicleReceiptPDF(
-      user.username,
-      method,
-      plate,
-      Number(amount_received.toFixed(2)),
-      Number(discount_amount.toFixed(2)),
-      Number(change_given.toFixed(2)),
-      Number(final_amount.toFixed(2)),
-      Number(original_amount.toFixed(2)),
-    );
+    let receipt = null;
+
+    try {
+      receipt = await generateVehicleReceiptPDF(
+        user.username,
+        method,
+        plate,
+        Number(amount_received.toFixed(2)),
+        Number(discount_amount.toFixed(2)),
+        Number(change_given.toFixed(2)),
+        Number(final_amount.toFixed(2)),
+        Number(original_amount.toFixed(2)),
+      );
+      console.log("📄 Comprovante gerado com sucesso.");
+    } catch (pdfError) {
+      console.warn("⚠️ Falha ao gerar comprovante PDF:", pdfError.message || pdfError);
+    }
+
 
     if (!receipt) {
       console.warn("⚠️ Comprovante não gerado.");

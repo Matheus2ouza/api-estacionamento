@@ -505,8 +505,8 @@ async function exitsRegisterService(plate, exit_time, openCashId, user, amount_r
           transaction_date: local,
           cash_register_id: verifyCash.id,
           amount_received: amount_received,
-          change_given: change_given,
-          discount_amount: discount_amount,
+          change_given: discount_amount,
+          discount_amount: change_given,
           final_amount: final_amount,
           original_amount: original_amount,
           method: normalizedMethod
