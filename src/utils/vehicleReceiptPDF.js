@@ -10,7 +10,7 @@ const fs = require('fs');
 async function generateVehicleReceiptPDF(operator, paymentMethod, plate, amountReceived, discountValue, changeGiven, finalPrice, originalAmount) {
   return new Promise((resolve, reject) => {
     try {
-      const docHeight = 280;
+      const docHeight = 240;
       const doc = new PDFDocument({
         size: [137, docHeight],
         margins: { top: 5, bottom: 5, left: 5, right: 5 },
@@ -29,25 +29,25 @@ async function generateVehicleReceiptPDF(operator, paymentMethod, plate, amountR
       const assets = {
         fonts: {
           'Oswald-Bold': {
-            path: path.join(__dirname, '..', 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'),
+            path: path.join(__dirname, 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'),
             fallback: 'Helvetica-Bold',
           },
           'OpenSans-SemiBold': {
-            path: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'),
+            path: path.join(__dirname, 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'),
             fallback: 'Helvetica-Bold',
           },
           'OpenSans_Condensed-Regular': {
-            path: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Regular.ttf'),
+            path: path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Regular.ttf'),
             fallback: 'Helvetica',
           },
           'OpenSans_Condensed-SemiBold': {
-            path: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'),
+            path: path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'),
             fallback: 'Helvetica-Bold',
           },
         },
         images: {
-          logo: { path: path.join(__dirname, '..', 'public', 'img', 'png', 'logo.png') },
-          whatsapp: { path: path.join(__dirname, '..', 'public', 'img', 'png', 'whatsapp.png') },
+          logo: { path: path.join(__dirname, 'public', 'img', 'png', 'logo.png') },
+          whatsapp: { path: path.join(__dirname, 'public', 'img', 'png', 'whatsapp.png') },
         },
       };
 
@@ -102,14 +102,28 @@ async function generateVehicleReceiptPDF(operator, paymentMethod, plate, amountR
 
       // --- Título do recibo (SAÍDA) ---
       doc.font('OpenSans-SemiBold').fontSize(8).fillColor('black');
-      doc.text('COMPROVANTE DE SAÍDA', { align: 'center', width: printWidth });
+      doc.text('COMPROVANTE DE SAÍDA', doc.page.margins.left, doc.y, { align: 'center', width: printWidth });
       doc.moveDown(1);
 
       // --- Informações principais ---
       const leftX = doc.page.margins.left;
-      doc.font('OpenSans_Condensed-Regular').fontSize(7).fillColor('black');
-      doc.text(`Operador: ${operator}`, leftX, doc.y, { width: printWidth, align: 'left' });
-      doc.text(`Pagamento: ${paymentMethod}`, leftX, doc.y, { width: printWidth, align: 'left' });
+      const labelFont = 'OpenSans_Condensed-SemiBold';
+      const valueFont = 'OpenSans_Condensed-Regular';
+      const labelSize = 7;
+      const valueSize = 7;
+      const spacingY = 2;
+
+      const printLine = (label, value) => {
+        const currentY = doc.y;
+        doc.font(labelFont).fontSize(labelSize).fillColor('black');
+        doc.text(`${label}:`, leftX, currentY, { continued: true });
+        doc.font(valueFont).fontSize(valueSize);
+        doc.text(` ${value}`, { align: 'left' });
+        doc.moveDown(spacingY / 10);
+      };
+
+      printLine('Operador', operator);
+      printLine('Pagamento', paymentMethod);
 
       // Placa em destaque
       doc.moveDown(0.7);
@@ -171,7 +185,7 @@ async function generateVehicleReceiptPDF(operator, paymentMethod, plate, amountR
 
       // Mensagem final
       doc.font('Helvetica-Oblique').fontSize(6);
-      doc.text('Obrigado pela preferência!', { align: 'center', width: printWidth });
+      doc.text('Obrigado pela preferência!', doc.page.margins.left, doc.y, { align: 'center', width: printWidth }); 
 
       doc.end();
 

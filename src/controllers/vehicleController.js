@@ -561,7 +561,6 @@ exports.calculateOutstanding = async (req, res) => {
 
   const { stayDuration, category } = req.body;
 
-  // Converter HH:mm:ss para minutos
   function convertHHMMSSToMinutes(hhmmss) {
     const [hours, minutes, seconds] = hhmmss.split(':').map(Number);
     return hours * 60 + minutes + Math.floor(seconds / 60);
@@ -582,11 +581,7 @@ exports.calculateOutstanding = async (req, res) => {
     }
 
     const { tolerance } = ruleSet.method;
-
-    // Normaliza para comparar corretamente
     const normalizedCategory = category.toLowerCase();
-
-    // Encontra a regra correspondente
     const rule = ruleSet.rules.find(r => r.vehicle_type === normalizedCategory);
 
     if (!rule) {
@@ -598,14 +593,13 @@ exports.calculateOutstanding = async (req, res) => {
 
     const { base_time_minutes, price } = rule;
 
-    // Lógica de cobrança com tolerância
     const totalCobrado = (() => {
-      if (stayMinutes <= base_time_minutes + tolerance) {
-        return price;
+      if (stayMinutes <= tolerance) {
+        return 0;
       }
 
       const excessTime = stayMinutes - tolerance;
-      const slots = Math.ceil(excessTime / base_time_minutes);
+      const slots = Math.max(1, Math.ceil(excessTime / base_time_minutes));
       return slots * price;
     })();
 
@@ -629,6 +623,7 @@ exports.calculateOutstanding = async (req, res) => {
     });
   }
 };
+
 
 exports.exitsRegister = async (req, res) => {
   const errors = validationResult(req);
