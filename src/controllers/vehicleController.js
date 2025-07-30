@@ -2,7 +2,6 @@ const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
 const { DateTime } = require("luxon");
 const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
-const { DateTime } = require("luxon");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { generateVehicleReceiptPDF } = require('../utils/vehicleReceiptPDF')
