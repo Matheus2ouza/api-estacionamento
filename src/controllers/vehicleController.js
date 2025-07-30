@@ -2,8 +2,10 @@ const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
 const { DateTime } = require("luxon");
 const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
+const { DateTime } = require("luxon");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { generateVehicleReceiptPDF } = require('../utils/vehicleReceiptPDF')
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
@@ -628,3 +630,91 @@ exports.calculateOutstanding = async (req, res) => {
     });
   }
 };
+
+exports.exitsRegister = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.log(errors.array())
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { plate,
+    exit_time,
+    openCashId,
+    amount_received,
+    change_given,
+    discount_amount,
+    final_amount,
+    original_amount,
+    method
+  } = req.body
+
+  const user = req.user
+
+  try {
+    // Data com fuso horário correto
+    const local = DateTime.now().setZone("America/Belem");
+
+    const paymentMethodMap = {
+      "Dinheiro": "DINHEIRO",
+      "Pix": "PIX",
+      "Crédito": "CREDITO",
+      "Débito": "DEBITO",
+    };
+
+    const normalizedMethod = paymentMethodMap[method];
+
+    if (!normalizedMethod) {
+      throw new Error("Método de pagamento inválido");
+    }
+
+    const register = await vehicleService.exitsRegisterService(
+      plate, 
+      exit_time, 
+      openCashId, 
+      user, 
+      Number(amount_received.toFixed(2)),
+      Number(discount_amount.toFixed(2)),
+      Number(change_given.toFixed(2)),
+      Number(final_amount.toFixed(2)),
+      Number(original_amount.toFixed(2)),
+      normalizedMethod, 
+      local)
+
+    const receipt = await generateVehicleReceiptPDF(
+      user.username,
+      method,
+      plate,
+      Number(amount_received.toFixed(2)),
+      Number(discount_amount.toFixed(2)),
+      Number(change_given.toFixed(2)),
+      Number(final_amount.toFixed(2)),
+      Number(original_amount.toFixed(2)),
+    )
+
+    if (!receipt) {
+      return res.status(201).json({
+        success: true,
+        transactionId,
+        message: "Pagamento registrado com sucesso, mas o comprovante não foi gerado.",
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      register,
+      receipt,
+      message: "Pagamento registrado com sucesso.",
+    });
+
+  } catch (error) {
+    console.error("Erro ao registrar pagamento:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Erro interno ao registrar pagamento.",
+    });
+  }
+}

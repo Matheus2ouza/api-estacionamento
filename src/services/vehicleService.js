@@ -457,6 +457,84 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   }
 }
 
+async function exitsRegisterService(plate, exit_time, openCashId, user, amount_received, change_given, discount_amount, final_amount, original_amount, normalizedMethod, local) {
+  // Verificar se o caixa existe
+  const verifyCash = await prisma.cash_register.findUnique({
+    where: { id: openCashId },
+  });
+
+  if (!verifyCash) {
+    throw new Error('Caixa não encontrado');
+  }
+
+  // Verificar se o operador existe
+  const verifyOperator = await prisma.accounts.findUnique({
+    where: { id: user.id },
+  });
+
+  if (!verifyOperator) {
+    throw new Error('Operador não encontrado');
+  }
+
+  const verifyVehicle = await prisma.vehicle_entries.findFirst({
+    where: {plate: plate, status: 'EXITED'}
+  })
+
+  if (!verifyVehicle) {
+    throw new Error('Veiculo não encontrado');
+  }
+
+  const updatedDescription = `${verifyVehicle.description || ""}
+  \nRegistro da saida do veiculo: ${verifyOperator.username} em ${exit_time}`;
+
+  try{
+    const transactionId = await prisma.$transaction(async (tx) => {
+      const exitVehicle = await tx.vehicle_entries.update({
+        where: { id: verifyVehicle.id },
+        data: {
+          description: updatedDescription,
+          exit_time: exit_time,
+          status: 'EXITED'
+        }
+      });
+
+      const transaction = await tx.vehicle_transaction.create({
+        data: {
+          vehicle_id: verifyVehicle.id,
+          operator: verifyOperator.username,
+          transaction_date: local,
+          cash_register_id: verifyCash.id,
+          amount_received: amount_received,
+          change_given: change_given,
+          discount_amount: discount_amount,
+          final_amount: final_amount,
+          original_amount: original_amount,
+          method: normalizedMethod
+        }
+      });
+
+      return transaction.id
+    })
+
+    if(transactionId) {
+      await prisma.cash_register.update({
+        where: {id: verifyCash.id},
+        data:{
+          final_value: {
+            increment: final_amount
+          },
+          vehicle_entry_total: {
+            increment: final_amount
+          }
+        }
+      })
+    }
+    return transactionId;
+  } catch (error) {
+    throw new Error('Erro ao registrar pagamento: ' + error.message);
+  }
+}
+
 module.exports = {
   vehicleEntry,
   getConfigParking,
@@ -471,5 +549,6 @@ module.exports = {
   parkingSpaces,
   billingMethodService,
   methodActiveService,
-  methodSaveService
+  methodSaveService,
+  exitsRegisterService
 };

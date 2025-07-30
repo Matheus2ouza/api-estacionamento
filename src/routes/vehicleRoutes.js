@@ -98,4 +98,20 @@ router.post('/calculate-outstanding',
   ], authMiddleware('NORMAL'),
   vehicleController.calculateOutstanding
 )
+
+router.post('/exits',
+  [
+    body("plate").exists().notEmpty(),
+    body("exit_time").exists().notEmpty(),
+    body("openCashId").exists().notEmpty(),
+    body("amount_received").exists().notEmpty(),
+    body("change_given").exists().notEmpty(),
+    body("discount_amount").exists().notEmpty(),
+    body("final_amount").exists().notEmpty(),
+    body("original_amount").exists().notEmpty(),
+    body("method").exists().notEmpty()
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.exitsRegister
+)
 module.exports = router
