@@ -43,6 +43,7 @@ router.get('/outgoing-expense/:id',
   [
     param("id").exists().notEmpty()
   ],
+  authMiddleware('NORMAL'),
   cashController.OutgoingExpense
 )
 
