@@ -211,11 +211,41 @@ async function cashDataService(id) {
   }
 }
 
+async function OutgoingExpenseService(id) {
+  const verifyCash = await prisma.general_sale.findUnique({
+    where: { id }
+  });
+
+  try {
+    const outgoing = await prisma.outgoing_expense.findMany({
+      where: { cash_register_id: verifyCash.id }
+    });
+
+    // Aqui formatamos os dados retornados
+    const outgoingFormatted = outgoing.map(item => ({
+      id: item.id,
+      amount: item.amount,
+      description: item.description,
+      category: item.category,
+      operator: item.operator,
+      date: item.date.toISOString(), // ou outro formato de data
+    }));
+
+    return outgoingFormatted;
+
+  } catch (error) {
+    console.error("Erro ao buscar despesas:", error);
+    throw error;
+  }
+}
+
+
 module.exports = {
   statusCashService,
   openCashService,
   closeCashService,
   geralCashDataService,
   BillingMethodService,
-  cashDataService
+  cashDataService,
+  OutgoingExpenseService
 }

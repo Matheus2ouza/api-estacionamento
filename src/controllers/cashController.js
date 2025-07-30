@@ -203,3 +203,43 @@ exports.cashData = async (req, res) => {
     });
   }
 }
+
+exports.OutgoingExpense = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+      errors: errors.array()
+    });
+  }
+
+  const { id } = req.params;
+
+  try {
+    const response = await cashService.OutgoingExpenseService(id);
+
+    if (!response || response.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nenhuma despesa encontrada para esse caixa.'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Despesas encontradas com sucesso.',
+      data: response
+    });
+
+  } catch (error) {
+    console.error("Erro ao buscar despesas:", error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar despesas.',
+      error: error.message
+    });
+  }
+};
+

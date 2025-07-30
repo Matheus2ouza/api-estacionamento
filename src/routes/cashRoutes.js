@@ -39,4 +39,11 @@ router.get('/cash-data/:id',
   authMiddleware('ADMIN'), cashController.cashData
 )
 
+router.get('/0utgoing-expense/:id',
+  [
+    param("id").exists().notEmpty()
+  ],
+  cashController.OutgoingExpense
+)
+
 module.exports = router;
