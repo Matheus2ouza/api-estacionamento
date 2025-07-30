@@ -477,7 +477,7 @@ async function exitsRegisterService(plate, exit_time, openCashId, user, amount_r
   }
 
   const verifyVehicle = await prisma.vehicle_entries.findFirst({
-    where: {plate: plate, status: 'EXITED'}
+    where: {plate: plate, status: 'INSIDE'}
   })
 
   if (!verifyVehicle) {
