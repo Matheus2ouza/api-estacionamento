@@ -632,15 +632,17 @@ exports.calculateOutstanding = async (req, res) => {
 
 exports.exitsRegister = async (req, res) => {
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
-    console.log(errors.array())
+    console.log("❌ Erros de validação:", errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
     });
   }
 
-  const { plate,
+  const {
+    plate,
     exit_time,
     openCashId,
     amount_received,
@@ -649,13 +651,26 @@ exports.exitsRegister = async (req, res) => {
     final_amount,
     original_amount,
     method
-  } = req.body
+  } = req.body;
 
-  const user = req.user
+  const user = req.user;
+
+  console.log("📥 Dados recebidos:", {
+    plate,
+    exit_time,
+    openCashId,
+    amount_received,
+    change_given,
+    discount_amount,
+    final_amount,
+    original_amount,
+    method,
+    user
+  });
 
   try {
-    // Data com fuso horário correto
     const local = DateTime.now().setZone("America/Belem");
+    console.log("🕒 Data/hora local:", local.toISO());
 
     const paymentMethodMap = {
       "Dinheiro": "DINHEIRO",
@@ -667,21 +682,27 @@ exports.exitsRegister = async (req, res) => {
     const normalizedMethod = paymentMethodMap[method];
 
     if (!normalizedMethod) {
+      console.error("❌ Método de pagamento inválido:", method);
       throw new Error("Método de pagamento inválido");
     }
 
+    console.log("✅ Método de pagamento normalizado:", normalizedMethod);
+
     const register = await vehicleService.exitsRegisterService(
-      plate, 
-      exit_time, 
-      openCashId, 
-      user, 
+      plate,
+      exit_time,
+      openCashId,
+      user,
       Number(amount_received.toFixed(2)),
       Number(discount_amount.toFixed(2)),
       Number(change_given.toFixed(2)),
       Number(final_amount.toFixed(2)),
       Number(original_amount.toFixed(2)),
-      normalizedMethod, 
-      local)
+      normalizedMethod,
+      local
+    );
+
+    console.log("✅ Registro de saída criado:", register?.id || register);
 
     const receipt = await generateVehicleReceiptPDF(
       user.username,
@@ -692,15 +713,18 @@ exports.exitsRegister = async (req, res) => {
       Number(change_given.toFixed(2)),
       Number(final_amount.toFixed(2)),
       Number(original_amount.toFixed(2)),
-    )
+    );
 
     if (!receipt) {
+      console.warn("⚠️ Comprovante não gerado.");
       return res.status(201).json({
         success: true,
-        transactionId,
+        transactionId: register?.id || null,
         message: "Pagamento registrado com sucesso, mas o comprovante não foi gerado.",
       });
     }
+
+    console.log("📄 Comprovante gerado com sucesso.");
 
     return res.status(201).json({
       success: true,
@@ -710,10 +734,10 @@ exports.exitsRegister = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Erro ao registrar pagamento:", error);
+    console.error("❌ Erro ao registrar pagamento:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Erro interno ao registrar pagamento.",
     });
   }
-}
+};
