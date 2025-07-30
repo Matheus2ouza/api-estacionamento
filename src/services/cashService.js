@@ -258,7 +258,7 @@ async function registerOutgoingService(description, amount, method, openCashId, 
     const outgoing = await prisma.outgoing_expense.create({
       data: {
         description: description,
-        category: method, // Se sua tabela tiver "category", use isso
+        method: method,
         amount: Number(amount),
         transaction_date: transactionDate,
         cash_register_id: verifyCash.id,
