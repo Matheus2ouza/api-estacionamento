@@ -1,7 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { DateTime } = require("luxon");
-const { assert } = require('pdfjs-dist/types/src/shared/util');
 
 async function statusCashService(date) {
   try {
