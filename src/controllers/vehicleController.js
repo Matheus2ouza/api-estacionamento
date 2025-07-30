@@ -704,7 +704,7 @@ exports.exitsRegister = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      register,
+      exitData: register,
       receipt,
       message: "Pagamento registrado com sucesso.",
     });
