@@ -231,7 +231,6 @@ async function OutgoingExpenseService(id) {
       id: item.id,
       amount: item.amount,
       description: item.description,
-      category: item.category,
       operator: item.operator,
       method: item.method,
       date: item.date.toISOString(),
