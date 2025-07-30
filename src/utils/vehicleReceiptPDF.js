@@ -29,25 +29,25 @@ async function generateVehicleReceiptPDF(operator, paymentMethod, plate, amountR
       const assets = {
         fonts: {
           'Oswald-Bold': {
-            path: path.join(__dirname, 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'),
+            path: path.join(__dirname, '..', 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'),
             fallback: 'Helvetica-Bold',
           },
           'OpenSans-SemiBold': {
-            path: path.join(__dirname, 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'),
+            path: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'),
             fallback: 'Helvetica-Bold',
           },
           'OpenSans_Condensed-Regular': {
-            path: path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Regular.ttf'),
+            path: path.join(__dirname,  '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Regular.ttf'),
             fallback: 'Helvetica',
           },
           'OpenSans_Condensed-SemiBold': {
-            path: path.join(__dirname, 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'),
+            path: path.join(__dirname,  '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'),
             fallback: 'Helvetica-Bold',
           },
         },
         images: {
-          logo: { path: path.join(__dirname, 'public', 'img', 'png', 'logo.png') },
-          whatsapp: { path: path.join(__dirname, 'public', 'img', 'png', 'whatsapp.png') },
+          logo: { path: path.join(__dirname,  '..', 'public', 'img', 'png', 'logo.png') },
+          whatsapp: { path: path.join(__dirname, '..',  'public', 'img', 'png', 'whatsapp.png') },
         },
       };
 
