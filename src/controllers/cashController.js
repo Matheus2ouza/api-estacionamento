@@ -254,4 +254,43 @@ exports.OutgoingExpense = async (req, res) => {
   }
 };
 
+exports.registerOutgoing = async (req, res) => {
+  const errors = validationResult(req);
 
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+      errors: errors.array()
+    });
+  }
+
+  const belemDate = DateTime.now().setZone("America/Belem").toJSDate();
+  const { description, amount, method, openCashId } = req.body;
+  const user = req.user;
+
+  try {
+    const result = await cashService.registerOutgoingService(
+      description,
+      amount,
+      method.toUpperCase(),
+      openCashId,
+      belemDate,
+      user
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Despesa registrada com sucesso.',
+      data: result
+    });
+
+  } catch (error) {
+    console.error("Erro ao registrar despesa:", error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao registrar despesa.',
+      error: error.message
+    });
+  }
+};

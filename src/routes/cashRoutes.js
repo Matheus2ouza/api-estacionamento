@@ -47,4 +47,15 @@ router.get('/outgoing-expense/:id',
   cashController.OutgoingExpense
 )
 
+router.post('/outgoing-expense-register',
+  [
+    body("description").exists().notEmpty(),
+    body("amount").exists().notEmpty(),
+    body("method").exists().notEmpty(),
+    body("openCashId").exists().notEmpty()
+  ],
+  authMiddleware('NORMAL'),
+  cashController.registerOutgoing
+)
+
 module.exports = router;

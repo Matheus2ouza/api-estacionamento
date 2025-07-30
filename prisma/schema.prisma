@@ -81,6 +81,7 @@ model outgoing_expense {
   id               String        @id            @default(uuid())
   description      String
   amount           Decimal       @db.Decimal(10, 2)
+  method           Method
   transaction_date DateTime      @default(now())
   cash_register_id String
   operator         String

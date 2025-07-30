@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { DateTime } = require("luxon");
+const { assert } = require('pdfjs-dist/types/src/shared/util');
 
 async function statusCashService(date) {
   try {
@@ -233,6 +234,7 @@ async function OutgoingExpenseService(id) {
       description: item.description,
       category: item.category,
       operator: item.operator,
+      method: item.method,
       date: item.date.toISOString(),
     }));
 
@@ -244,6 +246,49 @@ async function OutgoingExpenseService(id) {
   }
 }
 
+async function registerOutgoingService(description, amount, method, openCashId, transactionDate, user) {
+  const verifyCash = await prisma.cash_register.findUnique({
+    where: { id: openCashId },
+  });
+
+  if (!verifyCash) {
+    throw new Error("Nenhum caixa encontrado");
+  }
+
+  try {
+    const outgoing = await prisma.outgoing_expense.create({
+      data: {
+        description: description,
+        category: method, // Se sua tabela tiver "category", use isso
+        amount: Number(amount),
+        transaction_date: transactionDate,
+        cash_register_id: verifyCash.id,
+        operator: user.username
+      }
+    });
+
+    // Atualiza o total no caixa
+    await prisma.cash_register.update({
+      where: { id: verifyCash.id },
+      data: {
+        outgoing_expense_total: {
+          increment: Number(amount)
+        },
+        final_value: {
+          decrement: Number(amount)
+        }
+      }
+    });
+
+    return outgoing;
+
+  } catch (error) {
+    console.error("Erro ao registrar despesa:", error);
+    throw error;
+  }
+}
+
+
 module.exports = {
   statusCashService,
   openCashService,
@@ -251,5 +296,6 @@ module.exports = {
   geralCashDataService,
   BillingMethodService,
   cashDataService,
-  OutgoingExpenseService
+  OutgoingExpenseService,
+  registerOutgoingService
 }
