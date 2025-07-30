@@ -213,7 +213,7 @@ async function cashDataService(id) {
 
 async function OutgoingExpenseService(id) {
   try {
-    const verifyCash = await prisma.general_sale.findUnique({
+    const verifyCash = await prisma.cash_register.findUnique({
       where: { id }
     });
 
@@ -243,8 +243,6 @@ async function OutgoingExpenseService(id) {
     throw error;
   }
 }
-
-
 
 module.exports = {
   statusCashService,
