@@ -233,7 +233,7 @@ async function OutgoingExpenseService(id) {
       description: item.description,
       operator: item.operator,
       method: item.method,
-      date: item.date.toISOString(),
+      date: item.transaction_date.toISOString(),
     }));
 
     return outgoingFormatted;
