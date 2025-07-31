@@ -1,17 +1,29 @@
 const express = require('express');
 const app = express();
 const path = require('path');
+const dotenv = require('dotenv');
+
+// Carrega o arquivo de ambiente apropriado
+const envPath = process.env.NODE_ENV === 'production'
+    ? '.env'
+    : '.env.local';
+
+dotenv.config({ path: path.resolve(__dirname, envPath) });
 
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src', 'public', 'img', 'ico')));
 
-// Rotas de abertura
+// Rota inicial
 app.get('/', (req, res) => {
-    res.send('Bem-vindo à minha API! ❤️');
+    if (process.env.NODE_ENV === 'production') {
+        res.send('Bem-vindo à API em produção! 🚀');
+    } else {
+        res.send('API rodando localmente com sucesso! 🧪');
+    }
 });
 
-//Rotas
+// Rotas da API
 const authRoutes = require('./src/routes/authRoutes');
 const vehicleRoutes = require('./src/routes/vehicleRoutes');
 const cashRoutes = require('./src/routes/cashRoutes');
@@ -22,12 +34,13 @@ app.use('/vehicles', vehicleRoutes);
 app.use('/cash', cashRoutes);
 app.use('/products', productRoutes);
 
+// 🟩 Rodar localmente
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Servidor rodando em http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
     });
 }
 
-// Exporta para Vercel
+// 🟦 Exporta para Vercel
 module.exports = app;

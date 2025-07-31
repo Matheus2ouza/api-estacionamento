@@ -74,7 +74,7 @@ async function fetchProductService(barcode) {
 
 async function createProductService(productName, barcode, unitPrice, quantity, expirationDate) {
   const verifyProduct = await prisma.products.findFirst({
-    where: { product_name }
+    where: { product_name: productName }
   });
 
   if (verifyProduct) {
@@ -92,9 +92,9 @@ async function createProductService(productName, barcode, unitPrice, quantity, e
 
       const generalSaleData = {
         productId: registerNameProduct.id,
-        unitPrice,
+        unit_price: unitPrice,
         quantity,
-        ...(expirationDate && { expiration_date })
+        ...(expirationDate && { expirationDate })
       };
 
       await tx.general_sale.create({
