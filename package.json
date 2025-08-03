@@ -5,7 +5,9 @@
   "scripts": {
     "postinstall": "prisma generate",
     "build": "echo \"No build step\"",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "migrate:prod": "npx prisma migrate dev --schema=prisma/schema.prisma",
+    "migrate:local": "npx prisma migrate dev --schema=prisma-local/schema.prisma"
   },
   "keywords": [],
   "author": "",

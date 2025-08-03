@@ -125,8 +125,8 @@ exports.generateTicketDuplicate = async (req, res) => {
       })
     }
 
-    console.log(`Hora de entrada: ${vehicle.entryTime}`)
-    const dt = DateTime.fromJSDate(vehicle.entryTime).setZone('America/Belem');
+    console.log(`Hora de entrada: ${vehicle.entry_time}`)
+    const dt = DateTime.fromJSDate(vehicle.entry_time).setZone('America/Belem');
 
     const dataFormatada = dt.toFormat('dd/MM/yyyy');
     const horaFormatada = dt.toFormat('HH:mm:ss');
@@ -280,6 +280,25 @@ exports.getParkedVehicles = async (req, res) => {
     });
   }
 };
+
+exports.getParkedVehiclesExit = async (req, res) => {
+  try {
+    const vehicles = await vehicleService.getParkedVehiclesOnly();
+
+    return res.status(200).json({
+      success: true,
+      data: vehicles
+    });
+
+  } catch (error) {
+    console.error(`[VehicleController] Erro ao buscar veículos no pátio: ${error.message}`);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar veículos estacionados'
+    });
+  }
+}
 
 exports.checkForUpdates = async (req, res) => {
   const lastCheck = req.query.lastCheck;
@@ -636,17 +655,22 @@ exports.exitsRegister = async (req, res) => {
     });
   }
 
-  const {
-    plate,
-    exit_time,
-    openCashId,
-    amount_received,
-    change_given,
-    discount_amount,
-    final_amount,
-    original_amount,
-    method
-  } = req.body;
+const {
+  plate,
+  exit_time,
+  openCashId,
+  method
+} = req.body;
+
+const amount_received = Number(req.body.amount_received);
+const change_given = Number(req.body.change_given);
+const discount_amount = Number(req.body.discount_amount);
+const final_amount = Number(req.body.final_amount);
+const original_amount = Number(req.body.original_amount);
+
+
+  const photoBuffer = req.file ? req.file.buffer : null;
+  const photoMimeType = req.file ? req.file.mimetype : null;
 
   const user = req.user;
 
@@ -694,7 +718,9 @@ exports.exitsRegister = async (req, res) => {
       Number(final_amount.toFixed(2)),
       Number(original_amount.toFixed(2)),
       normalizedMethod,
-      local
+      local,
+      photoBuffer,
+      photoMimeType
     );
 
     console.log("✅ Registro de saída criado:", register?.id || register);

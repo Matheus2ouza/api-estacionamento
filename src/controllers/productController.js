@@ -149,6 +149,120 @@ exports.createProduct = async (req, res) => {
   }
 };
 
+exports.editProduct = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id, productName, barcode, unitPrice, quantity, expirationDate } = req.body;
+
+  try {
+    let parsedExpiration = null;
+
+    // Validação da data de validade
+    if (expirationDate) {
+      if (!/^\d{2}\/\d{4}$/.test(expirationDate)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Formato de validade inválido. Use MM/AAAA.',
+        });
+      }
+
+      const [monthStr, yearStr] = expirationDate.split('/');
+      const month = parseInt(monthStr, 10);
+      const year = parseInt(yearStr, 10);
+
+      if (month < 1 || month > 12) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mês inválido na validade. Deve ser entre 01 e 12.',
+        });
+      }
+
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+
+      if (year < currentYear || (year === currentYear && month < currentMonth)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A validade não pode ser anterior ao mês/ano atual.',
+        });
+      }
+
+      parsedExpiration = new Date(year, month - 1, 1);
+    }
+
+    const updated = await productsService.editProductService(
+      id, // UUID como string
+      productName,
+      barcode,
+      unitPrice, // Já vem como número do frontend
+      quantity,  // Já vem como número do frontend
+      parsedExpiration
+    );
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produto não encontrado ou nenhum dado foi alterado',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Produto atualizado com sucesso',
+    });
+  } catch (error) {
+    console.error(`[ProductController] Erro ao editar produto:`, error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Erro interno ao editar o produto.',
+    });
+  }
+};
+
+exports.deleteProduct = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { id, barcode } = req.params;
+
+  try {
+    const result = await productsService.deleteProductService(id, barcode);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produto não encontrado ou já está inativo.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Produto excluído com sucesso.',
+    });
+
+  } catch (error) {
+    console.error('Erro ao excluir produto:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao excluir produto.',
+    });
+  }
+};
+
 exports.registerPayment = async (req, res) => {
   const errors = validationResult(req);
 
@@ -168,13 +282,21 @@ exports.registerPayment = async (req, res) => {
     finalPrice,
     amountReceived,
     changeGiven,
-    saleItems, // já é um array
+    saleItems,
   } = req.body;
 
+  if (!Array.isArray(saleItems)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Os itens da venda (saleItems) devem ser um array.',
+    });
+  }
+
+  const photoBuffer = req.file ? req.file.buffer : null;
+  const photoMimeType = req.file ? req.file.mimetype : null;
   const user = req.user;
 
   try {
-    // Data com fuso horário correto
     const local = DateTime.now().setZone("America/Belem");
 
     const paymentMethodMap = {
@@ -185,14 +307,8 @@ exports.registerPayment = async (req, res) => {
     };
 
     const normalizedMethod = paymentMethodMap[paymentMethod];
+    if (!normalizedMethod) throw new Error("Método de pagamento inválido");
 
-    if (!normalizedMethod) {
-      throw new Error("Método de pagamento inválido");
-    }
-
-    console.log(saleItems)
-
-    // Transformação segura dos saleItems recebidos
     const saleItemsToInsert = saleItems.map((item) => {
       if (!item?.id) {
         throw new Error("Produto sem ID. Verifique os itens do carrinho.");
@@ -200,64 +316,46 @@ exports.registerPayment = async (req, res) => {
 
       return {
         productId: item.id,
-        soldQuantity: Number(item.quantity),  // Alterado de item.soldQuantity para item.quantity
-        productName: item.productName,       // Alterado de item.product.productName para item.productName
+        soldQuantity: Number(item.quantity),
+        productName: item.productName,
         unitPrice: Number(item.unitPrice),
         expirationDate: item.expirationDate || null,
       };
     });
 
-    console.log("🔍 Enviando parâmetros para registerPayment:");
-    console.log("👤 user.username:", user.username);
-    console.log("💳 normalizedMethod:", normalizedMethod);
-    console.log("🏬 cashRegisterId:", cashRegisterId);
-    console.log("💰 totalAmount:", Number(totalAmount.toFixed(2)));
-    console.log("🎁 discountValue:", Number(discountValue.toFixed(2)));
-    console.log("🧾 finalPrice:", Number(finalPrice.toFixed(2)));
-    console.log("💵 amountReceived:", Number(amountReceived.toFixed(2)));
-    console.log("💸 changeGiven:", Number(changeGiven.toFixed(2)));
-    console.log("📦 saleItemsToInsert:", saleItemsToInsert);
-    console.log("🌍 local:", local);
-
-    // Chamada ao service
     const transactionId = await productsService.registerPayment(
       user.username,
       normalizedMethod,
       cashRegisterId,
-      Number(totalAmount.toFixed(2)),
-      Number(discountValue.toFixed(2)),
-      Number(finalPrice.toFixed(2)),
-      Number(amountReceived.toFixed(2)),
-      Number(changeGiven.toFixed(2)),
+      Number(totalAmount),
+      Number(discountValue),
+      Number(finalPrice),
+      Number(amountReceived),
+      Number(changeGiven),
       saleItemsToInsert,
-      local
+      local,
+      photoBuffer,
+      photoMimeType
     );
 
-    // Geração de recibo (PDF base64)
     const receipt = await generateReceiptPDF(
       user.username,
       paymentMethod,
       saleItemsToInsert,
-      Number(totalAmount.toFixed(2)),
-      Number(discountValue.toFixed(2)),
-      Number(finalPrice.toFixed(2)),
-      Number(amountReceived.toFixed(2)),
-      Number(changeGiven.toFixed(2)),
+      Number(totalAmount),
+      Number(discountValue),
+      Number(finalPrice),
+      Number(amountReceived),
+      Number(changeGiven),
     );
-
-    if (!receipt) {
-      return res.status(201).json({
-        success: true,
-        transactionId,
-        message: "Pagamento registrado com sucesso, mas o comprovante não foi gerado.",
-      });
-    }
 
     return res.status(201).json({
       success: true,
       transactionId,
       receipt,
-      message: "Pagamento registrado com sucesso.",
+      message: receipt
+        ? "Pagamento registrado com sucesso."
+        : "Pagamento registrado, mas o comprovante não foi gerado.",
     });
 
   } catch (error) {

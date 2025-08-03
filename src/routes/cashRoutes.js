@@ -30,6 +30,14 @@ router.post('/close-cash/:id',
   authMiddleware('NORMAL'), cashController.closeCash
 )
 
+router.post('/reopen-cash/:cashId',
+  [
+    param("cashId").exists().notEmpty()
+  ],
+  authMiddleware('ADMIN'),
+  cashController.reopenCash
+)
+
 router.get('/billing-method', authMiddleware('NORMAL'), cashController.BillingMethod)
 
 router.get('/cash-data/:id',

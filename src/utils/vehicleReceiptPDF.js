@@ -8,6 +8,8 @@ const fs = require('fs');
  * the process doesn't crash if a file is missing.
  */
 async function generateVehicleReceiptPDF(operator, paymentMethod, plate, amountReceived, discountValue, changeGiven, finalPrice, originalAmount) {
+
+  console.log(plate)
   return new Promise((resolve, reject) => {
     try {
       const docHeight = 240;

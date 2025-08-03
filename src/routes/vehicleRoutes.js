@@ -12,7 +12,7 @@ const upload = multer({
 });
 
 router.post('/entries',
-  upload.single('photo'),  // <-- multer processa o campo 'photo'
+  upload.single('photo'),
   [
     body('plate').notEmpty().withMessage("Placa é obrigatória"),
     body('category').notEmpty().isIn(["carro", "moto"]).withMessage("Categoria fora do formato esperado"),
@@ -78,6 +78,8 @@ router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getPark
 
 router.get('/parked', authMiddleware('NORMAL'), vehicleController.getParkedVehicles);
 
+router.get('/parked-exit', authMiddleware('NORMAL'), vehicleController.getParkedVehiclesExit);
+
 router.get('/check-update', authMiddleware('NORMAL'), vehicleController.checkForUpdates)
 
 router.get('/parking-data', authMiddleware('NORMAL'), vehicleController.parkingOnly)
@@ -100,6 +102,7 @@ router.post('/calculate-outstanding',
 )
 
 router.post('/exits',
+  upload.single('photo'),
   [
     body("plate").exists().notEmpty(),
     body("exit_time").exists().notEmpty(),
@@ -114,4 +117,5 @@ router.post('/exits',
   authMiddleware('NORMAL'),
   vehicleController.exitsRegister
 )
+
 module.exports = router

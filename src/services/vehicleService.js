@@ -44,9 +44,17 @@ async function vehicleEntry(plate, category, operatorId, date, formattedDate, ob
 
 async function getConfigParking() {
   try {
-    return await prisma.patio_configs.findUnique({
+    const parking =  await prisma.patio_configs.findUnique({
       where: { id: "singleton" }
     });
+
+    const parkingFormated = {
+      maxCars: parking.max_cars,
+      maxMotorcycles: parking.max_motorcycles
+    }
+
+    return parkingFormated
+
   } catch (err) {
     console.error("[vehicleService] Erro ao buscar os dados do pátio:", err);
     throw err;
@@ -116,12 +124,54 @@ async function getUniqueVehicleService(id, plate) {
 
 async function getParkedVehicles(role) {
   try {
-    const whereClause = role === 'ADMIN'
+    const isAdmin = role === 'ADMIN';
+
+    const whereClause = isAdmin
       ? { OR: [{ status: 'INSIDE' }, { status: 'DELETED' }] }
       : { status: 'INSIDE' };
 
+    const selectFields = {
+      id: true,
+      plate: true,
+      status: true,
+      entry_time: true,
+      operator: true,
+      category: true,
+    };
+
+    if (isAdmin) {
+      selectFields.description = true;
+    }
+
     const vehicles = await prisma.vehicle_entries.findMany({
       where: whereClause,
+      select: selectFields,
+      orderBy: {
+        entry_time: 'asc',
+      },
+    });
+
+    const formattedVehicles = vehicles.map(vehicle => ({
+      id: vehicle.id,
+      plate: vehicle.plate,
+      status: vehicle.status,
+      entryTime: vehicle.entry_time.toISOString(),
+      operator: vehicle.operator.toUpperCase(),
+      category: vehicle.category.toUpperCase(),
+      ...(isAdmin && { description: vehicle.description })
+    }));
+
+    return formattedVehicles;
+  } catch (err) {
+    console.error(`[vehicleService] Erro ao buscar veículos no pátio: ${err.message}`);
+    throw new Error("Erro ao buscar veículos estacionados.");
+  }
+}
+
+async function getParkedVehiclesOnly() {
+  try {
+    const vehicles = await prisma.vehicle_entries.findMany({
+      where: { status: 'INSIDE' },
       select: {
         id: true,
         plate: true,
@@ -129,7 +179,6 @@ async function getParkedVehicles(role) {
         entry_time: true,
         operator: true,
         category: true,
-        description: true
       },
       orderBy: {
         entry_time: 'asc',
@@ -143,7 +192,6 @@ async function getParkedVehicles(role) {
       entryTime: vehicle.entry_time.toISOString(),
       operator: vehicle.operator.toUpperCase(),
       category: vehicle.category.toUpperCase(),
-      description: vehicle.description
     }));
 
     return formattedVehicles;
@@ -152,6 +200,7 @@ async function getParkedVehicles(role) {
     throw new Error("Erro ao buscar veículos estacionados.");
   }
 }
+
 
 async function hasNewVehicleEntries(lastCheck) {
   try {
@@ -457,7 +506,7 @@ async function methodSaveService({ methodId, toleranceMinutes, rules }) {
   }
 }
 
-async function exitsRegisterService(plate, exit_time, openCashId, user, amount_received, change_given, discount_amount, final_amount, original_amount, normalizedMethod, local) {
+async function exitsRegisterService(plate, exit_time, openCashId, user, amount_received, change_given, discount_amount, final_amount, original_amount, normalizedMethod, local, photoBuffer, photoMimeType) {
   // Verificar se o caixa existe
   const verifyCash = await prisma.cash_register.findUnique({
     where: { id: openCashId },
@@ -509,7 +558,9 @@ async function exitsRegisterService(plate, exit_time, openCashId, user, amount_r
           discount_amount: change_given,
           final_amount: final_amount,
           original_amount: original_amount,
-          method: normalizedMethod
+          method: normalizedMethod,
+          photo: photoBuffer,
+          photo_type: photoMimeType
         }
       });
 
@@ -542,6 +593,7 @@ module.exports = {
   getUniqueVehicleService,
   configParking,
   getParkedVehicles,
+  getParkedVehiclesOnly,
   editVehicleService,
   deleteVehicleService,
   reactivateVehicleService,

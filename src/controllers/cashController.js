@@ -104,6 +104,38 @@ exports.closeCash = async (req, res) => {
   }
 }
 
+exports.reopenCash = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.warn("❌ Erros de validação ao tentar reabrir caixa:", errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { cashId } = req.params;
+  console.log("📥 Requisição para reabrir caixa:", cashId);
+
+  try {
+    const result = await cashService.reopenCashService(cashId);
+
+    console.log("✅ Caixa reaberto com sucesso:", result.id);
+    return res.status(200).json({
+      success: true,
+      message: "Caixa reaberto com sucesso.",
+      cash: result
+    });
+  } catch (error) {
+    console.error("❌ Erro ao reabrir caixa:", error.message);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Erro ao tentar reabrir o caixa."
+    });
+  }
+};
+
 exports.geralCashData = async (req, res) => {
   const errors = validationResult(req);
 

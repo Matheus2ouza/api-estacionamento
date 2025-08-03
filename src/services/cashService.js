@@ -97,6 +97,49 @@ async function closeCashService(id, finalValue, date) {
   }
 }
 
+async function reopenCashService(cashId) {
+  console.log("🔍 Tentando reabrir caixa:", cashId);
+
+  const cash = await prisma.cash_register.findUnique({
+    where: { id: cashId },
+  });
+
+  if (!cash) {
+    console.warn("❌ Caixa não encontrado:", cashId);
+    throw new Error("Caixa não encontrado.");
+  }
+
+  const now = DateTime.now().setZone("America/Belem");
+  const openedAt = DateTime.fromJSDate(cash.opening_date).setZone("America/Belem");
+
+  console.log("🕒 Data atual:", now.toISODate(), "| Caixa aberto em:", openedAt.toISODate());
+
+  const sameDay = now.hasSame(openedAt, "day") &&
+                  now.hasSame(openedAt, "month") &&
+                  now.hasSame(openedAt, "year");
+
+  if (!sameDay) {
+    console.warn("⚠️ Caixa não pertence ao dia atual.");
+    throw new Error("Não há caixa aberto para o dia atual.");
+  }
+
+  if (cash.closing_date === null) {
+    console.warn("⚠️ Caixa já está aberto.");
+    throw new Error("O caixa já está aberto.");
+  }
+
+  const updated = await prisma.cash_register.update({
+    where: { id: cashId },
+    data: {
+      status: 'OPEN'
+    }
+  });
+
+  console.log("✅ Caixa reaberto com sucesso:", updated.id);
+  return updated;
+}
+
+
 async function geralCashDataService(id) {
   const verifyCash = await prisma.cash_register.findUnique({
     where: { id: id }
@@ -291,6 +334,7 @@ module.exports = {
   statusCashService,
   openCashService,
   closeCashService,
+  reopenCashService,
   geralCashDataService,
   BillingMethodService,
   cashDataService,
