@@ -643,7 +643,6 @@ exports.calculateOutstanding = async (req, res) => {
   }
 };
 
-
 exports.exitsRegister = async (req, res) => {
   const errors = validationResult(req);
 
@@ -672,6 +671,10 @@ const original_amount = Number(req.body.original_amount);
   const photoBuffer = req.file ? req.file.buffer : null;
   const photoMimeType = req.file ? req.file.mimetype : null;
 
+
+  console.log(photoBuffer)
+  console.log(photoMimeType)
+  
   const user = req.user;
 
   console.log("📥 Dados recebidos:", {

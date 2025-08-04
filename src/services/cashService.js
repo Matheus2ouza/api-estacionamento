@@ -10,9 +10,6 @@ async function statusCashService(date) {
     const startOfDay = local.startOf("day").toUTC().toJSDate();
     const endOfDay = local.endOf("day").toUTC().toJSDate();
 
-    console.log("Início do dia (UTC):", startOfDay);
-    console.log("Fim do dia (UTC):", endOfDay);
-
     const result = await prisma.cash_register.findFirst({
       where: {
         opening_date: {

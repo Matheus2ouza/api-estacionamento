@@ -253,19 +253,34 @@ exports.generalDetails = async (req, res) => {
     });
   }
 
-  const { id } = req.params
+  const { id } = req.params;
 
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: 'ID do caixa não fornecido.'
+    });
+  }
+  
   try {
-    //Retorna os dados do caixa
-    const detailsCash = await dashboardService.detailsCash(id)
+    // Retorna os dados do caixa
+    const detailsCash = await dashboardService.detailsCash(id);
+    
+    if (!detailsCash) {
+      return res.status(404).json({
+        success: false,
+        message: 'Caixa não encontrado.'
+      });
+    }
 
-    //Dados basicos do caixa
-    const totalCash = detailsCash.final_value;
-    const statusCash = detailsCash.status;
-    const openingTimeCash = detailsCash.opening_date;
-    const closingTimeCash = detailsCash.closing_date;
-    const operatorCash = detailsCash.operator;
-    const transactionsCash = detailsCash._count.product_transaction + detailsCash._count.vehicle_transaction;
+    // Dados básicos do caixa
+    const totalCash = detailsCash.final_value || '0';
+    const statusCash = detailsCash.status || 'UNKNOWN';
+    const openingTimeCash = detailsCash.opening_date || null;
+    const closingTimeCash = detailsCash.closing_date || null;
+    const operatorCash = detailsCash.operator || 'Operador não identificado';
+    const transactionsCash = (detailsCash._count?.product_transaction || 0) + 
+                           (detailsCash._count?.vehicle_transaction || 0);
 
     const basicDataCash = {
       totalCash,
@@ -276,8 +291,6 @@ exports.generalDetails = async (req, res) => {
       transactionsCash
     };
 
-    console.log("Dados baicos do caixa:", basicDataCash)
-
     // Inicializa contadores de métodos de pagamento
     const paymentMethodCounts = {
       PIX: 0,
@@ -287,19 +300,19 @@ exports.generalDetails = async (req, res) => {
     };
 
     // Conta os métodos em transações de produto
-    for (const pt of detailsCash.product_transaction) {
-      if (pt.method in paymentMethodCounts) {
+    for (const pt of detailsCash.product_transaction || []) {
+      if (pt.method && pt.method in paymentMethodCounts) {
         paymentMethodCounts[pt.method]++;
       }
     }
 
     // Conta os métodos em transações de veículo
-    for (const vt of detailsCash.vehicle_transaction) {
-      if (vt.method in paymentMethodCounts) {
+    for (const vt of detailsCash.vehicle_transaction || []) {
+      if (vt.method && vt.method in paymentMethodCounts) {
         paymentMethodCounts[vt.method]++;
       }
     }
-    console.log("Quantidade de métodos de pagamento:", paymentMethodCounts);
+
     // Contadores de venda por categoria (quantidade e valor)
     const categorySales = {
       CARRO: { quantidade: 0, valor: 0 },
@@ -307,116 +320,107 @@ exports.generalDetails = async (req, res) => {
       PRODUTOS: { quantidade: 0, valor: 0 }
     };
 
-    // Veículos
-    for (const vt of detailsCash.vehicle_transaction) {
-      const vehicleCategory = vt.vehicle_entries?.category;
-      const amount = parseFloat(vt.final_amount); // já está em final_amount
+    // Processa transações de veículos
+    for (const vt of detailsCash.vehicle_transaction || []) {
+      const vehicleCategory = vt.vehicle_entries?.category?.toLowerCase();
+      const amount = parseFloat(vt.final_amount) || 0;
 
-      if (vehicleCategory?.toLowerCase() === 'carro') {
+      if (vehicleCategory === 'carro') {
         categorySales.CARRO.quantidade++;
         categorySales.CARRO.valor += amount;
-      } else if (vehicleCategory?.toLowerCase() === 'moto') {
+      } else if (vehicleCategory === 'moto') {
         categorySales.MOTO.quantidade++;
         categorySales.MOTO.valor += amount;
       }
     }
 
-    // Produtos
-    for (const pt of detailsCash.product_transaction) {
-      for (const item of pt.sale_items) {
-        const quantidade = item.sold_quantity;
-        const valorUnitario = parseFloat(item.unit_price);
+    // Processa transações de produtos
+    for (const pt of detailsCash.product_transaction || []) {
+      for (const item of pt.sale_items || []) {
+        const quantidade = item.sold_quantity || 0;
+        const valorUnitario = parseFloat(item.unit_price) || 0;
         categorySales.PRODUTOS.quantidade += quantidade;
         categorySales.PRODUTOS.valor += quantidade * valorUnitario;
       }
     }
 
-    console.log("Venda por categoria (com valor):", categorySales);
-
+    // Busca configurações de meta
     const goalConfigs = await prisma.goal_configs.findUnique({
       where: { id: "singleton" },
     });
 
     if (!goalConfigs) {
-      throw new Error("Configuração de metas não encontrada.");
+      return res.status(200).json({
+        success: true,
+        message: "Dados do caixa retornados (sem configurações de meta)).",
+        data: {
+          basicDataCash,
+          paymentMethodCounts,
+          categorySales,
+          graficoSemanal: []
+        }
+      });
     }
 
     const { goal_period, daily_goal_value, week_start_day, week_end_day } = goalConfigs;
 
-    let metaPeriodo = 0;
-
-    // Utilitário: calcula quantos dias por semana o estabelecimento funciona
+    // Função utilitária para calcular dias de funcionamento
     function getDiasFuncionamentoSemana(startDay, endDay) {
-      if (startDay <= endDay) {
-        return endDay - startDay + 1;
-      } else {
-        // ex: funciona de sexta (5) a segunda (1)
-        return 7 - startDay + endDay + 1;
-      }
+      return startDay <= endDay 
+        ? endDay - startDay + 1 
+        : 7 - startDay + endDay + 1;
     }
 
     const diasFuncionamentoSemana = getDiasFuncionamentoSemana(week_start_day, week_end_day);
+    const dailyGoalValue = parseFloat(daily_goal_value) || 0;
 
-    if (goal_period === 'DIARIA') {
-      metaPeriodo = parseFloat(daily_goal_value);
-    } else if (goal_period === 'SEMANAL') {
-      metaPeriodo = parseFloat(daily_goal_value) * diasFuncionamentoSemana;
+    // Calcula meta do período
+    let metaPeriodo = dailyGoalValue;
+    if (goal_period === 'SEMANAL') {
+      metaPeriodo = dailyGoalValue * diasFuncionamentoSemana;
     } else if (goal_period === 'MENSAL') {
       const now = new Date();
       const year = now.getFullYear();
       const month = now.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      // Conta os dias do mês que caem nos dias da semana definidos
       let diasFuncionamentoNoMes = 0;
+
       for (let dia = 1; dia <= daysInMonth; dia++) {
         const data = new Date(year, month, dia);
-        const diaSemana = data.getDay(); // 0 = domingo ... 6 = sábado
-
+        const diaSemana = data.getDay();
         const dentroIntervalo =
           (week_start_day <= week_end_day && diaSemana >= week_start_day && diaSemana <= week_end_day) ||
           (week_start_day > week_end_day && (diaSemana >= week_start_day || diaSemana <= week_end_day));
 
-        if (dentroIntervalo) {
-          diasFuncionamentoNoMes++;
-        }
+        if (dentroIntervalo) diasFuncionamentoNoMes++;
       }
 
-      metaPeriodo = parseFloat(daily_goal_value) * diasFuncionamentoNoMes;
+      metaPeriodo = dailyGoalValue * diasFuncionamentoNoMes;
     }
-    const progressoMetaPercentual = (
-      (parseFloat(totalCash) / metaPeriodo) * 100
-    ).toFixed(2);
+
+    // Calcula progresso da meta
+    const totalCashValue = parseFloat(totalCash) || 0;
+    const progressoMetaPercentual = metaPeriodo > 0 
+      ? (totalCashValue / metaPeriodo) * 100 
+      : 0;
 
     const goalProgress = {
       periodo: goal_period,
       meta: metaPeriodo,
-      realizado: parseFloat(totalCash),
-      progresso: parseFloat(progressoMetaPercentual),
+      realizado: totalCashValue,
+      progresso: parseFloat(progressoMetaPercentual.toFixed(2)),
     };
 
-    console.log("🎯 Progresso da meta:", goalProgress);
-
-    // 📆 Pega o dia da semana do caixa atual
+    // Processamento do gráfico semanal
     const openingDate = new Date(detailsCash.opening_date);
-    const dayOfWeek = openingDate.getDay();
+    const startOfWeek = new Date(openingDate);
+    startOfWeek.setDate(openingDate.getDate() - (openingDate.getDay() - week_start_day + 7) % 7);
+    startOfWeek.setHours(0, 0, 0, 0);
 
-    // 🔁 Calcula início da semana conforme o week_start_day
-    function getStartOfWeek(currentDate, startDay) {
-      const currentDay = currentDate.getDay();
-      const diff = (currentDay - startDay + 7) % 7;
-      const startOfWeek = new Date(currentDate);
-      startOfWeek.setDate(currentDate.getDate() - diff);
-      startOfWeek.setHours(0, 0, 0, 0);
-      return startOfWeek;
-    }
-
-    const startOfWeek = getStartOfWeek(openingDate, week_start_day);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + diasFuncionamentoSemana - 1);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    // 🔍 Busca todos os caixas da semana atual
     const weekCashRegisters = await prisma.cash_register.findMany({
       where: {
         opening_date: {
@@ -433,37 +437,29 @@ exports.generalDetails = async (req, res) => {
       },
     });
 
-    // 🗓️ Inicializa objeto com dias válidos da semana
     const vendasPorDiaSemana = {};
-
     for (let i = 0; i < 7; i++) {
       const dia = (week_start_day + i) % 7;
       const isDentroIntervalo =
         (week_start_day <= week_end_day && dia >= week_start_day && dia <= week_end_day) ||
         (week_start_day > week_end_day && (dia >= week_start_day || dia <= week_end_day));
 
-      if (isDentroIntervalo) {
-        vendasPorDiaSemana[dia] = 0;
-      }
+      if (isDentroIntervalo) vendasPorDiaSemana[dia] = 0;
     }
 
-    // ➕ Soma o final_value de cada caixa no dia correspondente
     for (const cash of weekCashRegisters) {
       const diaSemana = new Date(cash.opening_date).getDay();
       if (diaSemana in vendasPorDiaSemana) {
-        vendasPorDiaSemana[diaSemana] += parseFloat(cash.final_value);
+        vendasPorDiaSemana[diaSemana] += parseFloat(cash.final_value) || 0;
       }
     }
 
-    // 📊 Transforma em array ordenado por dia da semana
     const graficoSemanal = Object.entries(vendasPorDiaSemana)
       .sort(([a], [b]) => Number(a) - Number(b))
       .map(([dia, valor]) => ({
         diaSemana: Number(dia),
         valor: parseFloat(valor.toFixed(2)),
       }));
-
-    console.log("📊 Gráfico semanal (final_value):", graficoSemanal);
 
     return res.status(200).json({
       success: true,
@@ -483,6 +479,7 @@ exports.generalDetails = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Erro ao buscar detalhes do caixa. Tente novamente mais tarde.",
+      error: error.message
     });
   }
 };
