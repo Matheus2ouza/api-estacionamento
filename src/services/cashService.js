@@ -129,13 +129,12 @@ async function reopenCashService(cashId) {
     where: { id: cashId },
     data: {
       status: 'OPEN'
-    }
+    },
   });
 
   console.log("✅ Caixa reaberto com sucesso:", updated.id);
   return updated;
 }
-
 
 async function geralCashDataService(id) {
   const verifyCash = await prisma.cash_register.findUnique({

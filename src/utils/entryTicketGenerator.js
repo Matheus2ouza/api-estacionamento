@@ -3,11 +3,28 @@ const fs = require('fs');
 const path = require('path');
 const { generateQRCode } = require('./qrCodeGenerator');
 
-async function generateEntryTicketPDF(id, plate, operator, category, formattedDate, formattedTime) {
+// Configurações centralizadas de recursos
+const RESOURCES = {
+  fonts: {
+    oswaldBold: path.join(__dirname, '..', 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'),
+    openSansSemiCondensedBold: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'),
+    openSansCondensedSemiBold: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'),
+    openSansCondensedMedium: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Medium.ttf'),
+    openSansCondensedMediumItalic: path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'Italic', 'OpenSans_Condensed-MediumItalic.ttf'),
+    helvetica: 'Helvetica',
+    helveticaBold: 'Helvetica-Bold'
+  },
+  images: {
+    logo: path.join(__dirname, '..', 'public', 'img', 'png', 'logo.png'),
+    whatsapp: path.join(__dirname, '..', 'public', 'img', 'png', 'whatsapp.png')
+  }
+};
+
+async function generateEntryTicketPDF(id, plate, operator, category, formattedDate, formattedTime, name, tolerance, description, price) {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
-        size: [137, 290],
+        size: [137, 340],
         margins: { top: 5, bottom: 5, left: 5, right: 5 },
       });
 
@@ -18,19 +35,28 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
         resolve(pdfData.toString('base64'));
       });
 
+      // === Registrar todas as fontes ===
+      try {
+        doc.registerFont('Oswald-Bold.ttf', RESOURCES.fonts.oswaldBold);
+        doc.registerFont('OpenSans_SemiCondensed-Bold', RESOURCES.fonts.openSansSemiCondensedBold);
+        doc.registerFont('OpenSans_Condensed-SemiBold', RESOURCES.fonts.openSansCondensedSemiBold);
+        doc.registerFont('OpenSans_Condensed-Medium', RESOURCES.fonts.openSansCondensedMedium);
+        doc.registerFont('OpenSans_Condensed-MediumItalic', RESOURCES.fonts.openSansCondensedMediumItalic);
+      } catch (err) {
+        console.warn('[PrintLayout] Falha ao registrar fontes:', err.message);
+      }
+
       // === Cabeçalho com logo ===
-      const logoPath = path.join(__dirname, '..', 'public', 'img', 'png', 'logo.png');
       try {
         const logoWidth = 40;
         const logoX = 5;
         const logoY = 5;
 
-        doc.image(logoPath, logoX, logoY, { width: logoWidth });
+        doc.image(RESOURCES.images.logo, logoX, logoY, { width: logoWidth });
 
         const textX = logoX + logoWidth - 2;
         const textY = logoY + 2;
 
-        doc.registerFont('Oswald-Bold.ttf', path.join(__dirname, '..', 'public', 'fonts', 'Oswald', 'Oswald-Bold.ttf'));
         doc.font('Oswald-Bold.ttf').fillColor('black');
 
         doc.fontSize(18);
@@ -45,7 +71,6 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       }
 
       // Título centralizado
-      doc.registerFont('OpenSans_SemiCondensed-Bold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_SemiCondensed', 'normal', 'OpenSans_SemiCondensed-Bold.ttf'));
       doc.font('OpenSans_SemiCondensed-Bold').fontSize(7);
       const entryText = 'Comprovante de Entrada';
       const entryTextWidth = doc.widthOfString(entryText);
@@ -53,23 +78,20 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       doc.text(entryText, centerX, doc.y);
       doc.moveDown(0.5);
 
-      doc.fontSize(8).font('Helvetica');
+      doc.fontSize(8).font(RESOURCES.fonts.helvetica);
 
-      function drawLabelValue(label, value) {
+      function drawLabelValue(label, value, valueFontSize = 7, labelFontSize = 8, lineHeight = 10) {
         const labelX = 10;
-        const valueFontSize = 7;
-        const labelFontSize = 8;
-        const lineHeight = 10;
         const y = doc.y;
 
-        doc.font('Helvetica').fontSize(valueFontSize);
+        doc.font(RESOURCES.fonts.helvetica).fontSize(valueFontSize);
         const valueWidth = doc.widthOfString(value);
         const valueX = doc.page.width - 10 - valueWidth;
 
-        doc.font('Helvetica-Bold').fontSize(labelFontSize);
+        doc.font(RESOURCES.fonts.helveticaBold).fontSize(labelFontSize);
         doc.text(label, labelX, y);
 
-        doc.font('Helvetica').fontSize(valueFontSize);
+        doc.font(RESOURCES.fonts.helvetica).fontSize(valueFontSize);
         doc.text(value, valueX, y);
 
         doc.y = y + lineHeight;
@@ -79,7 +101,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       drawLabelValue('CATEGORIA:', category);
       drawLabelValue('OPERADOR:', operator);
       drawLabelValue('DATA:', `${formattedDate}`);
-      drawLabelValue('HORA:', `${formattedTime}`)
+      drawLabelValue('HORA:', `${formattedTime}`);
 
       doc.moveDown(0.5);
       doc.lineWidth(0.5);
@@ -93,19 +115,82 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
 
       const qrX = (doc.page.width - 90) / 2;
       const qrY = doc.y + 5;
+
       doc.image(qrBuffer, qrX, qrY, { width: 90 });
       doc.y = qrY + 90 + 5;
 
+      // === Adicionando seção de cobrança no mesmo estilo ===
       doc.moveDown(0.5);
-      doc.registerFont('OpenSans_Condensed-SemiBold', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-SemiBold.ttf'));
+      doc.lineWidth(0.5);
+      doc.dash(2, { space: 2 });
+      doc.moveTo(10, doc.y).lineTo(doc.page.width - 10, doc.y).stroke();
+      doc.undash();
+
+      doc.moveDown(0.5);
+      // Informações de cobrança no mesmo estilo
+      drawLabelValue('COBRANÇA:', name || '-');
+      drawLabelValue('VALOR:', `R$ ${price ? price.toFixed(2).replace('.', ',') : '0,00'}`);
+      drawLabelValue('TOLERÂNCIA:', `${tolerance || 0} min`);
+
+      if (description) {
+        doc.moveDown(0.3);
+        const descX = 10; // Alinhado à esquerda
+        const descY = doc.y;
+
+        // Configura fonte itálica
+        doc.font(RESOURCES.fonts.openSansCondensedMediumItalic)
+          .fontSize(7)
+          .fillColor('black');
+
+        // Garante que description seja string
+        const descText = String(description || '');
+
+        // Quebra o texto em múltiplas linhas com tratamento seguro
+        try {
+          const maxWidth = doc.page.width - 20; // Largura máxima com margens
+          const lineHeight = 8;
+
+          // Usando método alternativo para quebra de texto
+          const lines = [];
+          let currentLine = '';
+
+          // Divide o texto em palavras e constrói linhas
+          descText.split(' ').forEach(word => {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const testWidth = doc.widthOfString(testLine);
+
+            if (testWidth > maxWidth && currentLine) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          });
+
+          if (currentLine) lines.push(currentLine);
+
+          // Renderiza cada linha
+          lines.forEach(line => {
+            doc.text(line, descX, descY, { align: 'left' });
+            doc.y += lineHeight;
+          });
+
+        } catch (err) {
+          console.warn('Erro ao renderizar descrição:', err);
+          // Fallback seguro
+          doc.text('Descrição indisponível', descX, descY, { align: 'left' });
+          doc.y += 8;
+        }
+      }
+
+      doc.moveDown(0.5);
       doc.font('OpenSans_Condensed-SemiBold').fontSize(7);
       doc.text('TICKET PERDIDO R$: 20,00', 0, doc.y, { align: 'center', width: doc.page.width });
       doc.text('HORÁRIO DE FUNCIONAMENTO: 8h às 17h', 0, doc.y, { align: 'center', width: doc.page.width });
 
-      const whatsappIconPath = path.join(__dirname, '..', 'public', 'img', 'png', 'whatsapp.png');
-      const contactText = 'CONTATO: (91) 9 8564-6187';
       const iconSize = 10;
       const gap = 4;
+      const contactText = 'CONTATO: (91) 9 8564-6187';
 
       doc.fontSize(7);
       const textWidth = doc.widthOfString(contactText);
@@ -115,7 +200,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       const y = doc.y;
 
       try {
-        doc.image(whatsappIconPath, startX, y, { width: iconSize });
+        doc.image(RESOURCES.images.whatsapp, startX, y, { width: iconSize });
       } catch (e) {
         console.warn('Não encontrou ícone do WhatsApp:', e.message);
       }
@@ -128,8 +213,7 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
       const lineH = Math.max(iconSize, doc.currentLineHeight());
       doc.y = y + lineH + 2;
 
-      doc.registerFont('OpenSans_Condensed-Medium', path.join(__dirname, '..', 'public', 'fonts', 'OpenSans_Condensed', 'normal', 'OpenSans_Condensed-Medium.ttf'));
-      doc.font('OpenSans_Condensed-Medium').fontSize(6);
+      doc.font('OpenSans_Condensed-MediumItalic').fontSize(6);
       doc.text('Apresente o comprovante na saída', 0, doc.y, { align: 'center', width: doc.page.width });
       doc.text('Obrigado pela preferência', 0, doc.y, { align: 'center', width: doc.page.width });
 
