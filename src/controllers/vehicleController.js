@@ -61,13 +61,37 @@ exports.vehicleEntry = async (req, res) => {
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
     const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
+    const rules = await prisma.billing_method.findFirst({
+      where: { is_active: true },
+      select: {
+        name: true,
+        description: true,
+        tolerance: true,
+        billing_rule: {
+          where: { vehicle_type: result.category },
+          select: {
+            price: true
+          }
+        }
+      }
+    })
+
+    const name = rules.name.toLowerCase();
+    const tolerance = rules.tolerance;
+    const description = rules.description;
+    const price = rules.billing_rule[0].price;
+
     const ticketPromise = generateEntryTicketPDF(
       result.id,
       result.plate,
       result.operator,
       result.category,
       formattedDateOnly,
-      formattedTimeOnly
+      formattedTimeOnly,
+      name,
+      tolerance,
+      description,
+      price
     );
 
     const timeoutPromise = new Promise((_, reject) =>
@@ -134,13 +158,37 @@ exports.generateTicketDuplicate = async (req, res) => {
     console.log(`Data formatada: ${dataFormatada}`);
     console.log(`Hora formatada: ${horaFormatada}`);
 
+    const rules = await prisma.billing_method.findFirst({
+      where: { is_active: true },
+      select: {
+        name: true,
+        description: true,
+        tolerance: true,
+        billing_rule: {
+          where: { vehicle_type: vehicle.category },
+          select: {
+            price: true
+          }
+        }
+      }
+    })
+
+    const name = rules.name.toLowerCase();
+    const tolerance = rules.tolerance;
+    const description = rules.description;
+    const price = rules.billing_rule[0].price;
+
     const secondTicket = await generateEntryTicketPDF(
       id,
       vehicle.plate,
       vehicle.operator,
       vehicle.category,
       dataFormatada,
-      horaFormatada
+      horaFormatada,
+      name,
+      tolerance,
+      description,
+      price
     );
 
     return res.status(201).json({
