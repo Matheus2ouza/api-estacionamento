@@ -10,17 +10,64 @@ const envPath = process.env.NODE_ENV === 'production'
 
 dotenv.config({ path: path.resolve(__dirname, envPath) });
 
+// Configuração do ambiente
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = process.env.PORT || 3000;
+
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '4.5mb' }));
 app.use(express.static(path.join(__dirname, 'src', 'public', 'img', 'ico')));
 
-// Rota inicial
+// Rota inicial com informações do ambiente
 app.get('/', (req, res) => {
-    if (process.env.NODE_ENV === 'production') {
-        res.send('Bem-vindo à API em produção! 🚀');
-    } else {
-        res.send('API rodando localmente com sucesso! 🧪');
-    }
+    const isProduction = NODE_ENV === 'production';
+    const environmentInfo = {
+        environment: NODE_ENV,
+        isProduction: isProduction,
+        message: isProduction 
+            ? '🚀 API de Estacionamento - PRODUÇÃO' 
+            : '🧪 API de Estacionamento - DESENVOLVIMENTO',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+    };
+    
+    res.json(environmentInfo);
+});
+
+// Rota de health check melhorada
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        environment: NODE_ENV,
+        isProduction: NODE_ENV === 'production',
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: '1.0.0'
+    });
+});
+
+// Rota de status detalhado
+app.get('/status', (req, res) => {
+    res.json({
+        service: 'API Estacionamento',
+        environment: NODE_ENV,
+        isProduction: NODE_ENV === 'production',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: {
+            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+        },
+        version: '1.0.0',
+        endpoints: [
+            '/auth',
+            '/vehicles', 
+            '/cash',
+            '/products',
+            '/dashboard'
+        ]
+    });
 });
 
 // Rotas da API
@@ -38,9 +85,26 @@ app.use('/dashboard', dashboardRoutes)
 
 // 🟩 Rodar localmente
 if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
+        const isProduction = NODE_ENV === 'production';
+        const environment = isProduction ? '🚀 PRODUÇÃO' : '🧪 DESENVOLVIMENTO';
+        
+        console.log('='.repeat(60));
+        console.log(`📡 API de Estacionamento - ${environment}`);
+        console.log('='.repeat(60));
+        console.log(`🌐 Servidor rodando em: http://0.0.0.0:${PORT}`);
+        console.log(`🔧 Ambiente: ${NODE_ENV}`);
+        console.log(`⏰ Iniciado em: ${new Date().toLocaleString('pt-BR')}`);
+        console.log(`📊 Health Check: http://0.0.0.0:${PORT}/health`);
+        console.log(`📈 Status Detalhado: http://0.0.0.0:${PORT}/status`);
+        console.log('='.repeat(60));
+        
+        if (isProduction) {
+            console.log('⚠️  ATENÇÃO: API rodando em modo PRODUÇÃO');
+        } else {
+            console.log('💡 Dica: Use NODE_ENV=production para modo produção');
+        }
+        console.log('='.repeat(60));
     });
 }
 

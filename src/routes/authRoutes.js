@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post(
   '/register',
-  [ 
+  [
     body('username').isLength({ min: 2, max: 50 }).withMessage('O nome deve ter entre 2 e 50 caracteres'),
     body('password').isLength({ min: 6 }).withMessage('Senha deve ter ao menos 6 caracteres'),
     body('role').isIn(['ADMIN', 'NORMAL']).withMessage('Valor inesperado no role')
@@ -26,7 +26,7 @@ router.post(
 );
 
 router.post(
-  '/edit', 
+  '/edit',
   [
     body('id').notEmpty().withMessage('id é obrigatório'),
     body('username').notEmpty().withMessage('nome de usuario obrigatório'),

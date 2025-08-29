@@ -25,7 +25,7 @@ router.get('/general-cash-data/:id',
 router.post('/close-cash/:id',
   [
     param('id').isUUID(),
-    body('finalValue').isFloat({min: 0})
+    body('finalValue').isFloat({ min: 0 })
   ],
   authMiddleware('NORMAL'), cashController.closeCash
 )

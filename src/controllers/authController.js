@@ -61,7 +61,7 @@ exports.login = async (req, res) => {
 
 exports.editUsers = async (req, res) => {
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
     console.warn('[authController] Dados inválidos na requisição:', errors.array());
     return res.status(400).json({
@@ -115,7 +115,7 @@ exports.deleteUser = async (req, res) => {
     })
   } catch (error) {
     console.log(`[AuthController] Erro ao tentar excluir o usuario: ${id}: `, error)
-    
+
     // Erros conhecidos
     if (error.message === "Usuário não encontrado") {
       return res.status(404).json({

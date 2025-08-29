@@ -4,11 +4,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_LOCAL")
 }
 
 model accounts {
-  id              String           @id            @default(uuid())
+  id              String           @id @default(uuid())
   role            AccountRole
   username        String           @unique
   authentications authentications?
@@ -24,7 +24,7 @@ model authentications {
 }
 
 model billing_method {
-  id           String         @id            @default(uuid())
+  id           String         @id @default(uuid())
   name         String
   description  String
   tolerance    Float?
@@ -33,15 +33,14 @@ model billing_method {
 }
 
 model billing_rule {
-  id                String         @id @default(uuid())
+  id                String          @id @default(uuid())
   price             Float
-  base_time_minutes Int
   billing_method_id String
-  created_at        DateTime       @default(now())
-  updated_at        DateTime       @updatedAt
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+  base_time_minutes Int
   vehicle_type      VehicleCategory
-
-  billing_method    billing_method @relation(fields: [billing_method_id], references: [id])
+  billing_method    billing_method  @relation(fields: [billing_method_id], references: [id])
 }
 
 model goal_configs {
@@ -49,16 +48,16 @@ model goal_configs {
   daily_goal_value      Decimal  @db.Decimal(10, 2)
   vehicle_goal_quantity Int
   product_goal_quantity Int
-  goal_period           Period
   notifications_enabled Boolean
   category_goals_active Boolean
-  week_start_day        Int       // 0 = domingo, 1 = segunda, ..., 6 = sábado
-  week_end_day          Int       // idem
   updated_at            DateTime @updatedAt
+  week_end_day          Int
+  week_start_day        Int
+  goal_period           Period
 }
 
 model cash_register {
-  id                     String                @id            @default(uuid())
+  id                     String                @id @default(uuid())
   opening_date           DateTime
   closing_date           DateTime?
   status                 CashRegisterStatus    @default(OPEN)
@@ -74,7 +73,7 @@ model cash_register {
 }
 
 model financial_movement {
-  id               String   @id            @default(uuid())
+  id               String   @id @default(uuid())
   description      String
   amount           Decimal  @db.Decimal(10, 2)
   transaction_date DateTime @default(now())
@@ -82,33 +81,33 @@ model financial_movement {
 }
 
 model general_sale {
-  id              String    @id            @default(uuid())
+  id              String    @id @default(uuid())
   product_id      String    @unique
   unit_price      Decimal   @db.Decimal(10, 2)
   quantity        Int
   expiration_date DateTime?
-  products        products?  @relation(fields: [product_id], references: [id])
+  products        products  @relation(fields: [product_id], references: [id])
 }
 
 model outgoing_expense {
-  id               String        @id            @default(uuid())
+  id               String        @id @default(uuid())
   description      String
   amount           Decimal       @db.Decimal(10, 2)
-  method           Method
   transaction_date DateTime      @default(now())
   cash_register_id String
   operator         String
+  method           Method
   cash_register    cash_register @relation(fields: [cash_register_id], references: [id])
 }
 
 model patio_configs {
-  id                 String @id @default("singleton")
-  max_cars           Int
-  max_motorcycles    Int
+  id              String @id @default("singleton")
+  max_cars        Int
+  max_motorcycles Int
 }
 
 model product_transaction {
-  id               String        @id            @default(uuid())
+  id               String        @id @default(uuid())
   operator         String
   transaction_date DateTime
   cash_register_id String
@@ -119,22 +118,22 @@ model product_transaction {
   change_given     Decimal       @default(0.00) @db.Decimal(10, 2)
   method           Method
   photo            Bytes?
-  photo_type       String?   
+  photo_type       String?
   cash_register    cash_register @relation(fields: [cash_register_id], references: [id])
   sale_items       sale_items[]
 }
 
 model products {
-  id           String         @id            @default(uuid())
+  id           String        @id @default(uuid())
   product_name String
-  barcode      String?        @unique
-  is_active    Boolean        @default(true)
-  general_sale general_sale[]
+  barcode      String?       @unique
+  is_active    Boolean       @default(true)
+  general_sale general_sale?
   sale_items   sale_items[]
 }
 
 model sale_items {
-  id                     String              @id            @default(uuid())
+  id                     String              @id @default(uuid())
   product_transaction_id String
   product_id             String?
   expiration_date        DateTime?
@@ -151,20 +150,20 @@ model vehicle_entries {
   entry_time          DateTime              @default(now())
   category            VehicleCategory
   operator            String
-  observation         String?               @default("")
-  photo               Bytes?
-  photo_type          String?          
   deleted_at          DateTime?
   description         String?               @default("")
   exit_time           DateTime?
   status              VehicleStatus         @default(INSIDE)
+  observation         String?               @default("")
+  photo               Bytes?
+  photo_type          String?
   vehicle_transaction vehicle_transaction[]
 
   @@index([plate])
 }
 
 model vehicle_transaction {
-  id               String          @id            @default(uuid())
+  id               String          @id @default(uuid())
   vehicle_id       String
   operator         String
   transaction_date DateTime
@@ -176,7 +175,7 @@ model vehicle_transaction {
   original_amount  Decimal         @db.Decimal(10, 2)
   method           Method
   photo            Bytes?
-  photo_type       String?   
+  photo_type       String?
   cash_register    cash_register   @relation(fields: [cash_register_id], references: [id])
   vehicle_entries  vehicle_entries @relation(fields: [vehicle_id], references: [id])
 }

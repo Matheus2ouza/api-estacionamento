@@ -8,7 +8,7 @@ exports.statusCash = async (req, res) => {
     const date = DateTime.now().setZone("America/Belem").toJSDate();
     const data = await cashService.statusCashService(date);
 
-    if(!data) {
+    if (!data) {
       return res.status(404).json({
         success: false,
         message: 'Nenhum caixa encontrado',
@@ -54,6 +54,7 @@ exports.openCash = async (req, res) => {
 
     return res.status(201).json({
       success: true,
+      message: "Caixa aberto com sucesso.",
       cash: isOpen
     });
   } catch (error) {
@@ -78,10 +79,10 @@ exports.closeCash = async (req, res) => {
   const { id } = req.params
   const { finalValue } = req.body
   const date = DateTime.now().setZone("America/Belem")
-  try{
+  try {
     const cash = await cashService.closeCashService(id, finalValue, date);
 
-    if(!cash) {
+    if (!cash) {
       return res.status(404).json({
         success: false,
         message: 'Caixa não encontrado',
@@ -94,7 +95,7 @@ exports.closeCash = async (req, res) => {
       message: 'Caixa Fechado com sucesso'
     })
   } catch (error) {
-    console.log(`[CashController] Erro ao tentar fechar o caixa: ${error}`);
+    console.log(`[CashController] Erro ao tentar fechar o caixa: ${error.message}`);
     return res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'
@@ -114,7 +115,7 @@ exports.reopenCash = async (req, res) => {
   }
 
   const { cashId } = req.params;
-  console.log("📥 Requisição para reabrir caixa:", cashId);
+  console.log("Requisição para reabrir caixa:", cashId);
 
   try {
     const result = await cashService.reopenCashService(cashId);
@@ -129,7 +130,7 @@ exports.reopenCash = async (req, res) => {
     console.error("❌ Erro ao reabrir caixa:", error.message);
     return res.status(400).json({
       success: false,
-      message: error.message || "Erro ao tentar reabrir o caixa."
+      message: "Erro ao tentar reabrir o caixa."
     });
   }
 };
@@ -145,8 +146,8 @@ exports.geralCashData = async (req, res) => {
   }
 
   const { id } = req.params;
-  
-  try{
+
+  try {
     const data = await cashService.geralCashDataService(id);
     if (!data) {
       return res.status(404).json({
@@ -176,7 +177,7 @@ exports.BillingMethod = async (req, res) => {
   try {
     const methods = await cashService.BillingMethodService();
 
-    if(!methods) {
+    if (!methods) {
       return res.status(404).json({
         success: false,
         message: 'Nenhuma regra encontrada'
@@ -189,9 +190,9 @@ exports.BillingMethod = async (req, res) => {
     });
   } catch (error) {
     console.error("Erro na rota de métodos de cobrança:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: 'Erro ao buscar métodos de cobrança' 
+      message: 'Erro ao buscar métodos de cobrança'
     });
   }
 };
@@ -217,8 +218,6 @@ exports.cashData = async (req, res) => {
         message: 'Caixa não encontrado ou não está aberto.',
       });
     }
-
-    
 
     console.log(cash)
     return res.status(200).json({

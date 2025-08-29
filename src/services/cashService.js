@@ -17,6 +17,12 @@ async function statusCashService(date) {
           lte: endOfDay,
         },
       },
+      select: {
+        id: true,
+        status: true,
+        operator: true,
+        opening_date: true,
+      }
     });
 
     return result;
@@ -59,6 +65,12 @@ async function openCashService(user, initialValue, localDateTime) {
       status: 'OPEN',
       closing_date: null,
     },
+    select: {
+      id: true,
+      status: true,
+      operator: true,
+      opening_date: true,
+    }
   });
 
   console.log("[opencashService] Caixa criado com sucesso:", newCash);
@@ -95,45 +107,57 @@ async function closeCashService(id, finalValue, date) {
 }
 
 async function reopenCashService(cashId) {
-  console.log("🔍 Tentando reabrir caixa:", cashId);
+  try {
+    console.log("[reopenCashService] Tentando reabrir caixa:", cashId);
 
-  const cash = await prisma.cash_register.findUnique({
-    where: { id: cashId },
-  });
+    const cash = await prisma.cash_register.findUnique({
+      where: { id: cashId },
+    });
 
-  if (!cash) {
-    console.warn("❌ Caixa não encontrado:", cashId);
-    throw new Error("Caixa não encontrado.");
+    if (!cash) {
+      console.log("[reopenCashService] Caixa não encontrado:", cashId);
+      return false;
+    }
+
+    const now = DateTime.now().setZone("America/Belem");
+    const openedAt = DateTime.fromJSDate(cash.opening_date).setZone("America/Belem");
+
+    console.log("[reopenCashService] Data atual:", now.toISODate(), "| Caixa aberto em:", openedAt.toISODate());
+
+    const sameDay = now.hasSame(openedAt, "day") &&
+      now.hasSame(openedAt, "month") &&
+      now.hasSame(openedAt, "year");
+
+    if (!sameDay) {
+      console.log("[reopenCashService] Caixa não pertence ao dia atual.");
+      return false;
+    }
+
+    if (cash.status === 'OPEN') {
+      console.log("[reopenCashService] Caixa já está aberto.");
+      return false;
+    }
+
+    const updated = await prisma.cash_register.update({
+      where: { id: cashId },
+      data: {
+        status: 'OPEN',
+        closing_date: null
+      },
+      select: {
+        id: true,
+        status: true,
+        operator: true,
+        opening_date: true,
+      }
+    });
+
+    console.log("[reopenCashService] Caixa reaberto com sucesso:", updated);
+    return updated;
+  } catch (error) {
+    console.error("[reopenCashService] Erro ao reabrir caixa:", error);
+    throw error;
   }
-
-  const now = DateTime.now().setZone("America/Belem");
-  const openedAt = DateTime.fromJSDate(cash.opening_date).setZone("America/Belem");
-
-  console.log("🕒 Data atual:", now.toISODate(), "| Caixa aberto em:", openedAt.toISODate());
-
-  const sameDay = now.hasSame(openedAt, "day") &&
-                  now.hasSame(openedAt, "month") &&
-                  now.hasSame(openedAt, "year");
-
-  if (!sameDay) {
-    console.warn("⚠️ Caixa não pertence ao dia atual.");
-    throw new Error("Não há caixa aberto para o dia atual.");
-  }
-
-  if (cash.closing_date === null) {
-    console.warn("⚠️ Caixa já está aberto.");
-    throw new Error("O caixa já está aberto.");
-  }
-
-  const updated = await prisma.cash_register.update({
-    where: { id: cashId },
-    data: {
-      status: 'OPEN'
-    },
-  });
-
-  console.log("✅ Caixa reaberto com sucesso:", updated.id);
-  return updated;
 }
 
 async function geralCashDataService(id) {
@@ -200,7 +224,7 @@ async function cashDataService(id) {
 
     // Busca transações de produtos
     const productTransactions = await prisma.product_transaction.findMany({
-      where: {cash_register_id: baseData.id },
+      where: { cash_register_id: baseData.id },
       select: {
         method: true,
         final_amount: true,
@@ -224,16 +248,16 @@ async function cashDataService(id) {
     };
 
     const totalCash = sumByPayment(vehicleTransactions, "DINHEIRO") +
-                      sumByPayment(productTransactions, "DINHEIRO");
+      sumByPayment(productTransactions, "DINHEIRO");
 
     const totalCredit = sumByPayment(vehicleTransactions, "CREDITO") +
-                        sumByPayment(productTransactions, "CREDITO");
+      sumByPayment(productTransactions, "CREDITO");
 
     const totalDebit = sumByPayment(vehicleTransactions, "DEBITO") +
-                       sumByPayment(productTransactions, "DEBITO");
+      sumByPayment(productTransactions, "DEBITO");
 
     const totalPix = sumByPayment(vehicleTransactions, "PIX") +
-                     sumByPayment(productTransactions, "PIX");
+      sumByPayment(productTransactions, "PIX");
 
     return {
       initialValue: parseFloat(baseData.initial_value),
