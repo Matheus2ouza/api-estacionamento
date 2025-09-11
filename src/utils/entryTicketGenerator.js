@@ -20,7 +20,7 @@ const RESOURCES = {
   }
 };
 
-async function generateEntryTicketPDF(id, plate, operator, category, formattedDate, formattedTime, name, tolerance, description, price) {
+async function generateEntryTicketPDF({ id, plate, operator, category, formattedDate, formattedTime, tolerance, description, price }) {
   return new Promise(async (resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -128,58 +128,42 @@ async function generateEntryTicketPDF(id, plate, operator, category, formattedDa
 
       doc.moveDown(0.5);
       // Informações de cobrança no mesmo estilo
-      drawLabelValue('COBRANÇA:', name || '-');
       drawLabelValue('VALOR:', `R$ ${price ? price.toFixed(2).replace('.', ',') : '0,00'}`);
       drawLabelValue('TOLERÂNCIA:', `${tolerance || 0} min`);
 
       if (description) {
         doc.moveDown(0.3);
-        const descX = 10; // Alinhado à esquerda
-        const descY = doc.y;
 
         // Configura fonte itálica
         doc.font(RESOURCES.fonts.openSansCondensedMediumItalic)
-          .fontSize(7)
+          .fontSize(5)
           .fillColor('black');
 
         // Garante que description seja string
         const descText = String(description || '');
 
-        // Quebra o texto em múltiplas linhas com tratamento seguro
         try {
-          const maxWidth = doc.page.width - 20; // Largura máxima com margens
-          const lineHeight = 8;
+          // Usa o método text() com quebra automática de linha e centralização
+          // Largura reduzida para deixar margens nas laterais
+          const textWidth = doc.page.width * 0.8; // 80% da largura da página
+          const textX = (doc.page.width - textWidth) / 2; // Centraliza o bloco de texto
 
-          // Usando método alternativo para quebra de texto
-          const lines = [];
-          let currentLine = '';
-
-          // Divide o texto em palavras e constrói linhas
-          descText.split(' ').forEach(word => {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
-            const testWidth = doc.widthOfString(testLine);
-
-            if (testWidth > maxWidth && currentLine) {
-              lines.push(currentLine);
-              currentLine = word;
-            } else {
-              currentLine = testLine;
-            }
-          });
-
-          if (currentLine) lines.push(currentLine);
-
-          // Renderiza cada linha
-          lines.forEach(line => {
-            doc.text(line, descX, descY, { align: 'left' });
-            doc.y += lineHeight;
+          doc.text(descText, textX, doc.y, {
+            width: textWidth,
+            align: 'center',
+            lineGap: 1
           });
 
         } catch (err) {
           console.warn('Erro ao renderizar descrição:', err);
-          // Fallback seguro
-          doc.text('Descrição indisponível', descX, descY, { align: 'left' });
-          doc.y += 8;
+          // Fallback: texto simples centralizado com largura reduzida
+          const textWidth = doc.page.width * 0.8;
+          const textX = (doc.page.width - textWidth) / 2;
+
+          doc.text('Descrição indisponível', textX, doc.y, {
+            width: textWidth,
+            align: 'center'
+          });
         }
       }
 
