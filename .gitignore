@@ -15,3 +15,4 @@ node_modules/
 /http
 /test
 /http
+http/user/login.user.http
