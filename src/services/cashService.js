@@ -125,7 +125,7 @@ async function closeCashService(id, finalValue, date) {
   }
 
   try {
-    const closeCash = await prisma.cash_register.update({
+    const closeCash = await prisma.cashRegister.update({
       where: { id: id },
       data: {
         closing_date: date,
@@ -148,9 +148,9 @@ async function reopenCashService(cashId) {
   try {
     console.log("[reopenCashService] Tentando reabrir caixa:", cashId);
 
-    const cash = await prisma.cash_register.findUnique({
-      where: { id: cashId },
-    });
+  const cash = await prisma.cashRegister.findUnique({
+    where: { id: cashId },
+  });
 
     if (!cash) {
       console.log("[reopenCashService] Caixa não encontrado:", cashId);
@@ -175,7 +175,7 @@ async function reopenCashService(cashId) {
       console.log("[reopenCashService] Caixa já está aberto.");
       return false;
     }
-
+    
     const updated = await prisma.cash_register.update({
       where: { id: cashId },
       data: {
@@ -198,10 +198,15 @@ async function reopenCashService(cashId) {
   }
 }
 
-
+async function geralCashDataService(id) {
+  const verifyCash = await prisma.cashRegister.findUnique({
+    where: { id: id }
+  })
+  
 async function saveBillingMethodService({ title, description, category, tolerance, timeMinutes, carroValue, motoValue }) {
 
   try {
+    
     const result = await prisma.billingMethod.create({
       data: {
         title,
@@ -327,6 +332,7 @@ async function cashDataService(id) {
 
     // Busca transações de produtos
     const productTransactions = await prisma.productTransaction.findMany({
+
       where: { cashRegisterId: baseData.id },
       select: {
         method: true,
@@ -336,6 +342,7 @@ async function cashDataService(id) {
 
     // Busca transações de veículos
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
+
       where: { cashRegisterId: baseData.id },
       select: {
         method: true,
@@ -377,9 +384,41 @@ async function cashDataService(id) {
   }
 }
 
+async function OutgoingExpenseService(id) {
+  try {
+    const verifyCash = await prisma.cashRegister.findUnique({
+      where: { id }
+    });
+
+    // Se o caixa não existir, retorne null
+    if (!verifyCash) {
+      return null;
+    }
+
+    const outgoing = await prisma.outgoingExpense.findMany({
+      where: { cash_register_id: verifyCash.id }
+    });
+
+    // Mesmo que não tenha despesas, retornamos array vazio
+    const outgoingFormatted = outgoing.map(item => ({
+      id: item.id,
+      amount: item.amount,
+      description: item.description,
+      operator: item.operator,
+      method: item.method,
+      date: item.transaction_date.toISOString(),
+    }));
+
+    return outgoingFormatted;
+
+  } catch (error) {
+    console.error("Erro ao buscar despesas:", error);
+    throw error;
+  }
+}
 
 async function registerOutgoingService(description, amount, method, openCashId, transactionDate, user) {
-  const verifyCash = await prisma.cash_register.findUnique({
+  const verifyCash = await prisma.cashRegister.findUnique({
     where: { id: openCashId },
   });
 
@@ -388,7 +427,7 @@ async function registerOutgoingService(description, amount, method, openCashId, 
   }
 
   try {
-    const outgoing = await prisma.outgoing_expense.create({
+    const outgoing = await prisma.outgoingExpense.create({
       data: {
         description: description,
         method: method,
@@ -400,7 +439,7 @@ async function registerOutgoingService(description, amount, method, openCashId, 
     });
 
     // Atualiza o total no caixa
-    await prisma.cash_register.update({
+    await prisma.cashRegister.update({
       where: { id: verifyCash.id },
       data: {
         outgoing_expense_total: {
