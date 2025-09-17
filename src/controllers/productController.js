@@ -1,35 +1,48 @@
 const { validationResult, Result } = require('express-validator');
 const productsService = require('../services/productsService');
 const { DateTime } = require("luxon");
-const { generateReceiptPDF } = require('../utils/invoicGrenerator')
+const { generateReceiptPDF } = require('../utils/invoicGrenerator');
+const { validateAndConvertExpirationDate } = require('../utils/timeConverter');
 
 exports.listProducts = async (req, res) => {
   try {
-    const list = await productsService.listProductService();
+    const { cursor, limit } = req.query;
+    const result = await productsService.listProductService(cursor, limit);
 
-    if (!list) {
+    // Se não há produtos, retorna 404
+    if (!result.products || result.products.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Nenhum produto encontrado.',
-        list: []
+        data: {
+          products: [],
+          nextCursor: null,
+          hasMore: false
+        }
       });
     }
 
+    // Se há produtos, retorna 200
     return res.status(200).json({
       success: true,
-      list
+      message: 'Produtos encontrados com sucesso.',
+      data: {
+        products: result.products,
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore
+      }
     });
   } catch (error) {
-    console.error(`[ProductController] Erro na busca da lista de produtos: ${error}`);
+    // Se houve erro no service, retorna 500
+    console.error(`[ProductController] Erro na busca da lista de produtos: ${error.message}`);
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao buscar produtos.',
-      error: error.message
     });
   }
 };
 
-exports.fetchProduct = async (req, res) => {
+exports.fetchProductByBarcode = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -39,31 +52,24 @@ exports.fetchProduct = async (req, res) => {
     });
   }
 
-  const { barcode } = req.params
+  const { barcode } = req.query;
 
   try {
-    const product = await productsService.fetchProductService(barcode);
-
-    if (!product) {
-      console.log(`[ProductController] Tentativa de buscar produto com codigo de barra: ${barcode} mas não foi encontrado nenhum produto`);
-      return res.status(404).json({
-        success: false,
-        message: "Nenhum produto encontrado"
-      });
-    }
+    const product = await productsService.fetchProductByBarcodeService(barcode);
 
     return res.status(200).json({
       success: true,
-      product: product
-    })
+      message: 'Produto encontrado com sucesso.',
+      data: product,
+    });
   } catch (error) {
-    console.error(`[ProductController] Erro ao tentar buscar o produto: ${error}`)
+    console.error("[ProductController] Erro ao tentar buscar produto por barcode:", error.message);
     return res.status(500).json({
       success: false,
-      message: 'Erro interno do servidor'
-    })
+      message: error.message,
+    });
   }
-}
+};
 
 exports.createProduct = async (req, res) => {
   const errors = validationResult(req);
@@ -78,78 +84,44 @@ exports.createProduct = async (req, res) => {
   const { productName, barcode, unitPrice, quantity, expirationDate } = req.body;
 
   try {
-    let parsedExpiration = null;
+    console.log(productName, barcode, unitPrice, quantity, expirationDate);
 
-    // Validação da data de validade
-    if (expirationDate) {
-      // Verificar formato MM/AAAA
-      if (!/^\d{2}\/\d{4}$/.test(expirationDate)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Formato de validade inválido. Use MM/AAAA.',
-        });
-      }
+    // Validação e conversão da data de validade
+    const expirationValidation = validateAndConvertExpirationDate(expirationDate);
 
-      const [monthStr, yearStr] = expirationDate.split('/');
-      const month = parseInt(monthStr, 10);
-      const year = parseInt(yearStr, 10);
-
-      // Validar mês (1-12)
-      if (month < 1 || month > 12) {
-        return res.status(400).json({
-          success: false,
-          message: 'Mês inválido na validade. Deve ser entre 01 e 12.',
-        });
-      }
-
-      // Validar se a data não está no passado
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1; // Janeiro = 1
-      const currentYear = now.getFullYear();
-
-      // Verificar se a data é anterior ao mês/ano atual
-      if (year < currentYear || (year === currentYear && month < currentMonth)) {
-        return res.status(400).json({
-          success: false,
-          message: 'A validade não pode ser anterior ao mês/ano atual.',
-        });
-      }
-
-      // Converter para objeto Date (primeiro dia do mês)
-      parsedExpiration = new Date(year, month - 1, 1);
-    }
-
-    const created = await productsService.createProductService(
-      productName,
-      barcode,
-      parseFloat(unitPrice),
-      parseInt(quantity),
-      parsedExpiration
-    );
-
-    if (!created) {
+    if (!expirationValidation.isValid) {
       return res.status(400).json({
         success: false,
-        message: 'Produto já cadastrado',
+        message: expirationValidation.error,
       });
     }
 
-    return res.status(200).json({
+    const created = await productsService.createProductService({
+      productName: productName,
+      barcode: barcode,
+      unitPrice: parseFloat(unitPrice),
+      quantity: parseInt(quantity),
+      expirationDate: expirationValidation.date
+    });
+
+    console.log(created);
+
+    // Se chegou até aqui, o produto foi criado com sucesso
+    return res.status(201).json({
       success: true,
-      message: 'O produto foi cadastrado com sucesso',
+      message: 'Produto cadastrado com sucesso.',
+      data: created.id
     });
   } catch (error) {
-    console.error(`[ProductController] Erro ao tentar cadastrar o produto:`, error);
-
+    console.error(`[ProductController] Erro ao tentar cadastrar o produto:`, error.message);
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao cadastrar o produto.',
-      error: error.message,
     });
   }
 };
 
-exports.editProduct = async (req, res) => {
+exports.updateProduct = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -159,106 +131,69 @@ exports.editProduct = async (req, res) => {
     });
   }
 
-  const { id, productName, barcode, unitPrice, quantity, expirationDate } = req.body;
+  const { productId } = req.params;
+  const { productName, barcode, unitPrice, quantity, expirationDate, isActive } = req.body;
+
+  // Validar data de expiração se fornecida
+  const expirationValidation = validateAndConvertExpirationDate(expirationDate);
+  if (!expirationValidation.isValid) {
+    return res.status(400).json({ success: false, message: expirationValidation.error });
+  }
 
   try {
-    let parsedExpiration = null;
-
-    // Validação da data de validade
-    if (expirationDate) {
-      if (!/^\d{2}\/\d{4}$/.test(expirationDate)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Formato de validade inválido. Use MM/AAAA.',
-        });
-      }
-
-      const [monthStr, yearStr] = expirationDate.split('/');
-      const month = parseInt(monthStr, 10);
-      const year = parseInt(yearStr, 10);
-
-      if (month < 1 || month > 12) {
-        return res.status(400).json({
-          success: false,
-          message: 'Mês inválido na validade. Deve ser entre 01 e 12.',
-        });
-      }
-
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-
-      if (year < currentYear || (year === currentYear && month < currentMonth)) {
-        return res.status(400).json({
-          success: false,
-          message: 'A validade não pode ser anterior ao mês/ano atual.',
-        });
-      }
-
-      parsedExpiration = new Date(year, month - 1, 1);
-    }
-
-    const updated = await productsService.editProductService(
-      id, // UUID como string
-      productName,
-      barcode,
-      unitPrice, // Já vem como número do frontend
-      quantity,  // Já vem como número do frontend
-      parsedExpiration
-    );
-
-    if (!updated) {
-      return res.status(404).json({
-        success: false,
-        message: 'Produto não encontrado ou nenhum dado foi alterado',
-      });
-    }
+    const updated = await productsService.updateProductService(productId, {
+      productName: productName,
+      barcode: barcode,
+      unitPrice: parseFloat(unitPrice),
+      quantity: parseInt(quantity),
+      expirationDate: expirationValidation.date,
+      isActive: isActive
+    });
 
     return res.status(200).json({
       success: true,
-      message: 'Produto atualizado com sucesso',
+      message: 'Produto atualizado com sucesso.',
+      data: updated.id
     });
   } catch (error) {
-    console.error(`[ProductController] Erro ao editar produto:`, error);
+    console.error(`[ProductController] Erro ao tentar atualizar o produto:`, error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Erro interno ao editar o produto.',
+      message: 'Erro interno ao atualizar o produto.',
     });
   }
 };
 
-exports.deleteProduct = async (req, res) => {
+exports.updateModeProduct = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
+    console.log("Erros encontrados:", errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
     });
-  }
+  };
 
-  const { id, barcode } = req.params;
+  const { productId } = req.params;
+  const { mode } = req.query;
 
   try {
-    const result = await productsService.deleteProductService(id, barcode);
+    // Converte mode para boolean
+    const isActive = mode === 'true';
 
-    if (!result) {
-      return res.status(404).json({
-        success: false,
-        message: 'Produto não encontrado ou já está inativo.',
-      });
-    }
+    await productsService.updateProductModeService(productId, isActive);
 
+    const statusMessage = isActive ? 'ativado' : 'desativado';
     return res.status(200).json({
       success: true,
-      message: 'Produto excluído com sucesso.',
+      message: `Produto ${statusMessage} com sucesso.`,
     });
-
   } catch (error) {
-    console.error('Erro ao excluir produto:', error);
+    console.error("[ProductController] Erro ao tentar atualizar modo do produto:", error.message);
     return res.status(500).json({
       success: false,
-      message: 'Erro interno ao excluir produto.',
+      message: error.message || 'Erro interno ao atualizar produto.',
     });
   }
 };
@@ -267,6 +202,7 @@ exports.registerPayment = async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
+    console.log("Erros encontrados:", errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -274,51 +210,92 @@ exports.registerPayment = async (req, res) => {
     });
   }
 
+  const { cashId } = req.params;
+
+  // Para FormData, os dados vêm direto do body
   const {
-    paymentMethod,
-    cashRegisterId,
-    totalAmount,
-    discountValue,
-    finalPrice,
+    method,
+    originalAmount,
+    discountAmount,
+    finalAmount,
     amountReceived,
     changeGiven,
-    saleItems,
+    saleData,
+    photo
   } = req.body;
 
-  if (!Array.isArray(saleItems)) {
+  // Se saleData veio como string (FormData), precisa fazer parse
+  let parsedSaleData = saleData;
+  if (typeof saleData === 'string') {
+    try {
+      parsedSaleData = JSON.parse(saleData);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Erro ao processar dados da venda. Formato inválido.',
+      });
+    }
+  }
+
+  if (!parsedSaleData?.products || !Array.isArray(parsedSaleData.products)) {
     return res.status(400).json({
       success: false,
-      message: 'Os itens da venda (saleItems) devem ser um array.',
+      message: 'Os produtos da venda (saleData.products) devem ser um array.',
     });
   }
 
-  const photoBuffer = req.file ? req.file.buffer : null;
-  const photoMimeType = req.file ? req.file.mimetype : null;
+  // Converte todos os valores numéricos para garantir o formato correto
+  const numericOriginalAmount = Number(originalAmount);
+  const numericDiscountAmount = Number(discountAmount);
+  const numericFinalAmount = Number(finalAmount);
+  const numericAmountReceived = Number(amountReceived);
+  const numericChangeGiven = Number(changeGiven);
+
+  // Valida se os valores são números válidos
+  if (isNaN(numericOriginalAmount) || isNaN(numericDiscountAmount) ||
+    isNaN(numericFinalAmount) || isNaN(numericAmountReceived) ||
+    isNaN(numericChangeGiven)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Valores numéricos inválidos. Verifique os campos de valores.',
+    });
+  }
+
+  // Para FormData, a foto vem como arquivo
+  const photoBuffer = req.file ? req.file.buffer : (photo || null);
+  const photoMimeType = req.file ? req.file.mimetype : (photo ? 'image/jpeg' : null);
   const user = req.user;
 
   try {
     const local = DateTime.now().setZone("America/Belem");
 
-    const paymentMethodMap = {
-      "Dinheiro": "DINHEIRO",
-      "Pix": "PIX",
-      "Crédito": "CREDITO",
-      "Débito": "DEBITO",
-    };
+    // O método já vem no formato correto (CREDITO, PIX, etc.)
+    const normalizedMethod = method.toUpperCase();
 
-    const normalizedMethod = paymentMethodMap[paymentMethod];
-    if (!normalizedMethod) throw new Error("Método de pagamento inválido");
+    // Valida se o método é válido
+    const validMethods = ["DINHEIRO", "PIX", "CREDITO", "DEBITO"];
+    if (!validMethods.includes(normalizedMethod)) {
+      throw new Error("Método de pagamento inválido");
+    }
 
-    const saleItemsToInsert = saleItems.map((item) => {
+    const saleItemsToInsert = parsedSaleData.products.map((item) => {
       if (!item?.id) {
         throw new Error("Produto sem ID. Verifique os itens do carrinho.");
       }
 
+      // Converte valores numéricos dos produtos
+      const numericQuantity = Number(item.quantity);
+      const numericUnitPrice = Number(item.unitPrice);
+
+      if (isNaN(numericQuantity) || isNaN(numericUnitPrice)) {
+        throw new Error(`Valores inválidos para o produto ${item.productName}`);
+      }
+
       return {
         productId: item.id,
-        soldQuantity: Number(item.quantity),
+        soldQuantity: numericQuantity,
         productName: item.productName,
-        unitPrice: Number(item.unitPrice),
+        unitPrice: numericUnitPrice,
         expirationDate: item.expirationDate || null,
       };
     });
@@ -326,27 +303,29 @@ exports.registerPayment = async (req, res) => {
     const transactionId = await productsService.registerPayment(
       user.username,
       normalizedMethod,
-      cashRegisterId,
-      Number(totalAmount),
-      Number(discountValue),
-      Number(finalPrice),
-      Number(amountReceived),
-      Number(changeGiven),
+      cashId,
+      numericOriginalAmount,
+      numericDiscountAmount,
+      numericFinalAmount,
+      numericAmountReceived,
+      numericChangeGiven,
       saleItemsToInsert,
       local,
       photoBuffer,
       photoMimeType
     );
+    console.log("Tudo ok ate aqui")
+    console.log(`[ProductController] Transaction ID:`, transactionId);
 
     const receipt = await generateReceiptPDF(
       user.username,
-      paymentMethod,
+      method,
       saleItemsToInsert,
-      Number(totalAmount),
-      Number(discountValue),
-      Number(finalPrice),
-      Number(amountReceived),
-      Number(changeGiven),
+      numericOriginalAmount,
+      numericDiscountAmount,
+      numericFinalAmount,
+      numericAmountReceived,
+      numericChangeGiven,
     );
 
     return res.status(201).json({
@@ -359,10 +338,10 @@ exports.registerPayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Erro ao registrar pagamento:", error);
+    console.error("Erro ao registrar pagamento:", error.message);
     return res.status(500).json({
       success: false,
-      message: error.message || "Erro interno ao registrar pagamento.",
+      message: error.message || 'Erro interno ao registrar pagamento.',
     });
   }
 };

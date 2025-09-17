@@ -22,6 +22,7 @@ router.post(
   [
     body('username').notEmpty().withMessage('Username é obrigatório'),
     body('password').notEmpty().withMessage('Senha é obrigatória'),
+    body('expoPushToken').optional().isString().withMessage('Expo Push Token deve ser uma string'),
   ],
   authController.login
 );

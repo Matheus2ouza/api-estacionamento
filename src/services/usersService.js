@@ -101,7 +101,7 @@ async function registerUserService(username, password, role, user, passwordAdmin
   }
 }
 
-async function loginUserService(username, password) {
+async function loginUserService(username, password, expoPushToken = null) {
   try {
     const account = await prisma.accounts.findUnique({
       where: { username },
@@ -132,6 +132,11 @@ async function loginUserService(username, password) {
       throw new Error(message.userMessage);
     }
 
+    // Registrar push token se fornecido
+    if (expoPushToken) {
+      await registerPushTokenService(account.id, expoPushToken);
+    }
+
     const token = jwt.sign(
       { id: account.id, role: account.role },
       process.env.JWT_SECRET,
@@ -143,6 +148,60 @@ async function loginUserService(username, password) {
   } catch (err) {
     console.error(`[UsersService] Erro no processo de login para usuário ${username}: ${err.message}`);
     throw err;
+  }
+}
+
+async function registerPushTokenService(accountId, expoPushToken) {
+  console.log(`[UsersService] Registrando push token para usuário: ${accountId}`);
+
+  try {
+    // Verificar se o token já existe
+    const existingToken = await prisma.accountPushToken.findFirst({
+      where: {
+        accountId: accountId,
+        token: expoPushToken
+      }
+    });
+
+    if (existingToken) {
+      console.log(`[UsersService] Push token já existe para usuário: ${accountId}`);
+      return;
+    }
+
+    // Contar tokens ativos do usuário
+    const activeTokensCount = await prisma.accountPushToken.count({
+      where: { accountId: accountId }
+    });
+
+    // Se já tem 5 tokens, remover o mais antigo
+    if (activeTokensCount >= 5) {
+      const oldestToken = await prisma.accountPushToken.findFirst({
+        where: { accountId: accountId },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      if (oldestToken) {
+        console.log(`[UsersService] Removendo token mais antigo: ${oldestToken.id}`);
+        await prisma.accountPushToken.delete({
+          where: { id: oldestToken.id }
+        });
+      }
+    }
+
+    // Registrar novo token
+    const newToken = await prisma.accountPushToken.create({
+      data: {
+        token: expoPushToken,
+        accountId: accountId
+      }
+    });
+
+    console.log(`[UsersService] Push token registrado com sucesso: ${newToken.id} para usuário: ${accountId}`);
+    return newToken;
+
+  } catch (error) {
+    console.error(`[UsersService] Erro ao registrar push token para usuário ${accountId}: ${error.message}`);
+    throw error;
   }
 }
 
@@ -331,6 +390,7 @@ async function listUsersService() {
 module.exports = {
   registerUserService,
   loginUserService,
+  registerPushTokenService,
   updateUserService,
   deleteUserService,
   listUsersService,

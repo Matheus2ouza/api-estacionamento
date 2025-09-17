@@ -1,5 +1,5 @@
 const express = require('express');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const multer = require('multer');
 const authMiddleware = require('../middlewares/authMiddleware');
 const ProductController = require('../controllers/productController')
@@ -11,70 +11,82 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // limite de 10MB (ajuste se quiser)
 });
 
-router.get('/list-products', authMiddleware('NORMAL'), ProductController.listProducts)
+// Rota para listar produtos
+router.get('/list', authMiddleware('NORMAL'), ProductController.listProducts);
 
-router.get('/fetch-product/:barcode',
+// Rota para buscar produto por código de barras
+router.get('/lookup',
   [
-    param("barcode").exists().notEmpty()
-  ],
-  authMiddleware("NORMAL"),
-  ProductController.fetchProduct
-)
-
-router.post('/create-product',
-  [
-    body('productName').notEmpty(),
-    body('barcode').notEmpty(),
-    body('unitPrice').isDecimal({ decimal_digits: '0,2' }),
-    body('quantity').isInt({ gt: 0 }),
+    query('barcode')
+      .notEmpty()
+      .withMessage('O código de barras é obrigatório')
   ],
   authMiddleware('NORMAL'),
+  ProductController.fetchProductByBarcode
+);
+
+// Rota para criar um novo produto
+router.post("/create",
+  [
+    body("productName")
+      .notEmpty()
+      .withMessage("O nome do produto é obrigatório"),
+    body("barcode")
+      .optional(),
+    body("unitPrice")
+      .notEmpty()
+      .withMessage("O preço unitário é obrigatório"),
+    body("quantity")
+      .notEmpty()
+      .withMessage("A quantidade é obrigatória"),
+    body("expirationDate")
+      .notEmpty()
+      .withMessage("A data de validade é obrigatória"),
+  ],
+  authMiddleware("NORMAL"),
   ProductController.createProduct
 );
 
-router.post('/edit-product',
+// Rota para atualizar um produto
+router.put('/:productId/update',
   [
-    body('productName').notEmpty(),
-    body('barcode').notEmpty(),
-    body('unitPrice').isDecimal({ decimal_digits: '0,2' }),
-    body('quantity').isInt({ gt: 0 }),
+    param('productId').notEmpty().withMessage('O id do produto é obrigatório'),
+    body('productName').notEmpty().withMessage('O nome do produto é obrigatório'),
+    body('barcode').optional(),
+    body('unitPrice').notEmpty().withMessage('O preço unitário é obrigatório'),
+    body('quantity').notEmpty().withMessage('A quantidade é obrigatória'),
+    body('expirationDate').notEmpty().withMessage('A data de validade é obrigatória'),
+    body('isActive').optional()
   ],
   authMiddleware('NORMAL'),
-  ProductController.editProduct
+  ProductController.updateProduct
 );
 
-router.post('/delete-product/:id/:barcode', authMiddleware('NORMAL'), ProductController.deleteProduct)
-
-router.post(
-  '/register-payment',
-  upload.single('receiptImage'),
-  (req, res, next) => {
-    // Converte saleItems (que vem como string via FormData) para array
-    if (req.body.saleItems && typeof req.body.saleItems === 'string') {
-      try {
-        req.body.saleItems = JSON.parse(req.body.saleItems);
-      } catch (err) {
-        return res.status(400).json({
-          success: false,
-          message: 'Formato inválido de saleItems.',
-        });
-      }
-    }
-    next();
-  },
+// Rota para deletar um produto
+router.patch('/:productId',
   [
-    body("paymentMethod").exists().notEmpty(),
-    body("cashRegisterId").exists().notEmpty(),
-    body("totalAmount").exists().notEmpty(),
-    body("discountValue").exists().notEmpty(),
-    body("finalPrice").exists().notEmpty(),
-    body("amountReceived").exists().notEmpty(),
-    body("changeGiven").exists().notEmpty(),
-    body("saleItems").isArray({ min: 1 }),
+    param('productId').notEmpty().withMessage('O id do produto é obrigatório'),
+    query('mode').notEmpty().withMessage('O modo deve ser um booleano'),
   ],
-  authMiddleware("NORMAL"),
+  authMiddleware('NORMAL'),
+  ProductController.updateModeProduct
+);
+
+// Rota para registrar um pagamento
+router.post('/payment/:cashId/confirm',
+  upload.single('photo'),
+  [
+    param('cashId').notEmpty().withMessage('O id do caixa é obrigatório'),
+    body('method').notEmpty().withMessage('O método de pagamento é obrigatório'),
+    body('originalAmount').notEmpty().withMessage('O valor original é obrigatório'),
+    body('discountAmount').notEmpty().withMessage('O valor do desconto é obrigatório'),
+    body('finalAmount').notEmpty().withMessage('O valor final é obrigatório'),
+    body('amountReceived').notEmpty().withMessage('O valor recebido é obrigatório'),
+    body('changeGiven').notEmpty().withMessage('O valor do troco é obrigatório'),
+    body('saleData').notEmpty().withMessage('Os dados da venda são obrigatórios'),
+  ],
+  authMiddleware('NORMAL'),
   ProductController.registerPayment
 );
-
 
 module.exports = router
