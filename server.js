@@ -78,6 +78,8 @@ const authRoutes = require('./src/routes/usersRoutes');
 const vehicleRoutes = require('./src/routes/vehicleRoutes');
 //Rotas de estacionamento
 const parkingRoutes = require('./src/routes/parkingRoutes');
+//Rotas de despesas
+const expenseRoutes = require('./src/routes/expenseRoutes');
 //Rotas de caixa
 const cashRoutes = require('./src/routes/cashRoutes');
 //Rotas de produtos
@@ -91,6 +93,7 @@ app.use('/parking', parkingRoutes);
 app.use('/cash', cashRoutes);
 app.use('/products', productRoutes);
 app.use('/dashboard', dashboardRoutes)
+app.use('/expense', expenseRoutes);
 
 // 🟩 Rodar localmente
 if (require.main === module) {
