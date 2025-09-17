@@ -159,6 +159,7 @@ async function closeCashService(id, date) {
     const closingDate = date instanceof Date ? date : new Date(date || Date.now());
     const updatedCash = await prisma.cashRegister.update({
       where: { id },
+
       data: {
         status: 'CLOSED',
         closingDate: closingDate
@@ -819,6 +820,7 @@ async function generalCashHistoryService(user, cursor = null, limit = 10) {
 async function saveBillingMethodService({ title, description, category, tolerance, timeMinutes, carroValue, motoValue }) {
 
   try {
+    
     const result = await prisma.billingMethod.create({
       data: {
         title,
@@ -944,6 +946,7 @@ async function cashDataService(id) {
 
     // Busca transações de produtos
     const productTransactions = await prisma.productTransaction.findMany({
+
       where: { cashRegisterId: baseData.id },
       select: {
         method: true,
@@ -953,6 +956,7 @@ async function cashDataService(id) {
 
     // Busca transações de veículos
     const vehicleTransactions = await prisma.vehicleTransaction.findMany({
+
       where: { cashRegisterId: baseData.id },
       select: {
         method: true,
