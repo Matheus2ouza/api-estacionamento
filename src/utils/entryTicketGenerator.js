@@ -113,11 +113,12 @@ async function generateEntryTicketPDF({ id, plate, operator, category, formatted
       const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
       const qrBuffer = Buffer.from(qrBase64, 'base64');
 
-      const qrX = (doc.page.width - 90) / 2;
+      const qrSize = 75; // Tamanho do QR Code
+      const qrX = (doc.page.width - qrSize) / 2; // Centraliza horizontalmente
       const qrY = doc.y + 5;
 
-      doc.image(qrBuffer, qrX, qrY, { width: 90 });
-      doc.y = qrY + 90 + 5;
+      doc.image(qrBuffer, qrX, qrY, { width: qrSize });
+      doc.y = qrY + qrSize + 5;
 
       // === Adicionando seção de cobrança no mesmo estilo ===
       doc.moveDown(0.5);

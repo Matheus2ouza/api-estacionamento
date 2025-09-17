@@ -42,10 +42,16 @@ exports.login = async (req, res) => {
     });
   }
 
-  const { username, password } = req.body;
+  const { username, password, expoPushToken } = req.body;
 
+  console.log(`[UsersController] Tentativa de login para usuário: ${username}${expoPushToken ? ' com push token' : ''}`);
   try {
-    const token = await usersService.loginUserService(username.trim().toLowerCase(), password.trim());
+    const token = await usersService.loginUserService(
+      username.trim().toLowerCase(),
+      password.trim(),
+      expoPushToken ? expoPushToken.trim() : null
+    );
+
     console.log(`[UsersController] Login bem-sucedido para usuário: ${username}`);
     return res.status(200).json({
       success: true,

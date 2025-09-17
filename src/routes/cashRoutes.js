@@ -1,5 +1,5 @@
 const express = require('express');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const cashController = require('../controllers/cashController')
 const authMiddleware = require('../middlewares/authMiddleware');
 
@@ -22,18 +22,25 @@ router.post('/open',
 router.post('/:cashId/close',
   [
     param('cashId').isUUID(),
-    body('finalValue').isFloat({ min: 0 })
   ],
   authMiddleware('NORMAL'), cashController.closeCash
 );
 
 //Rotas para reabrir o caixa
-router.post('/reopen-cash/:cashId',
+router.post('/:cashId/reopen',
   [
     param("cashId").exists().notEmpty()
   ],
   authMiddleware('MANAGER'),
   cashController.reopenCash
+);
+
+router.put('/:cashId',
+  [
+    param('cashId').isUUID(),
+    body('initialValue').isFloat({ min: 0 }).withMessage('O valor inicial deve ser um número maior que zero.'),
+  ],
+  authMiddleware('NORMAL'), cashController.updateCash
 );
 
 //Rotas para pegar os dados do caixa
@@ -44,15 +51,45 @@ router.get('/:cashId/data',
   authMiddleware('MANAGER'), cashController.cashData
 );
 
-//Rotas para pegar os dados gerais do caixa
 router.get('/:cashId/general',
+  [
+    param('cashId').exists().isString()
+  ],
+  authMiddleware('MANAGER'), cashController.generalCashData
+);
+
+router.get('/:cashId/history',
   [
     param('cashId').exists().notEmpty()
   ],
-  authMiddleware('NORMAL'),
-  cashController.generalCashData
+  authMiddleware('MANAGER'), cashController.cashHistory
 );
 
+router.delete('/:cashId/:transactionId',
+  [
+    param('cashId').exists().notEmpty(),
+    param('transactionId').exists().notEmpty(),
+    query('type').exists().notEmpty().isIn(["vehicle", "product", "expense"]),
+    query('permanent').optional().isBoolean()
+  ],
+  authMiddleware('MANAGER'), cashController.deleteTransaction
+);
+
+router.get('/history',
+  [
+    query('cursor').optional().isString().withMessage('O cursor deve ser uma string'),
+    query('limit').optional().isInt().withMessage('O limite deve ser um número inteiro'),
+  ],
+  authMiddleware('NORMAL'), cashController.generalCashHistory
+);
+
+router.get('/history/:transactionId/photo',
+  [
+    param('transactionId').exists().notEmpty(),
+    query('type').exists().notEmpty().isIn(["vehicle", "product"]),
+  ],
+  authMiddleware('NORMAL'), cashController.transactionPhoto
+);
 
 //Rotas de metodos de cobrança
 //Rotas para criar um metodo de cobrança
@@ -112,20 +149,6 @@ router.put('/billing-method/:id',
   ],
   authMiddleware('MANAGER'),
   cashController.billingMethodPut
-);
-
-
-
-//Rotas para as despesas
-router.post('/outgoing-expense',
-  [
-    body("description").exists().notEmpty(),
-    body("amount").exists().notEmpty(),
-    body("method").exists().notEmpty(),
-    body("openCashId").exists().notEmpty()
-  ],
-  authMiddleware('NORMAL'),
-  cashController.registerOutgoing
 );
 
 module.exports = router;

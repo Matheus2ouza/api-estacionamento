@@ -1,19 +1,17 @@
 const { validationResult, Result } = require('express-validator');
 const cashService = require('../services/cashService');
+const expenseService = require('../services/expenseService');
 const { DateTime } = require("luxon");
 const { validateAndConvertBillingTime, validateTolerance } = require('../utils/billingMethodUtils');
 const { getCurrentBelemTime, convertToBelemJSDate } = require('../utils/timeConverter');
 
 exports.statusCash = async (req, res) => {
   try {
-    console.log("[CashController] Iniciando verificação de status do caixa");
 
     // Usa a data atual com fuso de Belém
     const date = convertToBelemJSDate(getCurrentBelemTime());
-    console.log("[CashController] Data convertida para Belém:", date);
 
     const data = await cashService.statusCashService(date);
-    console.log("[CashController] Dados retornados do service:", JSON.stringify(data, null, 2));
 
     // Retorna sempre sucesso, pois agora temos os três cenários cobertos
     const response = {
@@ -21,8 +19,6 @@ exports.statusCash = async (req, res) => {
       cashStatus: data.cashStatus,
       cash: data.cash
     };
-
-    console.log("[CashController] Resposta final:", JSON.stringify(response, null, 2));
     return res.status(200).json(response);
   } catch (error) {
     console.error(`[CashController] Erro ao buscar status do caixa: ${error}`);
@@ -82,10 +78,9 @@ exports.closeCash = async (req, res) => {
   }
 
   const { cashId } = req.params
-  const { finalValue } = req.body
   const date = getCurrentBelemTime()
   try {
-    const cash = await cashService.closeCashService(cashId, finalValue, date);
+    const cash = await cashService.closeCashService(cashId, date);
 
     if (!cash) {
       return res.status(404).json({
@@ -140,6 +135,36 @@ exports.reopenCash = async (req, res) => {
   }
 };
 
+exports.updateCash = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { cashId } = req.params;
+  const { initialValue } = req.body;
+
+  try {
+    const cash = await cashService.updateCashService(cashId, initialValue);
+
+    return res.status(200).json({
+      success: true,
+      data: cash,
+      message: 'Valor inicial do caixa atualizado com sucesso.',
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar valor inicial do caixa:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao atualizar valor inicial do caixa.',
+    });
+  }
+}
+
 exports.cashData = async (req, res) => {
   const errors = validationResult(req);
 
@@ -176,6 +201,212 @@ exports.cashData = async (req, res) => {
   }
 }
 
+exports.generalCashData = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { cashId } = req.params;
+
+  try {
+    const cash = await cashService.generalCashDataService(cashId);
+
+    return res.status(200).json({
+      success: true,
+      data: cash
+    });
+  } catch (error) {
+    console.error('Erro ao buscar dados gerais do caixa:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar dados gerais do caixa.',
+      error: error.message
+    });
+  }
+}
+
+exports.deleteTransaction = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.warn('[cashController] Dados inválidos na exclusão de transação:', errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { cashId, transactionId } = req.params;
+  const { type, permanent } = req.query;
+
+  console.log(`[cashController] Iniciando exclusão de transação - Tipo: ${type}, CashId: ${cashId}, TransactionId: ${transactionId}, Permanent: ${permanent}`);
+
+  try {
+    let result;
+
+    switch (type) {
+      case 'expense':
+        console.log('[cashController] Chamando service para exclusão de despesa');
+        result = await expenseService.deleteOutgoingExpenseService(cashId, transactionId);
+        break;
+
+      case 'product':
+        console.log('[cashController] Chamando service para exclusão de transação de produto');
+        result = await cashService.deleteProductTransactionService(cashId, transactionId);
+        break;
+
+      case 'vehicle':
+        console.log(`[cashController] Chamando service para exclusão de transação de veículo - Permanent: ${permanent === 'true'}`);
+        result = await cashService.deleteVehicleTransactionService(cashId, transactionId, permanent === 'true');
+        break;
+
+      default:
+        console.warn(`[cashController] Tipo de transação inválido: ${type}`);
+        return res.status(400).json({
+          success: false,
+          message: 'Tipo de transação inválido. Use: expense, product ou vehicle.'
+        });
+    }
+
+    console.log(`[cashController] Transação ${type} excluída com sucesso - Result:`, result);
+    return res.status(200).json({
+      success: true,
+      message: 'Transação excluída com sucesso.'
+    });
+
+  } catch (error) {
+    console.error(`[cashController] Erro ao excluir transação ${type}:`, error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao excluir transação.',
+      error: error.message
+    });
+  }
+}
+
+exports.cashHistory = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { cashId } = req.params;
+
+  try {
+    const cash = await cashService.cashHistoryService(cashId);
+
+    return res.status(200).json({
+      success: true,
+      data: cash
+    });
+  } catch (error) {
+    console.error('Erro ao buscar histórico do caixa:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar histórico do caixa.'
+    });
+  }
+}
+
+exports.generalCashHistory = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.warn('[cashController] Dados inválidos no histórico geral:', errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const user = req.user;
+  const { cursor, limit } = req.query;
+
+  console.log(`[cashController] Buscando histórico geral - User: ${user.username}, Role: ${user.role}, Cursor: ${cursor}, Limit: ${limit}`);
+
+  try {
+    const parsedLimit = limit ? parseInt(limit) : 10;
+
+    // Validar limite
+    if (parsedLimit < 1 || parsedLimit > 50) {
+      console.warn(`[cashController] Limite inválido: ${parsedLimit}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Limite deve estar entre 1 e 50.'
+      });
+    }
+
+    const result = await cashService.generalCashHistoryService(user, cursor, parsedLimit);
+
+    console.log(`[cashController] Histórico geral retornado com sucesso - ${result.cashRegisters.length} caixas`);
+    return res.status(200).json({
+      success: true,
+      message: 'Histórico geral carregado com sucesso.',
+      data: result
+    });
+
+  } catch (error) {
+    console.error(`[cashController] Erro ao buscar histórico geral:`, error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar histórico geral.',
+      error: error.message
+    });
+  }
+}
+
+exports.transactionPhoto = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.warn('[cashController] Dados inválidos na busca de foto de transação:', errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { transactionId } = req.params;
+  const { type } = req.query;
+
+  console.log(`[cashController] Buscando foto de transação - TransactionId: ${transactionId}, Type: ${type}`);
+
+  try {
+    const photoData = await cashService.transactionPhotoService(transactionId, type);
+
+
+
+    // Converter de binário para base64
+    const base64Photo = photoData.photo.toString('base64');
+
+    console.log(`[cashController] Foto convertida para base64 - Type: ${type}, Size: ${base64Photo.length} chars`);
+
+    // Retornar a foto em base64
+    return res.status(200).json({
+      success: true,
+      data: {
+        photo: base64Photo,
+      }
+    });
+
+  } catch (error) {
+    console.error(`[cashController] Erro ao buscar foto de transação:`, error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar foto de transação.',
+      error: error.message
+    });
+  }
+}
 
 exports.billingMethodSave = async (req, res) => {
   const errors = validationResult(req);
@@ -395,47 +626,6 @@ exports.billingMethodPut = async (req, res) => {
     });
   }
 }
-
-exports.registerOutgoing = async (req, res) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Dados inválidos. Verifique os campos e tente novamente.',
-      errors: errors.array()
-    });
-  }
-
-  const belemDate = convertToBelemJSDate(getCurrentBelemTime());
-  const { description, amount, method, openCashId } = req.body;
-  const user = req.user;
-
-  try {
-    const result = await cashService.registerOutgoingService(
-      description,
-      amount,
-      method.toUpperCase(),
-      openCashId,
-      belemDate,
-      user
-    );
-
-    return res.status(201).json({
-      success: true,
-      message: 'Despesa registrada com sucesso.',
-      data: result
-    });
-
-  } catch (error) {
-    console.error("Erro ao registrar despesa:", error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao registrar despesa.',
-      error: error.message
-    });
-  }
-};
 
 exports.generalCashData = async (req, res) => {
   const errors = validationResult(req);
