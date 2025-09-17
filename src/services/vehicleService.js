@@ -1,606 +1,684 @@
 const { PrismaClient } = require('@prisma/client');
+const { formatBelemTime, getCurrentBelemTime } = require('../utils/timeConverter');
 const prisma = new PrismaClient();
 
-async function vehicleEntry(plate, category, operatorId, date, formattedDate, observation, photoBuffer, photoMimeType) {
+// Estrutura para mensagens
+const createMessage = (userMessage, logMessage) => ({
+  userMessage,
+  logMessage
+});
+
+async function registerVehicleEntryService({
+  plate,
+  entryTime,
+  formattedEntryTime,
+  category,
+  cashRegisterId,
+  billingMethodId,
+  user,
+  observation,
+  photoBuffer,
+  photoMimeType,
+}) {
   try {
-    const verifyPlate = await prisma.vehicle_entries.findFirst({
-      where: {
-        plate: plate,
-        status: "INSIDE"
-      }
-    });
+    const verifyVehicle = await prisma.vehicleEntries.findFirst({
+      where: { plate: plate, status: 'INSIDE' },
+    })
 
-    if (verifyPlate) {
-      throw new Error('Já existe um veículo com essa placa dentro do estacionamento');
+    if (verifyVehicle) {
+      const message = createMessage(
+        'Já existe um veículo com essa placa dentro do estacionamento',
+        `[vehicleService] Tentativa de registrar entrada de veículo com placa já existente: ${plate}`
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
     }
 
-    const operator = await prisma.accounts.findUnique({
-      where: { id: operatorId },
-      select: { username: true }
-    });
+    const verifyBillingMethod = await prisma.billingMethod.findUnique({
+      where: { id: billingMethodId }
+    })
 
-    if (!operator) {
-      throw new Error('Operador não encontrado');
+    if (!verifyBillingMethod) {
+      const message = createMessage(
+        'Método de cobrança não encontrado',
+        `[vehicleService] Tentativa de registrar entrada de veículo com método de cobrança não encontrado: ${billingMethodId}`
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
     }
 
-    const newEntry = await prisma.vehicle_entries.create({
+    const description = `Registro da entrada do veículo: ${user.username} em ${formattedEntryTime}`;
+
+    const entry = await prisma.vehicleEntries.create({
       data: {
         plate: plate,
+        entryTime: entryTime,
         category: category,
-        operator: operator.username,
-        entry_time: date,
-        description: `Registro criado pelo operador ${operator.username} em ${formattedDate}`,
-        observation: observation || null,
-        photo: photoBuffer || null,
-        photo_type: photoMimeType || null,
-      }
-    });
-
-    return newEntry;
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function getConfigParking() {
-  try {
-    const parking =  await prisma.patio_configs.findUnique({
-      where: { id: "singleton" }
-    });
-
-    const parkingFormated = {
-      maxCars: parking.max_cars,
-      maxMotorcycles: parking.max_motorcycles
-    }
-
-    return parkingFormated
-
-  } catch (err) {
-    console.error("[vehicleService] Erro ao buscar os dados do pátio:", err);
-    throw err;
-  }
-}
-
-async function configParking(maxCars, maxMotorcycles, maxLargeVehicles) {
-  try {
-    const configParking = await prisma.patio_configs.upsert({
-      where: { id: "singleton" },
-      update: {
-        max_cars: maxCars,
-        max_motorcycles: maxMotorcycles,
-        max_large_vehicles: maxLargeVehicles
+        billingMethodId: billingMethodId,
+        cashRegisterId: cashRegisterId,
+        operator: user.username,
+        description: description,
+        observation: observation,
+        photo: photoBuffer,
+        photoType: photoMimeType,
       },
-      create: {
-        id: "singleton",
-        max_cars: maxCars,
-        max_motorcycles: maxMotorcycles,
-        max_large_vehicles: maxLargeVehicles
-      },
-    });
-
-    return configParking;
-  } catch (err) {
-    console.error("[vehicleService] Erro ao configurar pátio:", err);
-    throw err;
-  }
-}
-
-async function getvehicle(id) {
-  try {
-    const result = await prisma.vehicle_entries.findUnique({
-      where: {
-        id: id,
-        status: 'INSIDE'
-      },
-      select: {
-        plate: true,
-        entry_time: true,
-        operator: true,
-        category: true,
-      }
-    });
-
-    return result;
-  } catch (err) {
-    throw err;
-  }
-}
-
-async function getUniqueVehicleService(id, plate) {
-  try {
-    const result = await prisma.vehicle_entries.findUnique({
-      where: { id: id, plate: plate, status: 'INSIDE' },
-      select: {
-        category: true,
-        entry_time: true,
-      }
-    });
-
-    return result;
-  } catch (err) {
-    throw err;
-  }
-}
-
-async function getParkedVehicles(role) {
-  try {
-    const isAdmin = role === 'ADMIN';
-
-    const whereClause = isAdmin
-      ? { OR: [{ status: 'INSIDE' }, { status: 'DELETED' }] }
-      : { status: 'INSIDE' };
-
-    const selectFields = {
-      id: true,
-      plate: true,
-      status: true,
-      entry_time: true,
-      operator: true,
-      category: true,
-    };
-
-    if (isAdmin) {
-      selectFields.description = true;
-    }
-
-    const vehicles = await prisma.vehicle_entries.findMany({
-      where: whereClause,
-      select: selectFields,
-      orderBy: {
-        entry_time: 'asc',
-      },
-    });
-
-    const formattedVehicles = vehicles.map(vehicle => ({
-      id: vehicle.id,
-      plate: vehicle.plate,
-      status: vehicle.status,
-      entryTime: vehicle.entry_time.toISOString(),
-      operator: vehicle.operator.toUpperCase(),
-      category: vehicle.category.toUpperCase(),
-      ...(isAdmin && { description: vehicle.description })
-    }));
-
-    return formattedVehicles;
-  } catch (err) {
-    console.error(`[vehicleService] Erro ao buscar veículos no pátio: ${err.message}`);
-    throw new Error("Erro ao buscar veículos estacionados.");
-  }
-}
-
-async function getParkedVehiclesOnly() {
-  try {
-    const vehicles = await prisma.vehicle_entries.findMany({
-      where: { status: 'INSIDE' },
       select: {
         id: true,
         plate: true,
-        status: true,
-        entry_time: true,
         operator: true,
         category: true,
-      },
-      orderBy: {
-        entry_time: 'asc',
-      },
-    });
-
-    const formattedVehicles = vehicles.map(vehicle => ({
-      id: vehicle.id,
-      plate: vehicle.plate,
-      status: vehicle.status,
-      entryTime: vehicle.entry_time.toISOString(),
-      operator: vehicle.operator.toUpperCase(),
-      category: vehicle.category.toUpperCase(),
-    }));
-
-    return formattedVehicles;
-  } catch (err) {
-    console.error(`[vehicleService] Erro ao buscar veículos no pátio: ${err.message}`);
-    throw new Error("Erro ao buscar veículos estacionados.");
-  }
-}
-
-
-async function hasNewVehicleEntries(lastCheck) {
-  try {
-    const parsedDate = new Date(lastCheck);
-
-    if (isNaN(parsedDate)) {
-      throw new Error("Formato de data inválido.");
-    }
-
-    const newEntries = await prisma.vehicle_entries.findFirst({
-      where: {
-        entry_time: {
-          gt: parsedDate
+        billingMethod: {
+          select: {
+            tolerance: true,
+            description: true,
+            carroValue: true,
+            motoValue: true,
+          }
         }
-      },
-      select: {
-        id: true
       }
-    });
+    })
 
-    return !!newEntries;
-  } catch (err) {
-    console.error(`[vehicleService] Erro ao verificar novas entradas: ${err.message}`);
-    throw err;
-  }
-}
-
-async function editVehicleService(id, category, plate, formattedDate, user) {
-  const verifyPlate = await prisma.vehicle_entries.findFirst({
-    where: {
-      id: id,
-      status: "INSIDE"
-    }
-  });
-
-  if (!verifyPlate) {
-    console.log(`[VehicleService] Tentativa de atualizar os dados de um veículo, mas ele não foi encontrado`);
-    throw new Error('Veículo não encontrado no pátio');
-  }
-
-  const updatedDescription = `${verifyPlate.description || ""}
-  \nRegistro editado por ${user.username} em ${formattedDate}`;
-
-  try {
-    const result = await prisma.vehicle_entries.update({
-      where: { id: id },
-      data: {
-        plate: plate,
-        category: category,
-        description: updatedDescription.trim()
-      }
-    });
-
-    return result;
+    return entry;
   } catch (error) {
+    console.error(`[vehicleService] Erro ao registrar entrada de veículo: ${error.message}`);
     throw error;
   }
 }
 
-async function deleteVehicleService(id, date, formattedDate, user) {
+async function listVehicleEntriesService(cashId, cursor, limit) {
   try {
-    const verifyPlate = await prisma.vehicle_entries.findFirst({
-      where: { id: id }
-    });
+    const verifyCash = await prisma.cashRegister.findFirst({
+      where: { id: cashId, status: "OPEN" },
+    })
 
-    if (!verifyPlate) {
-      console.log(`[VehicleService] Tentativa de excluir os dados de um veículo, mas ele não foi encontrado`);
-      throw new Error('Veículo não encontrado no pátio');
+    if (!verifyCash) {
+      const message = createMessage(
+        'Caixa não encontrado ou fechado',
+        '[vehicleService] Tentativa de buscar entradas de veículos, mas caixa não encontrado ou fechado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
     }
 
-    const updatedDescription = `${verifyPlate.description}
-    \nRegistro apagado por ${user.username} em ${formattedDate}`;
+    const whereQuery = {
+      status: { in: ["INSIDE", "DELETED"] },
+      cashRegisterId: cashId,
+      ...(cursor ? { entryTime: { gt: new Date(cursor) } } : {})
+    }
 
-    const result = await prisma.vehicle_entries.update({
-      where: { id: id },
-      data: {
-        status: "DELETED",
-        deleted_at: date,
-        description: updatedDescription.trim()
-      }
-    });
+    const limitNumber = Number(limit) || 5;
+    const takeLimit = limitNumber + 1; // Busca 1 a mais para verificar se há mais registros
 
-    return result;
-  } catch (error) {
-    throw error;
-  }
-}
-
-async function reactivateVehicleService(id, plate, user, formattedDate) {
-  const verifyPlate = await prisma.vehicle_entries.findFirst({
-    where: {
-      id: id,
-      plate: plate
-    },
-    select: { description: true }
-  });
-
-  if (!verifyPlate) {
-    throw new Error("Veículo não encontrado");
-  }
-
-  const updatedDescription = `${verifyPlate.description}
-  \nRegistro reativado por ${user.username} em ${formattedDate}`;
-
-  try {
-    const result = await prisma.vehicle_entries.update({
-      where: {
-        id: id,
-        plate: plate
+    const vehicles = await prisma.vehicleEntries.findMany({
+      where: whereQuery,
+      orderBy: {
+        entryTime: 'asc',
       },
-      data: {
-        status: 'INSIDE',
-        description: updatedDescription
-      },
+      take: takeLimit,
       select: {
+        id: true,
         plate: true,
+        entryTime: true,
+        category: true,
+        billingMethodId: true,
+        cashRegisterId: true,
+        operator: true,
+        deletedAt: true,
+        description: true,
+        exitTime: true,
         status: true,
-      }
-    });
-
-    return result;
-  } catch (err) {
-    throw err;
-  }
-}
-
-async function parkingSpaces() {
-  try {
-    const parkingConfig = await prisma.patio_configs.findUnique({
-      where: { id: 'singleton' },
-      select: {
-        max_cars: true,
-        max_motorcycles: true
+        observation: true,
+        billingMethod: {
+          select: {
+            title: true,
+          }
+        },
+        photoType: true,
       }
     })
 
-    const vehicles = await prisma.vehicle_entries.findMany({
-      where: { status: 'INSIDE' },
-      select: {
-        category: true
-      }
-    })
+    // Verifica se há mais registros
+    const hasMore = vehicles.length > limitNumber;
 
-    const totalCarsInside = vehicles.filter(v => v.category === 'carro').length;
-    const totalMotosInside = vehicles.filter(v => v.category === 'moto').length;
+    // Remove o registro extra se existir
+    const finalVehicles = hasMore ? vehicles.slice(0, limitNumber) : vehicles;
 
-    const carVacancies = Math.max(0, Number(parkingConfig.max_cars) - totalCarsInside);
-    const motorcycleVacancies = Math.max(0, Number(parkingConfig.max_motorcycles) - totalMotosInside);
+    const nextCursor = finalVehicles.length > 0 ? finalVehicles[finalVehicles.length - 1].entryTime.toISOString() : null;
 
     return {
-      carVacancies,
-      motorcycleVacancies,
-      totalCarsInside,
-      totalMotosInside,
-    };
-  } catch (err) {
-    throw err
+      vehicles: finalVehicles,
+      nextCursor,
+      hasMore
+    }
+  } catch (error) {
+    console.error(`[vehicleService] Erro ao buscar entradas de veículos: ${error.message}`);
+    throw error;
   }
 }
 
-async function billingMethodService() {
+async function vehicleEntryPhotoService(vehicleId) {
   try {
-    const result = await prisma.billing_method.findMany({
+    const photo = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId },
+      select: {
+        photo: true,
+        photoType: true
+      }
+    })
+
+    if (!photo) {
+      const message = createMessage(
+        'Foto não encontrada',
+        '[vehicleService] Tentativa de buscar foto do veículo, mas foto não encontrada'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    // Converte Uint8Array para base64
+    const photoBase64 = photo.photo ? Buffer.from(photo.photo).toString('base64') : null;
+
+    return {
+      photo: photoBase64,
+      photoType: photo.photoType
+    };
+  } catch (error) {
+    console.error(`[vehicleService] Erro ao buscar foto do veículo: ${error.message}`);
+    throw error;
+  }
+}
+
+async function searchVehicleEntryService(vehicleId) {
+  try {
+    const vehicle = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId },
       select: {
         id: true,
-        name: true,
-        description: true,
-        tolerance: true,
-        billing_rule: {
+        plate: true,
+        operator: true,
+        category: true,
+        billingMethod: {
           select: {
-            id: true,
-            price: true,
-            base_time_minutes: true,
-            vehicle_type: true,
-            created_at: true,
-            updated_at: true
+            tolerance: true,
+            description: true,
+            carroValue: true,
+            motoValue: true,
+          }
+        }
+      }
+    })
+
+    if (!vehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de buscar veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    return vehicle;
+  } catch (error) {
+    console.error(`[vehicleService] Erro ao buscar veículo: ${error.message}`);
+    throw error;
+  }
+}
+
+async function desactivateVehicleEntryService(vehicleId, user) {
+  try {
+    const vehicle = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId },
+    })
+
+    if (!vehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de desativar veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
+
+    const updatedDescription = `${vehicle.description || ""}
+    \nRegistro de desativação do veículo: ${user.username} em ${formattedEntryTime}`;
+
+
+    const desactivatedVehicle = await prisma.vehicleEntries.update({
+      where: { id: vehicleId },
+      data: {
+        deletedAt: new Date(),
+        status: 'DELETED',
+        description: updatedDescription
+      }
+    })
+
+    return desactivatedVehicle;
+  } catch (error) {
+    console.error(`[vehicleService] Erro ao desativar veículo: ${error.message}`);
+    throw error;
+  }
+}
+
+async function activateVehicleEntryService(vehicleId, user) {
+  try {
+    const vehicle = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId },
+    })
+
+    if (!vehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de reativar veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
+
+    const updatedDescription = `${vehicle.description || ""}
+    \nRegistro de reativação do veículo: ${user.username} em ${formattedEntryTime}`;
+
+    const activatedVehicle = await prisma.vehicleEntries.update({
+      where: { id: vehicleId },
+      data: {
+        deletedAt: null,
+        status: 'INSIDE',
+        description: updatedDescription
+      }
+    })
+
+    return activatedVehicle;
+  } catch (error) {
+    console.error(`[vehicleService] Erro ao reativar veículo: ${error.message}`);
+    throw error;
+  }
+}
+
+async function vehicleEntryUpdateService(vehicleId, plate, category, observation, billingMethod, user) {
+  try {
+    const verifyVehicle = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId },
+    })
+
+    if (!verifyVehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de atualizar veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
+
+    const updatedDescription = `${verifyVehicle.description || ""}
+    \nRegistro da atualização do veículo: ${user.username} em ${formattedEntryTime}`;
+
+    const updatedVehicle = await prisma.vehicleEntries.update({
+      where: { id: vehicleId },
+      data: {
+        plate: plate,
+        category: category,
+        observation: observation,
+        billingMethod: {
+          connect: {
+            id: billingMethod
+          }
+        },
+        description: updatedDescription,
+      },
+      select: {
+        id: true,
+        plate: true,
+        operator: true,
+        category: true,
+        entryTime: true,
+        billingMethod: {
+          select: {
+            tolerance: true,
+            description: true,
+            carroValue: true,
+            motoValue: true,
           }
         }
       }
     });
-    return result;
+
+    return updatedVehicle;
   } catch (error) {
-    console.error('Erro ao buscar billing methods:', error);
-    throw new Error('Erro ao buscar métodos de cobrança');
+    console.error(`[vehicleService] Erro ao atualizar veículo: ${error.message}`);
+    throw error;
+  }
+};
+
+async function vehicleEntryUpdatePhotoService(vehicleId, photoBuffer, photoMimeType, user) {
+  try {
+    const vehicle = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId },
+    })
+
+    if (!vehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de atualizar foto do veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
+
+    const updatedDescription = `${vehicle.description || ""}
+    \nRegistro da atualização da foto do veículo: ${user.username} em ${formattedEntryTime}`;
+
+    const updatedVehicle = await prisma.vehicleEntries.update({
+      where: { id: vehicleId },
+      data: {
+        photo: photoBuffer,
+        photoType: photoMimeType,
+        description: updatedDescription
+      }
+    })
+
+    return updatedVehicle;
+  } catch (error) {
+    console.error(`[vehicleService] Erro ao atualizar foto do veículo: ${error.message}`);
+    throw error;
   }
 }
 
-async function methodActiveService() {
+async function vehicleEntryDeletePhotoService(vehicleId, user) {
   try {
-    // Busca o método ativo primeiro
-    const activeMethod = await prisma.billing_method.findFirst({
-      where: {
-        is_active: true
-      },
-      include: {
-        billing_rule: true // Isso trará todas as regras associadas
+    const vehicle = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId },
+    })
+
+    if (!vehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de deletar foto do veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
+
+    const updatedDescription = `${vehicle.description || ""}
+    \nRegistro da deleção da foto do veículo: ${user.username} em ${formattedEntryTime}`;
+
+    const updatedVehicle = await prisma.vehicleEntries.update({
+      where: { id: vehicleId },
+      data: {
+        photo: null,
+        photoType: null,
+        description: updatedDescription
+      }
+    })
+
+    return updatedVehicle;
+  }
+  catch (error) {
+    console.error(`[vehicleService] Erro ao deletar foto do veículo: ${error.message}`);
+    throw error;
+  }
+}
+
+async function fetchVehicleEntryService(vehicleId, plateId) {
+  try {
+    const vehicle = await prisma.vehicleEntries.findFirst({
+      where: { id: vehicleId, plate: plateId, status: "INSIDE" },
+      select: {
+        id: true,
+        plate: true,
+        entryTime: true,
+        category: true,
+        observation: true,
+        photoType: true,
+        billingMethod: {
+          select: {
+            title: true,
+            description: true,
+            tolerance: true,
+            timeMinutes: true,
+            carroValue: true,
+            motoValue: true,
+          }
+        }
       }
     });
 
-    if (!activeMethod) {
-      return null;
+    if (!vehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de buscar veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
     }
 
-    // Formata a resposta para manter compatibilidade
-    return {
-      method: {
-        id: activeMethod.id,
-        name: activeMethod.name,
-        description: activeMethod.description,
-        tolerance: activeMethod.tolerance,
-        is_active: activeMethod.is_active
-      },
-      rules: activeMethod.billing_rule.map(rule => ({
-        id: rule.id,
-        price: rule.price,
-        base_time_minutes: rule.base_time_minutes,
-        vehicle_type: rule.vehicle_type,
-        billing_method_id: rule.billing_method_id,
-        created_at: rule.created_at,
-        updated_at: rule.updated_at
-      }))
+    // Adiciona o campo value baseado na categoria do veículo
+    const value = vehicle.category === 'carro'
+      ? vehicle.billingMethod.carroValue
+      : vehicle.billingMethod.motoValue;
+
+    // Adiciona o campo value ao billingMethod
+    const vehicleWithValue = {
+      ...vehicle,
+      billingMethod: {
+        ...vehicle.billingMethod,
+        value: value
+      }
     };
+
+    return vehicleWithValue;
   } catch (error) {
-    console.error('Erro ao buscar método de cobrança ativo:', error);
-    throw new Error('Erro ao buscar método de cobrança ativo');
+    console.error(`[vehicleService] Erro ao buscar veículo: ${error.message}`);
+    throw error;
   }
 }
 
-async function methodSaveService({ methodId, toleranceMinutes, rules }) {
-  // Definindo os tipos de veículo válidos conforme o enum no Prisma
-  const VehicleCategory = {
-    CARRO: 'carro',
-    MOTO: 'moto'
-  };
-
+async function calculateOutstandingService(vehicleId, plateId) {
   try {
-    console.log('Iniciando transaction para salvar método', { methodId });
-
-    return await prisma.$transaction(async (tx) => {
-      // 1. Validação dos dados de entrada
-      const normalizedRules = rules.map(rule => {
-        const vehicleType = rule.vehicle_type?.toString().toLowerCase().trim();
-
-        if (!Object.values(VehicleCategory).includes(vehicleType)) {
-          throw new Error(`Tipo de veículo inválido: ${rule.vehicle_type}. Valores permitidos: ${Object.values(VehicleCategory).join(', ')}`);
+    const vehicle = await prisma.vehicleEntries.findFirst({
+      where: { id: vehicleId, plate: plateId, status: "INSIDE" },
+      select: {
+        entryTime: true,
+        category: true,
+        billingMethod: {
+          select: {
+            tolerance: true,
+            timeMinutes: true,
+            carroValue: true,
+            motoValue: true,
+          }
         }
-
-        return {
-          price: rule.price,
-          base_time_minutes: rule.base_time_minutes,
-          vehicle_type: vehicleType
-        };
-      });
-
-      // 2. Desativa todos os métodos existentes (para garantir apenas um ativo)
-      console.log('Desativando todos os métodos existentes');
-      await tx.billing_method.updateMany({
-        data: { is_active: false }
-      });
-
-      // 3. Remove todas as regras
-      console.log(`Removendo regras existentes para o método ${methodId}`);
-      await tx.billing_rule.deleteMany({});
-
-      // 4. Cria as novas regras
-      console.log('Criando novas regras', { count: normalizedRules.length });
-      const createdRules = await Promise.all(
-        normalizedRules.map(rule =>
-          tx.billing_rule.create({
-            data: {
-              ...rule,
-              billing_method_id: methodId
-            }
-          })
-        )
-      );
-
-      // 5. Ativa e atualiza o método principal
-      console.log('Ativando método principal', { methodId });
-      await tx.billing_method.update({
-        where: { id: methodId },
-        data: {
-          tolerance: toleranceMinutes,
-          is_active: true
-        }
-      });
-
-      console.log('Configuração salva com sucesso', {
-        methodId,
-        rulesCreated: createdRules.length
-      });
-
-      return createdRules;
+      }
     });
 
-  } catch (error) {
-    console.error('Falha ao salvar método:', {
-      methodId,
-      error: error.message,
-      stack: error.stack
-    });
-    throw new Error(`Erro ao salvar configuração: ${error.message}`);
+    if (!vehicle) {
+      const message = createMessage(
+        'Veículo não encontrado',
+        '[vehicleService] Tentativa de calcular dívida de veículo, mas veículo não encontrado'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    return vehicle;
+  }
+  catch (error) {
+    console.error(`[vehicleService] Erro ao calcular dívida de veículo: ${error.message}`);
+    throw error;
   }
 }
 
-async function exitsRegisterService(plate, exit_time, openCashId, user, amount_received, change_given, discount_amount, final_amount, original_amount, normalizedMethod, local, photoBuffer, photoMimeType) {
-  // Verificar se o caixa existe
-  const verifyCash = await prisma.cash_register.findUnique({
-    where: { id: openCashId },
-  });
-
-  if (!verifyCash) {
-    throw new Error('Caixa não encontrado');
-  }
-
-  // Verificar se o operador existe
-  const verifyOperator = await prisma.accounts.findUnique({
-    where: { id: user.id },
-  });
-
-  if (!verifyOperator) {
-    throw new Error('Operador não encontrado');
-  }
-
-  const verifyVehicle = await prisma.vehicle_entries.findFirst({
-    where: {plate: plate, status: 'INSIDE'}
+async function exitsRegisterConfirmService({
+  cashId,
+  vehicleId,
+  exitTime,
+  formattedExitTime,
+  amountReceived,
+  changeGiven,
+  discountAmount,
+  finalAmount,
+  originalAmount,
+  method,
+  user,
+  photoBuffer,
+  photoMimeType,
+}) {
+  const vehicle = await prisma.vehicleEntries.findFirst({
+    where: { id: vehicleId, status: 'INSIDE' },
   })
 
-  if (!verifyVehicle) {
-    throw new Error('Veiculo não encontrado');
+  if (!vehicle) {
+    const message = createMessage(
+      'Veículo não encontrado',
+      '[vehicleService] Tentativa de confirmar saída de veículo, mas veículo não encontrado'
+    )
+    console.warn(message.logMessage);
+    throw new Error(message.userMessage);
   }
 
-  const updatedDescription = `${verifyVehicle.description || ""}
-  \nRegistro da saida do veiculo: ${verifyOperator.username} em ${exit_time}`;
+  const verifyCash = await prisma.cashRegister.findFirst({
+    where: { id: cashId, status: 'OPEN' },
+  })
 
-  try{
-    const transactionId = await prisma.$transaction(async (tx) => {
-      const exitVehicle = await tx.vehicle_entries.update({
-        where: { id: verifyVehicle.id },
+  if (!verifyCash) {
+    const message = createMessage(
+      'Caixa não encontrada',
+      '[vehicleService] Tentativa de confirmar saída de veículo, mas caixa não encontrada'
+    )
+    console.warn(message.logMessage);
+    throw new Error(message.userMessage);
+  }
+
+  const updatedDescription = `${vehicle.description || ""}
+  \nRegistro de confirmação da saída do veículo: ${user.username} em ${formattedExitTime}`;
+
+  try {
+    const transactionExit = await prisma.$transaction(async (tx) => {
+      const vehicleUpdated = await tx.vehicleEntries.update({
+        where: { id: vehicleId },
         data: {
           description: updatedDescription,
-          exit_time: exit_time,
+          exitTime: exitTime,
           status: 'EXITED'
+        },
+        select: {
+          id: true,
+          plate: true,
+          category: true,
+          entryTime: true,
+          exitTime: true,
         }
-      });
+      })
 
-      const transaction = await tx.vehicle_transaction.create({
+      const transaction = await tx.vehicleTransaction.create({
         data: {
-          vehicle_id: verifyVehicle.id,
-          operator: verifyOperator.username,
-          transaction_date: local,
-          cash_register_id: verifyCash.id,
-          amount_received: amount_received,
-          change_given: discount_amount,
-          discount_amount: change_given,
-          final_amount: final_amount,
-          original_amount: original_amount,
-          method: normalizedMethod,
+          vehicleId: vehicleUpdated.id,
+          operator: user.username,
+          transactionDate: exitTime,
+          cashRegisterId: cashId,
+          amountReceived: amountReceived,
+          changeGiven: changeGiven,
+          discountAmount: discountAmount,
+          finalAmount: finalAmount,
+          originalAmount: originalAmount,
+          method: method,
           photo: photoBuffer,
-          photo_type: photoMimeType
+          photoType: photoMimeType,
+        }, select: {
+          id: true,
+          method: true,
+          amountReceived: true,
+          discountAmount: true,
+          changeGiven: true,
+          finalAmount: true,
+          originalAmount: true,
         }
-      });
+      })
 
-      return transaction.id
-    })
-
-    if(transactionId) {
-      await prisma.cash_register.update({
-        where: {id: verifyCash.id},
-        data:{
-          final_value: {
-            increment: final_amount
+      await tx.cashRegister.update({
+        where: { id: cashId },
+        data: {
+          finalValue: {
+            increment: transaction.finalAmount
           },
-          vehicle_entry_total: {
-            increment: final_amount
+          vehicleEntryTotal: {
+            increment: transaction.finalAmount
           }
         }
       })
-    }
-    return transactionId;
+
+      return {
+        transaction,
+        vehicleUpdated
+      };
+    })
+
+    return transactionExit;
   } catch (error) {
-    throw new Error('Erro ao registrar pagamento: ' + error.message);
+    console.error(`[vehicleService] Erro ao confirmar saída de veículo: ${error.message}`);
+    throw error;
+  }
+}
+
+async function vehicleExitDuplicateService(transactionId) {
+  try {
+    const transaction = await prisma.vehicleTransaction.findFirst({
+      where: { id: transactionId },
+      select: {
+        vehicleEntries: {
+          select: {
+            plate: true,
+            category: true,
+            entryTime: true,
+            exitTime: true,
+          },
+        },
+        method: true,
+        operator: true,
+        amountReceived: true,
+        discountAmount: true,
+        changeGiven: true,
+        finalAmount: true,
+        originalAmount: true,
+      }
+    });
+
+    if (!transaction) {
+      const message = createMessage(
+        'Dados para gerar segunda via do recibo não encontrados',
+        '[vehicleService] Tentativa de buscar dados para gerar segunda via do recibo, mas dados não encontrados'
+      )
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
+
+    return transaction;
+  } catch (error) {
+    console.error(`[vehicleService] Erro ao buscar dados para gerar segunda via do recibo: ${error.message}`);
+    throw error;
   }
 }
 
 module.exports = {
-  vehicleEntry,
-  getConfigParking,
-  getvehicle,
-  getUniqueVehicleService,
-  configParking,
-  getParkedVehicles,
-  getParkedVehiclesOnly,
-  editVehicleService,
-  deleteVehicleService,
-  reactivateVehicleService,
-  hasNewVehicleEntries,
-  parkingSpaces,
-  billingMethodService,
-  methodActiveService,
-  methodSaveService,
-  exitsRegisterService
+  registerVehicleEntryService,
+  listVehicleEntriesService,
+  vehicleEntryPhotoService,
+  searchVehicleEntryService,
+  desactivateVehicleEntryService,
+  activateVehicleEntryService,
+  vehicleEntryUpdateService,
+  vehicleEntryUpdatePhotoService,
+  vehicleEntryDeletePhotoService,
+  fetchVehicleEntryService,
+  calculateOutstandingService,
+  exitsRegisterConfirmService,
+  vehicleExitDuplicateService,
 };

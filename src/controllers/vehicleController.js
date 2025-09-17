@@ -4,7 +4,9 @@ const { DateTime } = require("luxon");
 const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { generateVehicleReceiptPDF } = require('../utils/vehicleReceiptPDF')
+const { generateVehicleReceiptPDFImproved } = require('../utils/vehicleReceiptPDFImproved');
+const { getCurrentBelemTime, formatBelemTime, convertToBelemTime } = require('../utils/timeConverter');
+
 
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
@@ -12,123 +14,103 @@ exports.vehicleEntry = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
-      errors: errors.array(),
     });
   }
 
-  let { plate, category, operatorId, observation } = req.body;
-  const user = req.user
+  //Dados recebidos pelo body
+  const { plate, category, observation, billingMethod, cashRegisterId } = req.body;
 
+  //Dados recebidos pelo file
   const photoBuffer = req.file ? req.file.buffer : null;
   const photoMimeType = req.file ? req.file.mimetype : null;
 
-  plate = plate.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  //Dados recebidos pelo middleware
+  const user = req.user;
 
-  const belemDateTime = DateTime.now().setZone("America/Belem");
-  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
+  // Gerar a hora de entrada em formato HH:mm:ss local de Belém
+  const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
 
-  const isOldPattern = /^[A-Z]{3}[0-9]{4}$/.test(plate);
-  const isMercosulPattern = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(plate);
+  // Gerar a hora de entrada em formato ISO
+  const entryTime = getCurrentBelemTime();
 
-  if (!(isOldPattern || isMercosulPattern)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Placa fora do formato esperado'
-    });
-  }
+  // Extrair apenas a data (dd/MM/yyyy)
+  const formattedDateOnly = formatBelemTime(getCurrentBelemTime(), "dd/MM/yyyy");
+
+  // Extrair apenas a hora (HH:mm:ss)
+  const formattedTimeOnly = formatBelemTime(getCurrentBelemTime(), "HH:mm:ss");
 
   try {
-    const result = await vehicleService.vehicleEntry(
-      plate,
-      category,
-      user.id,
-      belemDateTime,
-      formattedDate,
-      observation || null,
-      photoBuffer,
-      photoMimeType
-    );
-
-    console.log('[Entrada Registrada]', {
-      id: result.id,
-      plate: result.plate,
-      operator: result.operator,
-      category: result.category,
-      entryTime: result.entry_time
-    });
-
-    const dt = DateTime.fromJSDate(result.entry_time).setZone("America/Belem");
-    const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
-    const formattedTimeOnly = dt.toFormat("HH:mm:ss");
-
-    const rules = await prisma.billingMethod.findFirst({
-      where: { is_active: true },
-      select: {
-        name: true,
-        description: true,
-        tolerance: true,
-        billing_rule: {
-          where: { vehicle_type: result.category },
-          select: {
-            price: true
-          }
-        }
-      }
+    const entry = await vehicleService.registerVehicleEntryService({
+      plate: plate,
+      entryTime: entryTime,
+      formattedEntryTime: formattedEntryTime,
+      category: category,
+      billingMethodId: billingMethod,
+      cashRegisterId: cashRegisterId,
+      user: user,
+      observation: observation,
+      photoBuffer: photoBuffer,
+      photoMimeType: photoMimeType,
     })
 
-    const name = rules.name.toLowerCase();
-    const tolerance = rules.tolerance;
-    const description = rules.description;
-    const price = rules.billing_rule[0].price;
+    let amount = 0;
 
-    const ticketPromise = generateEntryTicketPDF(
-      result.id,
-      result.plate,
-      result.operator,
-      result.category,
-      formattedDateOnly,
-      formattedTimeOnly,
-      name,
-      tolerance,
-      description,
-      price
-    );
+    if (entry.category === 'carro') {
+      amount = entry.billingMethod.carroValue;
+    } else {
+      amount = entry.billingMethod.motoValue;
+    }
+
+    // Gerar o ticket de entrada com timeout de 6 segundos
+    const ticketPromise = generateEntryTicketPDF({
+      id: entry.id,
+      plate: entry.plate,
+      operator: entry.operator,
+      category: entry.category,
+      formattedDate: formattedDateOnly,
+      formattedTime: formattedTimeOnly,
+      tolerance: entry.billingMethod.tolerance,
+      description: entry.billingMethod.description,
+      price: amount,
+    });
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 15000)
+      setTimeout(() => reject(new Error('timeout')), 6000)
     );
 
     let ticket = null;
+    let ticketError = false;
+
     try {
       ticket = await Promise.race([ticketPromise, timeoutPromise]);
     } catch (err) {
       if (err.message === 'timeout') {
-        console.warn('⏰ Geração do ticket excedeu o tempo limite de 15s');
+        console.warn('Geração do ticket excedeu o tempo limite de 6 segundos');
+        ticketError = true;
       } else {
-        console.error('❌ Erro ao gerar ticket:', err.message);
+        console.error('Erro ao gerar ticket:', err.message);
+        ticketError = true;
       }
     }
 
     return res.status(201).json({
       success: true,
-      message: ticket
-        ? 'Entrada do veículo registrada com sucesso'
-        : 'Entrada registrada, mas o ticket não pôde ser gerado a tempo',
-      ticket: ticket || null
-    });
-
+      message: ticketError
+        ? 'Entrada do veículo registrada com sucesso, mas houve erro ao gerar o ticket'
+        : 'Entrada do veículo registrada com sucesso',
+      ticket: ticket || null,
+    })
   } catch (error) {
-    console.warn(`[VehicleController] Erro ao tentar registrar a entrada do veículo: ${error.message}`);
-    return res.status(400).json({
+    console.error(`[vehicleController] Erro ao registrar entrada de veículo: ${error.message}`);
+    return res.status(500).json({
       success: false,
       message: error.message
-    });
+    })
   }
-};
+}
 
-exports.generateTicketDuplicate = async (req, res) => {
+exports.listVehicleEntries = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -136,67 +118,117 @@ exports.generateTicketDuplicate = async (req, res) => {
     });
   }
 
-  const { id } = req.params;
+  const { cashId } = req.params;
+  const { cursor, limit } = req.query;
 
   try {
-    const vehicle = await vehicleService.getvehicle(id)
-    console.log(vehicle);
+    const result = await vehicleService.listVehicleEntriesService(cashId, cursor, limit);
+
+    // Adiciona formattedEntryTime para cada entrada
+    if (result && result.vehicles) {
+      result.vehicles = result.vehicles.map(entry => ({
+        ...entry,
+        formattedEntryTime: formatBelemTime(entry.entryTime, "dd/MM/yyyy HH:mm:ss")
+      }));
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        vehicles: result.vehicles,
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore
+      }
+    });
+  } catch (error) {
+    console.error(`[vehicleController] Erro ao buscar entradas de veículos: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+exports.vehicleEntryPhoto = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { vehicleId } = req.params;
+
+  try {
+    const photo = await vehicleService.vehicleEntryPhotoService(vehicleId);
+
+    return res.status(200).json({
+      success: true,
+      data: photo
+    })
+  } catch (error) {
+    console.error(`[vehicleController] Erro ao buscar foto do veículo: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+exports.vehicleEntryDuplicate = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { vehicleId } = req.params;
+
+  // Extrair apenas a data (dd/MM/yyyy)
+  const formattedDateOnly = formatBelemTime(getCurrentBelemTime(), "dd/MM/yyyy");
+
+  // Extrair apenas a hora (HH:mm:ss)
+  const formattedTimeOnly = formatBelemTime(getCurrentBelemTime(), "HH:mm:ss");
+
+  try {
+    const vehicle = await vehicleService.searchVehicleEntryService(vehicleId)
 
     if (!vehicle) {
       return res.status(401).json({
         success: false,
-        message: `vehiculo não encontrodo no patio`
+        message: `Veículo não encontrado`,
       })
     }
 
-    console.log(`Hora de entrada: ${vehicle.entry_time}`)
-    const dt = DateTime.fromJSDate(vehicle.entry_time).setZone('America/Belem');
+    let amount = 0;
 
-    const dataFormatada = dt.toFormat('dd/MM/yyyy');
-    const horaFormatada = dt.toFormat('HH:mm:ss');
+    if (vehicle.category === 'carro') {
+      amount = vehicle.billingMethod.carroValue;
+    } else {
+      amount = vehicle.billingMethod.motoValue;
+    }
 
-    console.log(`Data formatada: ${dataFormatada}`);
-    console.log(`Hora formatada: ${horaFormatada}`);
-
-    const rules = await prisma.billing_method.findFirst({
-      where: { is_active: true },
-      select: {
-        name: true,
-        description: true,
-        tolerance: true,
-        billing_rule: {
-          where: { vehicle_type: vehicle.category },
-          select: {
-            price: true
-          }
-        }
-      }
+    const ticket = await generateEntryTicketPDF({
+      id: vehicle.id,
+      plate: vehicle.plate,
+      operator: vehicle.operator,
+      category: vehicle.category,
+      formattedDate: formattedDateOnly,
+      formattedTime: formattedTimeOnly,
+      tolerance: vehicle.billingMethod.tolerance,
+      description: vehicle.billingMethod.description,
+      price: amount,
     })
 
-    const name = rules.name.toLowerCase();
-    const tolerance = rules.tolerance;
-    const description = rules.description;
-    const price = rules.billing_rule[0].price;
-
-    const secondTicket = await generateEntryTicketPDF(
-      id,
-      vehicle.plate,
-      vehicle.operator,
-      vehicle.category,
-      dataFormatada,
-      horaFormatada,
-      name,
-      tolerance,
-      description,
-      price
-    );
-
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
-      ticket: secondTicket
+      ticket: ticket
     })
   } catch (error) {
-    console.log(`[VehicleController] Erro ao tentar gerar a segunda via do ticket: ${error}`);
+    console.error(`[vehicleController] Erro ao buscar veículo: ${error.message}`);
     return res.status(500).json({
       success: false,
       message: error.message
@@ -204,71 +236,8 @@ exports.generateTicketDuplicate = async (req, res) => {
   }
 }
 
-exports.getParkingConfig = async (req, res) => {
-  try {
-    const config = await vehicleService.getConfigParking();
-
-    if (!config) {
-      return res.status(404).json({
-        success: false,
-        message: 'Os dados do patio ainda não foi configurado'
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      config
-    });
-
-  } catch (error) {
-    console.error(`[VehicleController] Erro ao buscar os dados do pátio: ${error.message}`);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar configuração do pátio'
-    });
-  }
-};
-
-exports.ConfigurationParking = async (req, res) => {
+exports.vehicleEntryDesactivate = async (req, res) => {
   const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    console.warn('[ConfigurationParking] Dados inválidos na requisição:', errors.array());
-    return res.status(400).json({
-      success: false,
-      message: 'Erro de validação',
-      fields: errors.array().reduce((acc, err) => {
-        acc[err.path] = err.msg;
-        return acc;
-      }, {}),
-    });
-  }
-
-  const { maxCars, maxMotorcycles } = req.body;
-
-  try {
-    const result = await vehicleService.configParking(maxCars, maxMotorcycles);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Configuração do pátio atualizada com sucesso',
-      config: result,
-    });
-
-  } catch (error) {
-    console.error(`[ConfigurationParking] Erro ao atualizar configuração do pátio: ${error.message}`);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao atualizar configuração do pátio',
-    });
-  }
-};
-
-exports.getUniqueVehicle = async (req, res) => {
-  const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -276,174 +245,28 @@ exports.getUniqueVehicle = async (req, res) => {
     });
   }
 
-  const { id, plate } = req.params;
+  const { vehicleId } = req.params;
+  const user = req.user;
 
   try {
-    const vehicle = await vehicleService.getUniqueVehicleService(id, plate);
-
-    if (!vehicle) {
-      console.log(`[vehicleController] tentativa de busca da placa: ${plate}, mas não estava no patio`);
-      return res.status(401).json({
-        success: false,
-        message: `O veículo não se encontra no pátio`
-      });
-    }
-
-    // Formata o entryTime para horário de Belém
-    if (vehicle.entryTime) {
-      const dt = DateTime.fromJSDate(vehicle.entryTime).setZone('America/Belem');
-      vehicle.entryTime = dt.toFormat('dd/MM/yyyy HH:mm:ss');
-    }
-
-    return res.status(201).json({
-      success: true,
-      car: vehicle
-    });
-  } catch (error) {
-    console.log(`[vehicleController] Erro ao tentar buscar o veículo: ${error}`);
-    return res.status(500).json({
-      success: false,
-      message: `Erro ao tentar buscar o veículo: ${error}`
-    });
-  }
-};
-
-exports.getParkedVehicles = async (req, res) => {
-  try {
-    const user = req.user
-
-    const vehicles = await vehicleService.getParkedVehicles(user.role);
+    await vehicleService.desactivateVehicleEntryService(vehicleId, user)
 
     return res.status(200).json({
       success: true,
-      data: vehicles
+      message: "Veículo desativado com sucesso.",
     });
 
   } catch (error) {
-    console.error(`[VehicleController] Erro ao buscar veículos no pátio: ${error.message}`);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar veículos estacionados'
-    });
-  }
-};
-
-exports.getParkedVehiclesExit = async (req, res) => {
-  try {
-    const vehicles = await vehicleService.getParkedVehiclesOnly();
-
-    return res.status(200).json({
-      success: true,
-      data: vehicles
-    });
-
-  } catch (error) {
-    console.error(`[VehicleController] Erro ao buscar veículos no pátio: ${error.message}`);
-
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar veículos estacionados'
-    });
-  }
-}
-
-exports.checkForUpdates = async (req, res) => {
-  const lastCheck = req.query.lastCheck;
-
-  if (!lastCheck) {
-    return res.status(400).json({
-      success: false,
-      message: "Parâmetro 'lastCheck' é obrigatório (ISO format)"
-    });
-  }
-
-  try {
-    const updated = await vehicleService.hasNewVehicleEntries(lastCheck);
-
-    return res.status(200).json({
-      success: true,
-      updated
-    });
-
-  } catch (error) {
-    console.error(`[VehicleController] Erro ao verificar atualizações: ${error.message}`);
-    return res.status(500).json({
-      success: false,
-      message: "Erro ao verificar atualizações"
-    });
-  }
-};
-
-exports.editVehicle = async (req, res) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Dados inválidos. Verifique os campos e tente novamente.',
-    });
-  }
-
-  const { id, category, plate } = req.body;
-  const user = req.user
-
-  const belemDateTime = DateTime.now().setZone("America/Belem");
-  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
-
-  console.log(id)
-  try {
-    await vehicleService.editVehicleService(String(id), category, plate, formattedDate, user);
-
-    console.log(`[VehicleController] Dados do veículo atualizados com sucesso`);
-    return res.status(201).json({
-      success: true,
-      message: 'Dados do veículo atualizados com sucesso',
-    });
-  } catch (error) {
-    console.log(`[VehicleController] Erro ao atualizar os dados do veículo: ${error}`);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro interno ao atualizar os dados',
-    });
-  }
-};
-
-exports.deleteVehicle = async (req, res) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Dados inválidos. Verifique os campos e tente novamente.',
-    });
-  }
-
-  const { id } = req.body
-  const user = req.user
-
-  const belemDateTime = DateTime.now().setZone("America/Belem");
-  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
-
-  try {
-    await vehicleService.deleteVehicleService(String(id), belemDateTime, formattedDate, user);
-
-    return res.status(201).json({
-      success: true,
-      message: 'Veiculo Excluido'
-    });
-  } catch (error) {
-    console.error(`Erro ao tentar excluir o veiculo: ${error}`);
+    console.error(`[vehicleController] Erro ao desativar veículo: ${error.message}`);
     return res.status(500).json({
       success: false,
       message: error.message
-    })
+    });
   }
 }
 
-exports.reactivateVehicle = async (req, res) => {
+exports.vehicleEntryActivate = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -451,170 +274,190 @@ exports.reactivateVehicle = async (req, res) => {
     });
   }
 
-  const { id, plate } = req.body
-  const user = req.user
-
-  const belemDateTime = DateTime.now().setZone("America/Belem");
-  const formattedDate = belemDateTime.toFormat("dd/MM/yyyy HH:mm:ss");
+  const { vehicleId } = req.params;
+  const user = req.user;
 
   try {
-    const vehicle = await vehicleService.reactivateVehicleService(id, plate, user, formattedDate);
+    await vehicleService.activateVehicleEntryService(vehicleId, user)
 
-    if (vehicle.status === 'INSIDE') {
-      return res.status(200).json({
-        success: true,
-        message: 'Veiculo reativado'
-      });
-    }
-
-    return res.status(400).json({
-      success: false,
-      message: 'Erro ao tentar reativar o veiculo'
-    })
+    return res.status(200).json({
+      success: true,
+      message: "Veículo reativado com sucesso.",
+    });
   } catch (error) {
-    console.log(error.message)
-
+    console.error(`[vehicleController] Erro ao reativar veículo: ${error.message}`);
     return res.status(500).json({
       success: false,
-      message: 'Erro interno do servidor'
-    })
+      message: error.message
+    });
   }
 }
 
-exports.parkingOnly = async (req, res) => {
+exports.vehicleEntryUpdate = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { plate, category, observation, billingMethod, requiredTicket } = req.body;
+  const { vehicleId } = req.params;
+  const user = req.user;
+
   try {
-    const parking = await vehicleService.parkingSpaces();
+    const vehicle = await vehicleService.vehicleEntryUpdateService(vehicleId, plate, category, observation, billingMethod, user);
+
+    const formattedDateOnly = formatBelemTime(vehicle.entryTime, "dd/MM/yyyy");
+    const formattedTimeOnly = formatBelemTime(vehicle.entryTime, "HH:mm:ss");
+
+    let amount = 0;
+    let ticket = null;
+
+    if (vehicle.category === 'carro') {
+      amount = vehicle.billingMethod.carroValue;
+    } else {
+      amount = vehicle.billingMethod.motoValue;
+    }
+
+    if (Boolean(requiredTicket)) {
+      ticket = await generateEntryTicketPDF({
+        id: vehicle.id,
+        plate: vehicle.plate,
+        operator: vehicle.operator,
+        category: vehicle.category,
+        formattedDate: formattedDateOnly,
+        formattedTime: formattedTimeOnly,
+        tolerance: vehicle.billingMethod.tolerance,
+        description: vehicle.billingMethod.description,
+        price: amount,
+      })
+    }
 
     return res.status(200).json({
       success: true,
-      data: parking
+      message: "Veículo atualizado com sucesso.",
+      ticket: ticket
     });
   } catch (error) {
-    console.error('Erro ao buscar vagas:', error);
+    console.error(`[vehicleController] Erro ao atualizar veículo: ${error.message}`);
     return res.status(500).json({
       success: false,
-      message: 'Erro interno ao buscar dados de vagas.'
+      message: error.message
     });
   }
-};
+}
 
-exports.billingMethod = async (req, res) => {
-  try {
-    const result = await vehicleService.billingMethodService();
-    console.log(result)
-    res.json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-exports.methodActive = async (req, res) => {
-  try {
-    const result = await vehicleService.methodActiveService();
-
-    console.log(result)
-    if (!result) {
-      return res.status(404).json({
-        success: false,
-        message: 'Nenhum método de cobrança ativo encontrado'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    console.error('Erro ao buscar métodos ativos:', error);
-    res.status(500).json({
+exports.vehicleEntryUpdatePhoto = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
       success: false,
-      message: error.message || 'Erro ao buscar métodos ativos'
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
     });
   }
-};
 
-exports.methodSave = async (req, res) => {
-  const startTime = Date.now();
-  console.log('Iniciando salvamento de método', {
-    methodName: req.body.methodId,
-    toleranceMinutes: req.body.toleranceMinutes,
-    rulesCount: req.body.rules.length
-  });
+  const { vehicleId } = req.params;
+  const user = req.user;
+
+  const photoBuffer = req.file ? req.file.buffer : null;
+  const photoMimeType = req.file ? req.file.mimetype : null;
 
   try {
-    const { methodId: methodName, toleranceMinutes, rules } = req.body;
 
-    // Validação básica
-    if (!methodName || !rules) {
-      console.warn('Campos obrigatórios faltando', { methodName, rules });
-      return res.status(400).json({
-        success: false,
-        message: 'Campos obrigatórios faltando: methodId (nome) e rules'
-      });
-    }
-
-    // Busca o método pelo nome
-    console.log('Buscando método por nome no banco de dados', { methodName });
-    const billingMethod = await prisma.billing_method.findFirst({
-      where: {
-        name: methodName
-      },
-      select: {
-        id: true,
-        name: true
-      }
-    });
-
-    if (!billingMethod) {
-      console.warn('Método não encontrado', { methodName });
-      return res.status(404).json({
-        success: false,
-        message: `Método de cobrança "${methodName}" não encontrado`
-      });
-    }
-
-    console.log('Método encontrado', {
-      methodId: billingMethod.id,
-      methodName: billingMethod.name
-    });
-
-    // Chama o service com o ID correto
-    const result = await vehicleService.methodSaveService({
-      methodId: billingMethod.id,
-      toleranceMinutes: toleranceMinutes || 0,
-      rules
-    });
-
-    const duration = Date.now() - startTime;
-    console.log('Método salvo com sucesso', {
-      methodName,
-      durationMs: duration,
-      rulesSaved: result.length
-    });
+    await vehicleService.vehicleEntryUpdatePhotoService(vehicleId, photoBuffer, photoMimeType, user);
 
     return res.status(200).json({
       success: true,
-      message: 'Configuração salva com sucesso',
-      data: {
-        method: billingMethod.name,
-        rules: result
-      }
+      message: "Foto do veículo atualizada com sucesso.",
     });
   } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error('Erro ao salvar método:', {
-      error: error.message,
-      stack: error.stack,
-      durationMs: duration,
-      body: req.body
-    });
-
+    console.error(`[vehicleController] Erro ao atualizar foto do veículo: ${error.message}`);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Erro ao salvar configuração'
+      message: error.message
     });
   }
-};
+}
+
+exports.vehicleEntryDeletePhoto = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { vehicleId } = req.params;
+  const user = req.user;
+
+  try {
+    await vehicleService.vehicleEntryDeletePhotoService(vehicleId, user);
+
+    return res.status(200).json({
+      success: true,
+      message: "Foto do veículo deletada com sucesso.",
+    });
+  } catch (error) {
+    console.error(`[vehicleController] Erro ao deletar foto do veículo: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+exports.fetchVehicleEntry = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { vehicleId, plateId } = req.params;
+
+  try {
+    const vehicle = await vehicleService.fetchVehicleEntryService(vehicleId, plateId);
+
+    // Calcula o tempo de permanência no horário de Belém
+    const entryTimeBelem = convertToBelemTime(vehicle.entryTime);
+    const currentTimeBelem = getCurrentBelemTime();
+    const permanenceDuration = currentTimeBelem.diff(entryTimeBelem);
+
+    // Formata o tempo de permanência como string (HH:mm:ss)
+    const permanenceTimeString = permanenceDuration.toFormat("hh:mm:ss");
+
+    // Formata a data de entrada como string
+    const entryTimeString = formatBelemTime(vehicle.entryTime, "yyyy-MM-dd'T'HH:mm:ss");
+
+    // Monta o objeto Vehicle conforme a interface esperada
+    const vehicleResponse = {
+      id: vehicle.id,
+      plate: vehicle.plate,
+      category: vehicle.category,
+      entryTime: entryTimeString,
+      permanenceTime: permanenceTimeString,
+      observation: vehicle.observation,
+      billingMethod: vehicle.billingMethod,
+      photoType: vehicle.photoType
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: vehicleResponse
+    });
+  } catch (error) {
+    console.error(`[vehicleController] Erro ao buscar veículo: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
 
 exports.calculateOutstanding = async (req, res) => {
   const errors = validationResult(req);
@@ -626,198 +469,187 @@ exports.calculateOutstanding = async (req, res) => {
     });
   }
 
-  const { stayDuration, category } = req.body;
-
-  function convertHHMMSSToMinutes(hhmmss) {
-    const [hours, minutes, seconds] = hhmmss.split(':').map(Number);
-    return hours * 60 + minutes + Math.floor(seconds / 60);
-  }
-
-  const stayMinutes = convertHHMMSSToMinutes(stayDuration);
+  const { vehicleId, plateId } = req.params;
 
   try {
-    const ruleSet = await vehicleService.methodActiveService();
+    const vehicle = await vehicleService.calculateOutstandingService(vehicleId, plateId);
 
-    console.log(ruleSet)
-
-    if (!ruleSet) {
-      return res.status(404).json({
+    if (!vehicle.billingMethod) {
+      return res.status(400).json({
         success: false,
-        message: "Nenhuma regra de cobrança ativa encontrada.",
+        message: 'Veículo não possui método de cobrança associado.'
       });
     }
 
-    const { tolerance } = ruleSet.method;
-    const normalizedCategory = category.toLowerCase();
-    const rule = ruleSet.rules.find(r => r.vehicle_type === normalizedCategory);
+    // Importa a função de cálculo
+    const { calculateOutstandingAmount } = require('../utils/billingMethodUtils');
 
-    if (!rule) {
-      return res.status(404).json({
-        success: false,
-        message: `Regra de cobrança não encontrada para a categoria: ${category}`,
-      });
+    // Calcula o valor a ser cobrado
+    const calculation = calculateOutstandingAmount(
+      vehicle.entryTime,
+      vehicle.category,
+      vehicle.billingMethod
+    );
+
+    // Verifica se houve erro na validação
+    if (calculation.error) {
+      return res.status(400).json(calculation.error);
     }
-
-    const { base_time_minutes, price } = rule;
-
-    const totalCobrado = (() => {
-      if (stayMinutes <= tolerance) {
-        return 0;
-      }
-
-      const excessTime = stayMinutes - tolerance;
-      const slots = Math.max(1, Math.ceil(excessTime / base_time_minutes));
-      return slots * price;
-    })();
 
     return res.status(200).json({
       success: true,
-      amount: totalCobrado,
-      stayMinutes,
-      ruleUsed: {
-        base_time_minutes,
-        price,
-        tolerance,
-        vehicle_type: normalizedCategory
-      }
+      amount: calculation.amount
     });
-
   } catch (error) {
-    console.error("Erro ao calcular cobrança:", error);
+    console.error(`[vehicleController] Erro ao calcular dívida de veículo: ${error.message}`);
     return res.status(500).json({
       success: false,
-      message: "Erro ao calcular cobrança.",
+      message: error.message
     });
   }
 };
 
-exports.exitsRegister = async (req, res) => {
+exports.exitsRegisterConfirm = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
-    console.log("❌ Erros de validação:", errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
     });
   }
 
-const {
-  plate,
-  exit_time,
-  openCashId,
-  method
-} = req.body;
-
-const amount_received = Number(req.body.amount_received);
-const change_given = Number(req.body.change_given);
-const discount_amount = Number(req.body.discount_amount);
-const final_amount = Number(req.body.final_amount);
-const original_amount = Number(req.body.original_amount);
-
+  const { cashId, vehicleId } = req.params;
+  const { amountReceived, changeGiven, discountAmount, finalAmount, originalAmount, method } = req.body;
+  const user = req.user;
 
   const photoBuffer = req.file ? req.file.buffer : null;
   const photoMimeType = req.file ? req.file.mimetype : null;
 
+  // Gerar a hora de entrada em formato ISO
+  const exitTime = getCurrentBelemTime();
 
-  console.log(photoBuffer)
-  console.log(photoMimeType)
-  
-  const user = req.user;
-
-  console.log("📥 Dados recebidos:", {
-    plate,
-    exit_time,
-    openCashId,
-    amount_received,
-    change_given,
-    discount_amount,
-    final_amount,
-    original_amount,
-    method,
-    user
-  });
+  // Gerar a hora de entrada em formato HH:mm:ss local de Belém
+  const formattedExitTime = formatBelemTime(getCurrentBelemTime());
 
   try {
-    const local = DateTime.now().setZone("America/Belem");
-    console.log("🕒 Data/hora local:", local.toISO());
+    console.log(`[VehicleController] Caixa ID: ${cashId}`);
+    console.log(`[VehicleController] Confirmando saída do veículo ID: ${vehicleId}`);
+    console.log(`[VehicleController] Dados recebidos:`, {
+      amountReceived: parseFloat(amountReceived),
+      changeGiven: parseFloat(changeGiven),
+      discountAmount: parseFloat(discountAmount),
+      finalAmount: parseFloat(finalAmount),
+      originalAmount: parseFloat(originalAmount),
+      method,
+      exitTime,
+      formattedExitTime,
+      user: user,
+      username: user.username
+    });
 
-    const paymentMethodMap = {
-      "Dinheiro": "DINHEIRO",
-      "Pix": "PIX",
-      "Crédito": "CREDITO",
-      "Débito": "DEBITO",
-    };
+    // Validação: verificar se não está faltando dinheiro
+    const amountReceivedNum = parseFloat(amountReceived);
+    const finalAmountNum = parseFloat(finalAmount);
+    const changeGivenNum = parseFloat(changeGiven);
 
-    const normalizedMethod = paymentMethodMap[method];
-
-    if (!normalizedMethod) {
-      console.error("❌ Método de pagamento inválido:", method);
-      throw new Error("Método de pagamento inválido");
-    }
-
-    console.log("✅ Método de pagamento normalizado:", normalizedMethod);
-
-    const register = await vehicleService.exitsRegisterService(
-      plate,
-      exit_time,
-      openCashId,
-      user,
-      Number(amount_received.toFixed(2)),
-      Number(discount_amount.toFixed(2)),
-      Number(change_given.toFixed(2)),
-      Number(final_amount.toFixed(2)),
-      Number(original_amount.toFixed(2)),
-      normalizedMethod,
-      local,
-      photoBuffer,
-      photoMimeType
-    );
-
-    console.log("✅ Registro de saída criado:", register?.id || register);
-
-    let receipt = null;
-
-    try {
-      receipt = await generateVehicleReceiptPDF(
-        user.username,
-        method,
-        plate,
-        Number(amount_received.toFixed(2)),
-        Number(discount_amount.toFixed(2)),
-        Number(change_given.toFixed(2)),
-        Number(final_amount.toFixed(2)),
-        Number(original_amount.toFixed(2)),
-      );
-      console.log("📄 Comprovante gerado com sucesso.");
-    } catch (pdfError) {
-      console.warn("⚠️ Falha ao gerar comprovante PDF:", pdfError.message || pdfError);
-    }
-
-
-    if (!receipt) {
-      console.warn("⚠️ Comprovante não gerado.");
-      return res.status(201).json({
-        success: true,
-        transactionId: register?.id || null,
-        message: "Pagamento registrado com sucesso, mas o comprovante não foi gerado.",
+    // Validação: verificar se não está faltando dinheiro
+    if (amountReceivedNum < finalAmountNum) {
+      return res.status(400).json({
+        success: false,
+        message: `Valor recebido (R$ ${amountReceivedNum.toFixed(2)}) é menor que o valor final (R$ ${finalAmountNum.toFixed(2)}).`
       });
     }
 
-    console.log("📄 Comprovante gerado com sucesso.");
+    console.log(`[VehicleController] Validações de pagamento aprovadas, chamando service...`);
 
-    return res.status(201).json({
+    const exitRegister = await vehicleService.exitsRegisterConfirmService({
+      cashId,
+      vehicleId,
+      exitTime,
+      formattedExitTime,
+      amountReceived,
+      changeGiven,
+      discountAmount,
+      finalAmount,
+      originalAmount,
+      method,
+      user,
+      photoBuffer,
+      photoMimeType,
+    });
+
+    // Agora exitRegister contém { transaction, vehicleUpdated }
+    const { transaction, vehicleUpdated } = exitRegister;
+
+    console.log(`[VehicleController] Transaction:`, transaction);
+    console.log(`[VehicleController] VehicleUpdated:`, vehicleUpdated);
+
+    const pdf = await generateVehicleReceiptPDFImproved({
+      operator: user.username,
+      paymentMethod: transaction.method.toUpperCase(),
+      plate: vehicleUpdated.plate,
+      amountReceived: transaction.amountReceived,
+      discountValue: transaction.discountAmount,
+      changeGiven: transaction.changeGiven,
+      finalPrice: transaction.finalAmount,
+      originalAmount: transaction.originalAmount,
+      category: vehicleUpdated.category,
+      entryTime: vehicleUpdated.entryTime,
+      exitTime: vehicleUpdated.exitTime
+    })
+
+    return res.status(200).json({
       success: true,
-      exitData: register,
-      receipt,
-      message: "Pagamento registrado com sucesso.",
+      message: 'Saída registrada com sucesso.',
+      data: pdf
     });
 
   } catch (error) {
-    console.error("❌ Erro ao registrar pagamento:", error);
+    console.error(`[VehicleController] Erro ao confirmar saída do veículo: ${error.message}`);
     return res.status(500).json({
       success: false,
-      message: error.message || "Erro interno ao registrar pagamento.",
+      message: error.message || 'Erro interno ao registrar saída do veículo.'
     });
   }
-};
+}
+
+exports.vehicleExitDuplicate = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { transactionId } = req.params;
+
+  try {
+    const transaction = await vehicleService.vehicleExitDuplicateService(transactionId);
+
+    const pdf = await generateVehicleReceiptPDFImproved({
+      operator: transaction.operator,
+      paymentMethod: transaction.method,
+      plate: transaction.vehicleEntries.plate,
+      amountReceived: transaction.amountReceived,
+      discountValue: transaction.discountAmount,
+      changeGiven: transaction.changeGiven,
+      finalPrice: transaction.finalAmount,
+      originalAmount: transaction.originalAmount,
+      category: transaction.vehicleEntries.category,
+      entryTime: transaction.vehicleEntries.entryTime,
+      exitTime: transaction.vehicleEntries.exitTime
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: pdf
+    });
+  } catch (error) {
+    console.error(`[vehicleController] Erro ao gerar segunda via do recibo: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}

@@ -1,9 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { DateTime } = require("luxon");
+const { getCurrentBelemTime } = require('../utils/timeConverter');
 
 async function historicService(filter = "day") {
-  const now = DateTime.now().setZone("America/Belem");
+  const now = getCurrentBelemTime();
   let startDate;
 
   if (filter === "day") {
@@ -193,9 +194,9 @@ async function secondCopyProduct(id) {
 }
 
 async function secondCopyVehicle(id) {
-  try{
+  try {
     const transaction = await prisma.vehicle_transaction.findUnique({
-      where: {id},
+      where: { id },
       select: {
         operator: true,
         method: true,
@@ -216,7 +217,7 @@ async function secondCopyVehicle(id) {
 
     return transaction;
 
-  }catch (error) {
+  } catch (error) {
     throw error;
   }
 }
@@ -287,9 +288,9 @@ async function saveGoalConfigService(data) {
 }
 
 async function detailsCash(id) {
-  try{
+  try {
     const cash = await prisma.cash_register.findUnique({
-      where: {id},
+      where: { id },
       select: {
         id: true,
         opening_date: true,

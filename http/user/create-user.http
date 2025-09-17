@@ -1,0 +1,28 @@
+### Criar Usuário
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123456",
+  "role": "ADMIN"
+}
+
+### Criar Usuário Normal
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "username": "usuario",
+  "password": "123456",
+  "role": "NORMAL"
+}
+
+### Login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123456"
+}

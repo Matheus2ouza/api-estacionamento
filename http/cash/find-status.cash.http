@@ -1,0 +1,7 @@
+//Arquivo para testar rota do status do caixa
+@authToken= eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU0ZTNiYWE5LTA1YzctNGY2MS04ZGJjLWNhMmVmMGJiMzgzMyIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc1NjQyNTk4MCwiZXhwIjoxNzU2NTEyMzgwfQ.c3SaWBLPv_PBYV2oB5tw9Vk9fdES9I_eMouc_Xi7j38
+
+
+GET http://localhost:3000/cash/status
+Content-Type: application/json
+Authorization: Bearer {{authToken}}

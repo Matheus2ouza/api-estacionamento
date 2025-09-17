@@ -1,0 +1,14 @@
+//Arquivo para teste de login
+//
+
+
+
+#Teste para login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "username": "ADMIN",
+  "password": "123456"
+}
+

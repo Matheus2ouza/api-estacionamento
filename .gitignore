@@ -8,4 +8,10 @@ node_modules/
 
 /src/generated/prisma
 
+/prisma/migrations
+/prisma
 /src/generated/prisma
+.vercel
+/http
+/test
+/http

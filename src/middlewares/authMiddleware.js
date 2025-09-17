@@ -4,12 +4,14 @@ const jwt = require('jsonwebtoken');
 
 const Roles = Object.freeze({
   NORMAL: 'NORMAL',
+  MANAGER: 'MANAGER',
   ADMIN: 'ADMIN'
 });
 
 const roleHierarchy = Object.freeze({
   [Roles.NORMAL]: 1,
-  [Roles.ADMIN]: 2
+  [Roles.MANAGER]: 2,
+  [Roles.ADMIN]: 3
 });
 
 function authMiddleware(minRole = Roles.NORMAL) {

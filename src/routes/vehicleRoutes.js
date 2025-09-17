@@ -11,111 +11,135 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // limite de 10MB (ajuste se quiser)
 });
 
+//Rota de registro de entrada de veículo
 router.post('/entries',
   upload.single('photo'),
   [
     body('plate').notEmpty().withMessage("Placa é obrigatória"),
     body('category').notEmpty().isIn(["carro", "moto"]).withMessage("Categoria fora do formato esperado"),
+    body('observation').optional(),
+    body('billingMethod').optional(),
+    body('cashRegisterId').notEmpty().withMessage("Caixa é obrigatória"),
   ],
   authMiddleware('NORMAL'),
   vehicleController.vehicleEntry
 );
 
-router.post('/configParking',
+//Rota de listagem de entradas de veículo
+router.get('/entries/:cashId',
   [
-    body('maxCars').isInt({ min: 0 }).withMessage('Quantidade de vagas fora do valor esperado'),
-    body('maxMotorcycles').isInt({ min: 0 }).withMessage('Quantidade de vagas fora do valor esperado'),
-  ],
-  authMiddleware('ADMIN'),
-  vehicleController.ConfigurationParking
-)
-
-router.post('/editVehicle',
-  [
-    body('id').notEmpty().withMessage('O id é obrigatorio'),
-    body('category').notEmpty().withMessage('A categoria é obrigatoria'),
-    body('plate').notEmpty().withMessage('A placa é obrigatoria')
+    param('cashId').exists().notEmpty(),
   ],
   authMiddleware('NORMAL'),
-  vehicleController.editVehicle
-)
-
-router.post('/deleteVehicle',
-  [
-    body('id').notEmpty().withMessage('O id é obrigatorio'),
-  ],
-  authMiddleware('NORMAL'),
-  vehicleController.deleteVehicle
-)
-
-router.post('/reactivate-vehicle',
-  [
-    body("id").exists().notEmpty(),
-    body("plate").exists().notEmpty()
-  ],
-  authMiddleware('ADMIN'),
-  vehicleController.reactivateVehicle
-)
-
-router.get('/:id/ticket',
-  [
-    param('id').isUUID(),
-  ],
-  authMiddleware('NORMAL'),
-  vehicleController.generateTicketDuplicate
+  vehicleController.listVehicleEntries
 );
 
-router.get('/:id/:plate/vehicle',
+//Rota de busca de foto de entrada de veículo
+router.get('/:vehicleId/photo',
   [
-    param('id').isUUID(),
-    param('plate').isLength({ min: 7, max: 7 }),
+    param('vehicleId').exists().notEmpty(),
   ],
   authMiddleware('NORMAL'),
-  vehicleController.getUniqueVehicle
+  vehicleController.vehicleEntryPhoto
+);
+
+//Rota de busca de segunda via de entrada de veículo
+router.get('/entries/:vehicleId/duplicate',
+  [
+    param('vehicleId').exists().notEmpty(),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.vehicleEntryDuplicate
 )
 
-router.get('/configParking', authMiddleware('NORMAL'), vehicleController.getParkingConfig)
-
-router.get('/parked', authMiddleware('NORMAL'), vehicleController.getParkedVehicles);
-
-router.get('/parked-exit', authMiddleware('NORMAL'), vehicleController.getParkedVehiclesExit);
-
-router.get('/check-update', authMiddleware('NORMAL'), vehicleController.checkForUpdates)
-
-router.get('/parking-data', authMiddleware('NORMAL'), vehicleController.parkingOnly)
-
-router.get('/billing-method', authMiddleware('ADMIN'), vehicleController.billingMethod);
-
-router.get('/billing-method-active', authMiddleware('ADMIN'), vehicleController.methodActive)
-
-router.post('/save-payment-config', authMiddleware('ADMIN'), vehicleController.methodSave)
-
-router.post('/calculate-outstanding',
+//Rota para desativar uma entrada de veículo
+router.patch('/entries/:vehicleId/deactivate',
   [
-    body("stayDuration")
-      .exists()
-      .matches(/^\d{2}:\d{2}:\d{2}$/).withMessage("Formato inválido de duração (esperado HH:mm:ss)"),
+    param('vehicleId').exists().notEmpty(),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.vehicleEntryDesactivate
+);
+
+//Rota para ativar uma entrada de veículo
+router.patch('/entries/:vehicleId/activate',
+  [
+    param('vehicleId').exists().notEmpty(),
+  ],
+  authMiddleware('MANAGER'),
+  vehicleController.vehicleEntryActivate
+);
+
+//Rota para atualizar uma entrada de veículo
+router.put('/entries/:vehicleId',
+  [
+    param('vehicleId').exists().notEmpty(),
+    body('plate').notEmpty().withMessage("Placa é obrigatória"),
     body('category').notEmpty().isIn(["carro", "moto"]).withMessage("Categoria fora do formato esperado"),
+    body('observation').optional(),
+    body('requiredTicket').toBoolean().isBoolean().withMessage("Ticket é obrigatório"),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.vehicleEntryUpdate
+);
+
+//Rota para atualizar a foto de uma entrada de veículo
+router.put('/entries/:vehicleId/photo',
+  upload.single('photo'),
+  authMiddleware('NORMAL'),
+  vehicleController.vehicleEntryUpdatePhoto
+);
+
+//Rota para deletar a foto de uma entrada de veículo
+router.delete('/entries/:vehicleId/photo',
+  [
+    param('vehicleId').exists().notEmpty(),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.vehicleEntryDeletePhoto
+);
+
+router.get('/entries/:vehicleId/:plateId',
+  [
+    param('vehicleId').exists().notEmpty(),
+    param('plateId').exists().notEmpty(),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.fetchVehicleEntry
+)
+
+//Rota de cálculo de dívida de veículo
+router.post('/exit/:vehicleId/:plateId/calculate',
+  [
+    param('vehicleId').exists().notEmpty(),
+    param('plateId').exists().notEmpty(),
 
   ], authMiddleware('NORMAL'),
   vehicleController.calculateOutstanding
 )
 
-router.post('/exits',
+router.post('/exit/:cashId/:vehicleId/confirm',
   upload.single('photo'),
   [
-    body("plate").exists().notEmpty(),
-    body("exit_time").exists().notEmpty(),
-    body("openCashId").exists().notEmpty(),
-    body("amount_received").exists().notEmpty(),
-    body("change_given").exists().notEmpty(),
-    body("discount_amount").exists().notEmpty(),
-    body("final_amount").exists().notEmpty(),
-    body("original_amount").exists().notEmpty(),
-    body("method").exists().notEmpty()
+    param('cashId').exists().notEmpty(),
+    param('vehicleId').exists().notEmpty(),
+    body('amountReceived').exists().notEmpty(), // valor recebido
+    body('changeGiven').exists().notEmpty(), // troco
+    body('discountAmount').exists().notEmpty(), // desconto
+    body('finalAmount').exists().notEmpty(), // valor final
+    body('originalAmount').exists().notEmpty(), // valor original
+    body('method').exists().notEmpty() // método de pagamento
   ],
   authMiddleware('NORMAL'),
-  vehicleController.exitsRegister
+  vehicleController.exitsRegisterConfirm
+);
+
+router.get('/exit/:transactionId/duplicate',
+  [
+    param('transactionId').exists().notEmpty(),
+  ],
+  authMiddleware('NORMAL'),
+  vehicleController.vehicleExitDuplicate
 )
 
 module.exports = router
