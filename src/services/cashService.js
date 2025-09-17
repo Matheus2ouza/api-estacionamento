@@ -10,7 +10,7 @@ async function statusCashService(date) {
     const startOfDay = local.startOf("day").toUTC().toJSDate();
     const endOfDay = local.endOf("day").toUTC().toJSDate();
 
-    const result = await prisma.cash_register.findFirst({
+    const result = await prisma.cashRegister.findFirst({
       where: {
         opening_date: {
           gte: startOfDay,
@@ -35,7 +35,7 @@ async function openCashService(user, initialValue, localDateTime) {
   console.log("[opencashService] Intervalo UTC - startOfDay:", startOfDay);
   console.log("[opencashService] Intervalo UTC - endOfDay:", endOfDay);
 
-  const existingCash = await prisma.cash_register.findFirst({
+  const existingCash = await prisma.cashRegister.findFirst({
     where: {
       opening_date: {
         gte: startOfDay,
@@ -50,7 +50,7 @@ async function openCashService(user, initialValue, localDateTime) {
     return false;
   }
 
-  const newCash = await prisma.cash_register.create({
+  const newCash = await prisma.cashRegister.create({
     data: {
       opening_date: localDateTime.toJSDate(), // armazena em UTC
       operator: user.username,
@@ -75,7 +75,7 @@ async function closeCashService(id, finalValue, date) {
   }
 
   try {
-    const closeCash = await prisma.cash_register.update({
+    const closeCash = await prisma.cashRegister.update({
       where: { id: id },
       data: {
         closing_date: date,
@@ -97,7 +97,7 @@ async function closeCashService(id, finalValue, date) {
 async function reopenCashService(cashId) {
   console.log("🔍 Tentando reabrir caixa:", cashId);
 
-  const cash = await prisma.cash_register.findUnique({
+  const cash = await prisma.cashRegister.findUnique({
     where: { id: cashId },
   });
 
@@ -125,7 +125,7 @@ async function reopenCashService(cashId) {
     throw new Error("O caixa já está aberto.");
   }
 
-  const updated = await prisma.cash_register.update({
+  const updated = await prisma.cashRegister.update({
     where: { id: cashId },
     data: {
       status: 'OPEN'
@@ -137,7 +137,7 @@ async function reopenCashService(cashId) {
 }
 
 async function geralCashDataService(id) {
-  const verifyCash = await prisma.cash_register.findUnique({
+  const verifyCash = await prisma.cashRegister.findUnique({
     where: { id: id }
   })
 
@@ -146,7 +146,7 @@ async function geralCashDataService(id) {
   }
 
   try {
-    const result = await prisma.cash_register.findFirst({
+    const result = await prisma.cashRegister.findFirst({
       where: { id: id }
     })
 
@@ -158,7 +158,7 @@ async function geralCashDataService(id) {
 
 async function BillingMethodService() {
   try {
-    const methods = await prisma.billing_method.findMany({
+    const methods = await prisma.billingMethod.findMany({
       select: {
         name: true,
         description: true,
@@ -183,7 +183,7 @@ async function BillingMethodService() {
 async function cashDataService(id) {
   try {
     // Busca os dados principais do caixa
-    const baseData = await prisma.cash_register.findFirst({
+    const baseData = await prisma.cashRegister.findFirst({
       where: {
         id,
         status: "OPEN"
@@ -199,7 +199,7 @@ async function cashDataService(id) {
     if (!baseData) throw new Error("Caixa não encontrado ou fechado.");
 
     // Busca transações de produtos
-    const productTransactions = await prisma.product_transaction.findMany({
+    const productTransactions = await prisma.productTransaction.findMany({
       where: {cash_register_id: baseData.id },
       select: {
         method: true,
@@ -208,7 +208,7 @@ async function cashDataService(id) {
     })
 
     // Busca transações de veículos
-    const vehicleTransactions = await prisma.vehicle_transaction.findMany({
+    const vehicleTransactions = await prisma.vehicleTransaction.findMany({
       where: { cash_register_id: baseData.id },
       select: {
         method: true,
@@ -252,7 +252,7 @@ async function cashDataService(id) {
 
 async function OutgoingExpenseService(id) {
   try {
-    const verifyCash = await prisma.cash_register.findUnique({
+    const verifyCash = await prisma.cashRegister.findUnique({
       where: { id }
     });
 
@@ -261,7 +261,7 @@ async function OutgoingExpenseService(id) {
       return null;
     }
 
-    const outgoing = await prisma.outgoing_expense.findMany({
+    const outgoing = await prisma.outgoingExpense.findMany({
       where: { cash_register_id: verifyCash.id }
     });
 
@@ -284,7 +284,7 @@ async function OutgoingExpenseService(id) {
 }
 
 async function registerOutgoingService(description, amount, method, openCashId, transactionDate, user) {
-  const verifyCash = await prisma.cash_register.findUnique({
+  const verifyCash = await prisma.cashRegister.findUnique({
     where: { id: openCashId },
   });
 
@@ -293,7 +293,7 @@ async function registerOutgoingService(description, amount, method, openCashId, 
   }
 
   try {
-    const outgoing = await prisma.outgoing_expense.create({
+    const outgoing = await prisma.outgoingExpense.create({
       data: {
         description: description,
         method: method,
@@ -305,7 +305,7 @@ async function registerOutgoingService(description, amount, method, openCashId, 
     });
 
     // Atualiza o total no caixa
-    await prisma.cash_register.update({
+    await prisma.cashRegister.update({
       where: { id: verifyCash.id },
       data: {
         outgoing_expense_total: {
