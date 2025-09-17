@@ -158,7 +158,7 @@ exports.generateTicketDuplicate = async (req, res) => {
     console.log(`Data formatada: ${dataFormatada}`);
     console.log(`Hora formatada: ${horaFormatada}`);
 
-    const rules = await prisma.billing_method.findFirst({
+    const rules = await prisma.billingMethod.findFirst({
       where: { is_active: true },
       select: {
         name: true,
