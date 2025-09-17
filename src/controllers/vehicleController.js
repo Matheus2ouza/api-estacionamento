@@ -61,7 +61,7 @@ exports.vehicleEntry = async (req, res) => {
     const formattedDateOnly = dt.toFormat("dd/MM/yyyy");
     const formattedTimeOnly = dt.toFormat("HH:mm:ss");
 
-    const rules = await prisma.billing_method.findFirst({
+    const rules = await prisma.billingMethod.findFirst({
       where: { is_active: true },
       select: {
         name: true,
