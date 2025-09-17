@@ -4,16 +4,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL_LOCAL")
+  url      = env("DATABASE_URL")
 }
 
 model Accounts {
   id              String           @id @default(uuid())
   role            AccountRole
   username        String           @unique
-  createdAt       DateTime?        @default(now()) @map("created_at")
-  updatedAt       DateTime?        @updatedAt @map("updated_at")
-  createdBy       String?          @map("created_by")
   authentications Authentications?
 
   @@map("accounts")
@@ -31,34 +28,28 @@ model Authentications {
 }
 
 model BillingMethod {
-  id             String                @id @default(uuid())
-  title          String
+  id             String           @id @default(uuid())
+  name           String
   description    String
-  category       BillingMethodCategory
-  isActive       Boolean               @default(true) @map("is_active")
   tolerance      Float?
-  timeMinutes    Int?                  @default(0) @map("time_minutes")
-  carroValue     Decimal?              @default(0.00) @map("carro_value") @db.Decimal(10, 2)
-  motoValue      Decimal?              @default(0.00) @map("moto_value") @db.Decimal(10, 2)
-  createdAt      DateTime              @default(now()) @map("created_at")
-  updatedAt      DateTime              @updatedAt @map("updated_at")
-  updatedBy      String?               @map("updated_by")
+  isActive       Boolean          @default(false) @map("is_active")
+  billing_rule   billing_rule[]
   vehicleEntries VehicleEntries[]
 
   @@map("billing_method")
 }
 
 model GoalConfigs {
-  id                   String   @id @default("singleton")
-  dailyGoalValue       Decimal  @map("daily_goal_value") @db.Decimal(10, 2)
-  vehicleGoalQuantity  Int      @map("vehicle_goal_quantity")
-  productGoalQuantity  Int      @map("product_goal_quantity")
-  notificationsEnabled Boolean  @map("notifications_enabled")
-  categoryGoalsActive  Boolean  @map("category_goals_active")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-  weekEndDay           Int      @map("week_end_day")
-  weekStartDay         Int      @map("week_start_day")
-  goalPeriod           Period   @map("goal_period")
+  id                    String   @id @default("singleton")
+  daily_goal_value      Decimal  @db.Decimal(10, 2)
+  vehicle_goal_quantity Int
+  product_goal_quantity Int
+  notifications_enabled Boolean
+  category_goals_active Boolean
+  updated_at            DateTime
+  week_end_day          Int
+  week_start_day        Int
+  goalPeriod            Period   @map("goal_period")
 
   @@map("goal_configs")
 }
@@ -77,7 +68,6 @@ model CashRegister {
   outgoingExpense      OutgoingExpense[]
   productTransaction   ProductTransaction[]
   vehicleTransaction   VehicleTransaction[]
-  vehicleEntries       VehicleEntries[]
 
   @@map("cash_register")
 }
@@ -116,12 +106,12 @@ model OutgoingExpense {
   @@map("outgoing_expense")
 }
 
-model ParkingConfig {
+model patio_configs {
   id             String @id @default("singleton")
   maxCars        Int    @map("max_cars")
   maxMotorcycles Int    @map("max_motorcycles")
 
-  @@map("parking_configs")
+  @@map("patio_configs")
 }
 
 model ProductTransaction {
@@ -173,8 +163,6 @@ model VehicleEntries {
   plate              String
   entryTime          DateTime             @default(now()) @map("entry_time")
   category           VehicleCategory
-  billingMethodId    String?              @map("billing_method_id")
-  cashRegisterId     String?              @map("cash_register_id")
   operator           String
   deletedAt          DateTime?            @map("deleted_at")
   description        String?              @default("")
@@ -183,9 +171,9 @@ model VehicleEntries {
   observation        String?              @default("")
   photo              Bytes?
   photoType          String?              @map("photo_type")
-  vehicleTransaction VehicleTransaction[]
+  billingMethodId    String?              @map("billing_method_id")
   billingMethod      BillingMethod?       @relation(fields: [billingMethodId], references: [id])
-  cashRegister       CashRegister?        @relation(fields: [cashRegisterId], references: [id])
+  vehicleTransaction VehicleTransaction[]
 
   @@index([plate])
   @@map("vehicle_entries")
@@ -211,9 +199,33 @@ model VehicleTransaction {
   @@map("vehicle_transaction")
 }
 
+model billing_rule {
+  id                String          @id
+  price             Float
+  billing_method_id String
+  created_at        DateTime        @default(now())
+  updated_at        DateTime
+  base_time_minutes Int
+  vehicle_type      VehicleCategory
+  billing_method    BillingMethod   @relation(fields: [billing_method_id], references: [id])
+}
+
+model collection_methods {
+  id           String                   @id
+  title        String
+  description  String
+  category     CollectionMethodCategory
+  is_active    Boolean                  @default(false)
+  tolerance    Float?
+  time_minutes Int                      @default(0)
+  values       Json                     @default("{}")
+  created_at   DateTime                 @default(now())
+  updated_at   DateTime
+  updated_by   String?
+}
+
 enum AccountRole {
   ADMIN
-  MANAGER
   NORMAL
 }
 
@@ -252,7 +264,7 @@ enum Period {
   MENSAL
 }
 
-enum BillingMethodCategory {
+enum CollectionMethodCategory {
   POR_HORA
   POR_MINUTO
   VALOR_FIXO
