@@ -4,15 +4,10 @@ node_modules/
 # Variáveis de ambiente
 .env
 .env.local
-/src/generated/prisma
 
-/src/generated/prisma
-
-/prisma/migrations
-/prisma
-/src/generated/prisma
 .vercel
 /http
 /test
 /http
 http/user/login.user.http
+
