@@ -3,19 +3,15 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "postinstall": "prisma generate",
     "build": "echo \"No build step\"",
     "dev": "nodemon server.js",
-    "start": "node server.js",
-    "migrate:prod": "npx prisma migrate dev --schema=prisma/schema.prisma",
-    "migrate:local": "npx prisma migrate dev --schema=prisma-local/schema.prisma"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.13.0",
     "axios": "^1.12.1",
     "dotenv": "^17.0.0",
     "expo": "53.0.22",
@@ -33,7 +29,6 @@
     "react-native": "0.79.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "prisma": "^6.13.0"
+    "nodemon": "^3.1.10"
   }
 }
