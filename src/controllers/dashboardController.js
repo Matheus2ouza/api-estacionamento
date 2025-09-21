@@ -127,15 +127,16 @@ exports.goals = async (req, res) => {
     });
   }
 
-  const { goalPeriod, goalValue, isActive } = req.query;
+  const { goalPeriod, goalValue, isActive, notifications } = req.query;
 
   // Converter isActive de string para boolean
   const isActiveBoolean = isActive === 'true' || isActive === true;
+  const isNotifications = notifications === 'true' || notifications === true;
 
   try {
-    const data = await dashboardService.goalsService(goalPeriod, goalValue, isActiveBoolean);
+    const data = await dashboardService.goalsService(goalPeriod, goalValue, isActiveBoolean, isNotifications);
 
-    console.log('[DashboardController] Metas configuradas com sucesso - Período:', goalPeriod, 'Valor:', goalValue);
+    console.log('[DashboardController] Metas configuradas com sucesso - Período:', goalPeriod, 'Valor:', goalValue, 'opção de notificação:', notifications);
 
     return res.status(200).json({
       success: true,

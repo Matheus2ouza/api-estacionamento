@@ -61,12 +61,20 @@ router.patch('/entries/:vehicleId/deactivate',
   vehicleController.vehicleEntryDesactivate
 );
 
+router.delete('/:vehicleId',
+  [
+    param('vehicleId').exists().notEmpty()
+  ],
+  authMiddleware('MANAGER'),
+  vehicleController.vehicleDeletePermanent
+)
+
 //Rota para ativar uma entrada de veículo
 router.patch('/entries/:vehicleId/activate',
   [
     param('vehicleId').exists().notEmpty(),
   ],
-  authMiddleware('MANAGER'),
+  authMiddleware('NORMAL'),
   vehicleController.vehicleEntryActivate
 );
 

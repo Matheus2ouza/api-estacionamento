@@ -1,6 +1,6 @@
 const { listGoalsService } = require("../../services/dashboardService");
 const { sendNotification } = require("../../notifications/sendNotification");
-const { getAllPushTokensForUsers } = require("../../services/pushTokenService");
+const { findPushTokenForRole } = require("../../services/usersService");
 
 // essa função deve buscar os tokens de quem vai receber a notificação
 /**

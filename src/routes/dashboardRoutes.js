@@ -32,6 +32,7 @@ router.post('/goals',
     query('goalPeriod').optional().isString(),
     query('goalValue').optional().isString(),
     query('isActive').optional().isBoolean(),
+    query('notifications').optional().isBoolean()
   ],
   authMiddleware("MANAGER"),
   dashboardController.goals

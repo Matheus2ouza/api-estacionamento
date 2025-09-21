@@ -4,7 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // url      = env("DATABASE_URL")
+  url      = "postgresql://cabeca:1qwe2asd@localhost:5432/dbestacionamento?schema=public"
 }
 
 model Accounts {
@@ -60,10 +61,11 @@ model BillingMethod {
 }
 
 model GoalConfigs {
-  id         String  @id @default(uuid())
-  goalPeriod Period  @unique @map("goal_period")
-  goalValue  Decimal @map("goal_value") @db.Decimal(10, 2)
-  isActive   Boolean @default(false) @map("is_active")
+  id            String  @id @default(uuid())
+  goalPeriod    Period  @unique @map("goal_period")
+  goalValue     Decimal @map("goal_value") @db.Decimal(10, 2)
+  isActive      Boolean @default(false) @map("is_active")
+  notifications Boolean @default(false)
 
   @@map("goal_configs")
 }
