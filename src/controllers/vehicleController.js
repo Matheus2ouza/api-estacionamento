@@ -3,6 +3,7 @@ const vehicleService = require('../services/vehicleService');
 const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
 const { generateVehicleReceiptPDFImproved } = require('../utils/vehicleReceiptPDFImproved');
 const { getCurrentBelemTime, formatBelemTime, convertToBelemTime } = require('../utils/timeConverter');
+const { vehicleGoalNotifications } = require('../notifications/goals/vehicleGoalNotificationService');
 
 
 exports.vehicleEntry = async (req, res) => {
@@ -305,6 +306,30 @@ exports.vehicleEntryDesactivate = async (req, res) => {
       success: false,
       message: error.message
     });
+  }
+}
+
+exports.vehicleDeletePermanent = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const { vehicleId } = req.params
+
+  try {
+    await vehicleService.deleteVehicleDeleteService(vehicleId)
+
+    return res.status(200).json({
+      success: true,
+      message: 'Veiculo deletado com sucesso'
+    })
+  } catch (error) {
+
   }
 }
 
@@ -674,7 +699,7 @@ exports.exitsRegisterConfirm = async (req, res) => {
     console.log(`[VehicleController] Transaction ID:`, transaction.id);
     console.log(`[VehicleController] VehicleUpdated ID:`, vehicleUpdated.id);
 
-    await vehicleGoalNotifications(transaction.finalValue, user.role)
+    await vehicleGoalNotifications(transaction.finalAmount, user.role)
 
     const pdf = await generateVehicleReceiptPDFImproved({
       operator: user.username,

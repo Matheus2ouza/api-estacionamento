@@ -319,6 +319,35 @@ async function desactivateVehicleEntryService(vehicleId, user) {
   }
 }
 
+async function deleteVehicleDeleteService(vehicleId) {
+  try {
+    const verifyVehicle = await prisma.vehicleEntries.findUnique({
+      where: { id: vehicleId }
+    })
+
+    if (!verifyVehicle) {
+      const message = createMessage(
+        `Veiculo não encontrado, impossivel de excluir`,
+        `Tentetiva de excluir um veiculo com id: ${vehicleId}, mas não foi encontrado`
+      )
+      console.error(message.logMessage);
+      throw new Error(message.userMessage)
+    }
+
+    await prisma.vehicleEntries.delete({
+      where: { id: verifyVehicle.id }
+    })
+
+  } catch (error) {
+    const message = createMessage(
+      'Erro ao deletar o veículo',
+      `[vehicleService] Erro ao deletar o veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
+  }
+}
+
 /**
  * Reativa um veículo
  * @param {string} vehicleId - ID do veículo
@@ -828,6 +857,7 @@ module.exports = {
   vehicleEntryPhotoService,
   searchVehicleEntryService,
   desactivateVehicleEntryService,
+  deleteVehicleDeleteService,
   activateVehicleEntryService,
   vehicleEntryUpdateService,
   vehicleEntryUpdatePhotoService,

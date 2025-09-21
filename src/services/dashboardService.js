@@ -618,7 +618,7 @@ async function dashboardService(cashId) {
  * @param {boolean} isActive - Status da meta
  * @returns {Promise<{goalPeriod: string, goalValue: number, isActive: boolean}>}
  */
-async function goalsService(goalPeriod, goalValue, isActive) {
+async function goalsService(goalPeriod, goalValue, isActive, notifications) {
   try {
     const goal = await prisma.goalConfigs.upsert({
       where: {
@@ -626,12 +626,14 @@ async function goalsService(goalPeriod, goalValue, isActive) {
       },
       update: {
         goalValue: goalValue,
-        isActive: isActive
+        isActive: isActive,
+        notifications: notifications
       },
       create: {
         goalPeriod: goalPeriod,
         goalValue: goalValue,
-        isActive: isActive
+        isActive: isActive,
+        notifications: notifications
       }
     })
 
