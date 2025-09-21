@@ -4,8 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // url      = env("DATABASE_URL")
-  url      = "postgresql://cabeca:1qwe2asd@localhost:5432/dbestacionamento?schema=public"
+  url      = env("DATABASE_URL")
 }
 
 model Accounts {
