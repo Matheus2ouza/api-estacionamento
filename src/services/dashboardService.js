@@ -12,6 +12,13 @@ const createMessage = (userMessage, logMessage) => ({
 });
 
 // Função auxiliar para determinar o período baseado no tipo ou datas personalizadas
+/**
+ * Função auxiliar para determinar o período baseado no tipo ou datas personalizadas
+ * @param {string} type - Tipo de relatório
+ * @param {string} startDate - Data inicial
+ * @param {string} endDate - Data final
+ * @returns {Object} Período
+ */
 function getDateRange(type, startDate, endDate) {
   // Se type for fornecido, usa a data atual como base e calcula para trás
   if (type) {
@@ -68,7 +75,16 @@ function getDateRange(type, startDate, endDate) {
   };
 }
 
-// Função para processar os dados do relatório
+/**
+ * Função para processar os dados do relatório
+ * @param {Array<Object>} cashRegisters - Caixas
+ * @param {string} type - Tipo de relatório
+ * @param {boolean} includeDetails - Incluir detalhes
+ * @param {Array<string>} requestedCharts - Gráficos solicitados
+ * @param {string} originalStartDate - Data inicial original
+ * @param {string} originalEndDate - Data final original
+ * @returns {Promise<Object>} Dados do relatório
+ */
 function processReportData(cashRegisters, type, includeDetails = false, requestedCharts = [], originalStartDate = null, originalEndDate = null) {
   const totalCashRegisters = cashRegisters.length;
 
@@ -321,7 +337,15 @@ function processReportData(cashRegisters, type, includeDetails = false, requeste
   };
 }
 
-// Função para gerar relatório
+/**
+ * Função para gerar relatório
+ * @param {string} type - Tipo de relatório
+ * @param {string} startDate - Data inicial
+ * @param {string} endDate - Data final
+ * @param {boolean} includeDetails - Incluir detalhes
+ * @param {Array<string>} requestedCharts - Gráficos solicitados
+ * @returns {Promise<Object>} Dados do relatório
+ */
 async function getReportService(type, startDate, endDate, includeDetails = false, requestedCharts = []) {
   try {
     console.log(`[getReportService] Iniciando relatório - Tipo: ${type}, StartDate: ${startDate}, EndDate: ${endDate}, IncludeDetails: ${includeDetails}, Charts: ${requestedCharts.join(', ')}`);
@@ -532,7 +556,11 @@ async function getReportService(type, startDate, endDate, includeDetails = false
   }
 }
 
-// Função para buscar os dados do caixa
+/**
+ * Função para buscar os dados do caixa
+ * @param {string} cashId - ID do caixa
+ * @returns {Promise<{cash: {initialValue: number, finalValue: number, generalSaleTotal: number, vehicleEntryTotal: number, outgoingExpenseTotal: number}, transactions: {vehicle: number, product: number, outgoing: number}}>}
+ */
 async function dashboardService(cashId) {
   try {
     const cash = await prisma.cashRegister.findUnique({
@@ -583,7 +611,13 @@ async function dashboardService(cashId) {
   }
 }
 
-// Função para configurar meta
+/**
+ * Função para configurar meta
+ * @param {string} goalPeriod - Período da meta
+ * @param {number} goalValue - Valor da meta
+ * @param {boolean} isActive - Status da meta
+ * @returns {Promise<{goalPeriod: string, goalValue: number, isActive: boolean}>}
+ */
 async function goalsService(goalPeriod, goalValue, isActive) {
   try {
     const goal = await prisma.goalConfigs.upsert({
@@ -608,7 +642,10 @@ async function goalsService(goalPeriod, goalValue, isActive) {
   }
 }
 
-// Função para buscar as metas
+/**
+ * Função para buscar as metas
+ * @returns {Promise<Array<{goalPeriod: string, goalValue: number, isActive: boolean}>>}
+ */
 async function listGoalsService() {
   try {
     const goals = await prisma.goalConfigs.findMany();
@@ -620,7 +657,11 @@ async function listGoalsService() {
   }
 }
 
-// Função para desativar meta
+/**
+ * Função para desativar meta
+ * @param {string} goalPeriod - Período da meta
+ * @returns {Promise<{goalPeriod: string, goalValue: number, isActive: boolean}>}
+ */
 async function desactivateGoalService(goalPeriod) {
   try {
     const goal = await prisma.goalConfigs.findUnique({
@@ -649,7 +690,11 @@ async function desactivateGoalService(goalPeriod) {
 }
 
 
-// Função para buscar configuração de meta específica
+/**
+ * Função para buscar configuração de meta específica
+ * @param {string} goalPeriod - Período da meta
+ * @returns {Promise<{goalPeriod: string, goalValue: number, isActive: boolean}>}
+ */
 async function getGoalConfigService(goalPeriod) {
   try {
     const goalConfig = await prisma.goalConfigs.findUnique({
@@ -667,7 +712,12 @@ async function getGoalConfigService(goalPeriod) {
   }
 }
 
-// Função para obter dados do progresso da meta
+/**
+ * Função para obter dados do progresso da meta
+ * @param {string} goalPeriod - Período da meta (DIARIA, SEMANAL, MENSAL)
+ * @param {Object} goalConfig - Configuração da meta
+ * @returns {Promise<Object>} Dados formatados para o gráfico goalProgress
+ */
 async function getGoalProgressDataService(goalPeriod, goalConfig) {
   try {
     const { processGoalProgressData } = require('../graphicsGoals/chartDataProcessors');
@@ -680,7 +730,12 @@ async function getGoalProgressDataService(goalPeriod, goalConfig) {
   }
 }
 
-// Função para obter dados do lucro semanal
+/**
+ * Função para obter dados do lucro semanal
+ * @param {string} goalPeriod - Período da meta (SEMANAL, MENSAL)
+ * @param {Object} goalConfig - Configuração da meta
+ * @returns {Promise<Object>} Dados formatados para o gráfico weeklyProfit
+ */
 async function getWeeklyProfitDataService(goalPeriod, goalConfig) {
   try {
     const { processWeeklyProfitData } = require('../graphicsGoals/weeklyProfitProcessor');
@@ -693,6 +748,11 @@ async function getWeeklyProfitDataService(goalPeriod, goalConfig) {
   }
 }
 
+/**
+ * Função para obter dados do dailyTotals (nível DIARIA)
+ * @param {string} goalPeriod - Período da meta (DIARIA, SEMANAL, MENSAL)
+ * @returns {Promise<Object>} Dados formatados para o gráfico dailyTotals
+ */
 // Função para obter dados do dailyTotals (nível DIARIA)
 async function getDailyTotalsDataService(goalPeriod) {
   try {
@@ -705,7 +765,11 @@ async function getDailyTotalsDataService(goalPeriod) {
   }
 }
 
-// Função para obter dados do totalsBarGroup
+/**
+ * Função para obter dados do totalsBarGroup
+ * @param {string} goalPeriod - Período da meta (SEMANAL, MENSAL)
+ * @returns {Promise<Object>} Dados formatados para o gráfico totalsBarGroup
+ */
 async function getTotalsBarGroupDataService(goalPeriod) {
   try {
     const { processTotalsBarGroupData } = require('../graphicsGoals/totalsBarGroupProcessor');

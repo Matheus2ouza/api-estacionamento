@@ -6,6 +6,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 //Rotas do caixa
+
 //Rota do status
 router.get('/status', authMiddleware('NORMAL'), cashController.statusCash)
 
@@ -14,7 +15,7 @@ router.post('/open',
   [
     body('initialValue').isFloat({ min: 0 }).withMessage('O valor inicial deve ser um número maior que zero.')
   ],
-  authMiddleware('MANAGER'),
+  authMiddleware('NORMAL'),
   cashController.openCash
 );
 
@@ -31,7 +32,7 @@ router.post('/:cashId/reopen',
   [
     param("cashId").exists().notEmpty()
   ],
-  authMiddleware('MANAGER'),
+  authMiddleware('NORMAL'),
   cashController.reopenCash
 );
 

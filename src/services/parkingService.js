@@ -8,6 +8,10 @@ const createMessage = (userMessage, logMessage) => ({
   logMessage
 });
 
+/**
+ * Busca configuração de pátio
+ * @returns {Promise<{maxCars: number, maxMotorcycles: number}> | null}
+ */
 async function parkingConfigService() {
   try {
     const config = await prisma.parkingConfig.findUnique({
@@ -30,6 +34,12 @@ async function parkingConfigService() {
   }
 }
 
+/**
+ * Salva configuração de pátio
+ * @param {number} maxCars - Máximo de carros
+ * @param {number} maxMotorcycles - Máximo de motos
+ * @returns {Promise<{id: string}>}
+ */
 async function parkingConfigSaveService(maxCars, maxMotorcycles) {
   try {
     const result = await prisma.parkingConfig.upsert({
@@ -61,6 +71,11 @@ async function parkingConfigSaveService(maxCars, maxMotorcycles) {
   }
 }
 
+/**
+ * Busca capacidade de pátio
+ * @param {string} cashId - ID do caixa
+ * @returns {Promise<{maxCars: number, maxMotorcycles: number, quantityVehicles: number, quantityMotorcycles: number, quantityCars: number}>}
+ */
 async function capacityParkingService(cashId) {
   try {
     const verifyCash = await prisma.cashRegister.findFirst({

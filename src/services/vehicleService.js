@@ -8,6 +8,21 @@ const createMessage = (userMessage, logMessage) => ({
   logMessage
 });
 
+
+/**
+ * Registra uma entrada de veículo
+ * @param {Object} params - Parâmetros para registrar uma entrada de veículo
+ * @param {string} params.plate - Placa do veículo
+ * @param {Date} params.entryTime - Data e hora de entrada do veículo
+ * @param {string} params.formattedEntryTime - Data e hora de entrada do veículo formatada
+ * @param {string} params.category - Categoria do veículo
+ * @param {string} params.cashRegisterId - ID do caixa
+ * @param {string} params.billingMethodId - ID do método de cobrança
+ * @param {Object} params.user - Usuário que registrou a entrada
+ * @param {string} params.observation - Observação da entrada do veículo
+ * @param {Buffer} params.photoBuffer - Buffer da foto do veículo
+ * @param {string} params.photoMimeType - Tipo de mídia da foto do veículo
+ */
 async function registerVehicleEntryService({
   plate,
   entryTime,
@@ -28,7 +43,7 @@ async function registerVehicleEntryService({
     if (verifyVehicle) {
       const message = createMessage(
         'Já existe um veículo com essa placa dentro do estacionamento',
-        `[vehicleService] Tentativa de registrar entrada de veículo com placa já existente: ${plate}`
+        `[vehicleService] Tentativa de registrar entrada de veículo com placa já existente`
       )
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
@@ -41,13 +56,13 @@ async function registerVehicleEntryService({
     if (!verifyBillingMethod) {
       const message = createMessage(
         'Método de cobrança não encontrado',
-        `[vehicleService] Tentativa de registrar entrada de veículo com método de cobrança não encontrado: ${billingMethodId}`
+        `[vehicleService] Tentativa de registrar entrada de veículo com método de cobrança não encontrado`
       )
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
     }
 
-    const description = `Registro da entrada do veículo: ${user.username} em ${formattedEntryTime}`;
+    const description = `Registro da entrada do veículo: ${user.id} em ${formattedEntryTime}`;
 
     const entry = await prisma.vehicleEntries.create({
       data: {
@@ -80,11 +95,22 @@ async function registerVehicleEntryService({
 
     return entry;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao registrar entrada de veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao registrar entrada de veículo',
+      `[vehicleService] Erro ao registrar entrada de veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Lista entradas de veículos
+ * @param {string} cashId - ID do caixa
+ * @param {string} cursor - Cursor para paginacao
+ * @param {number} limit - Limite de entradas de veículos
+ * @returns {Promise<Object>} - Lista de entradas de veículos
+ */
 async function listVehicleEntriesService(cashId, cursor, limit) {
   try {
     const verifyCash = await prisma.cashRegister.findFirst({
@@ -151,11 +177,20 @@ async function listVehicleEntriesService(cashId, cursor, limit) {
       hasMore
     }
   } catch (error) {
-    console.error(`[vehicleService] Erro ao buscar entradas de veículos: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao buscar entradas de veículos',
+      `[vehicleService] Erro ao buscar entradas de veículos`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Busca foto de um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @returns {Promise<Object>} - Foto do veículo
+ */
 async function vehicleEntryPhotoService(vehicleId) {
   try {
     const photo = await prisma.vehicleEntries.findUnique({
@@ -183,11 +218,20 @@ async function vehicleEntryPhotoService(vehicleId) {
       photoType: photo.photoType
     };
   } catch (error) {
-    console.error(`[vehicleService] Erro ao buscar foto do veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao buscar foto do veículo',
+      `[vehicleService] Erro ao buscar foto do veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Busca um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @returns {Promise<Object>} - Veículo
+ */
 async function searchVehicleEntryService(vehicleId) {
   try {
     const vehicle = await prisma.vehicleEntries.findUnique({
@@ -219,11 +263,21 @@ async function searchVehicleEntryService(vehicleId) {
 
     return vehicle;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao buscar veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao buscar veículo',
+      `[vehicleService] Erro ao buscar veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Desativa um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @param {Object} user - Usuário que desativou o veículo
+ * @returns {Promise<Object>} - Veículo desativado
+ */
 async function desactivateVehicleEntryService(vehicleId, user) {
   try {
     const vehicle = await prisma.vehicleEntries.findUnique({
@@ -242,7 +296,7 @@ async function desactivateVehicleEntryService(vehicleId, user) {
     const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
 
     const updatedDescription = `${vehicle.description || ""}
-    \nRegistro de desativação do veículo: ${user.username} em ${formattedEntryTime}`;
+    \nRegistro de desativação do veículo: ${user.id} em ${formattedEntryTime}`;
 
 
     const desactivatedVehicle = await prisma.vehicleEntries.update({
@@ -256,11 +310,21 @@ async function desactivateVehicleEntryService(vehicleId, user) {
 
     return desactivatedVehicle;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao desativar veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao desativar veículo',
+      `[vehicleService] Erro ao desativar veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Reativa um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @param {Object} user - Usuário que reativou o veículo
+ * @returns {Promise<Object>} - Veículo reativado
+ */
 async function activateVehicleEntryService(vehicleId, user) {
   try {
     const vehicle = await prisma.vehicleEntries.findUnique({
@@ -279,7 +343,7 @@ async function activateVehicleEntryService(vehicleId, user) {
     const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
 
     const updatedDescription = `${vehicle.description || ""}
-    \nRegistro de reativação do veículo: ${user.username} em ${formattedEntryTime}`;
+    \nRegistro de reativação do veículo: ${user.id} em ${formattedEntryTime}`;
 
     const activatedVehicle = await prisma.vehicleEntries.update({
       where: { id: vehicleId },
@@ -292,11 +356,25 @@ async function activateVehicleEntryService(vehicleId, user) {
 
     return activatedVehicle;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao reativar veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao reativar veículo',
+      `[vehicleService] Erro ao reativar veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Atualiza um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @param {string} plate - Placa do veículo
+ * @param {string} category - Categoria do veículo
+ * @param {string} observation - Observação do veículo
+ * @param {string} billingMethod - ID do método de cobrança
+ * @param {Object} user - Usuário que atualizou o veículo
+ * @returns {Promise<Object>} - Veículo atualizado
+ */
 async function vehicleEntryUpdateService(vehicleId, plate, category, observation, billingMethod, user) {
   try {
     const verifyVehicle = await prisma.vehicleEntries.findUnique({
@@ -315,7 +393,7 @@ async function vehicleEntryUpdateService(vehicleId, plate, category, observation
     const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
 
     const updatedDescription = `${verifyVehicle.description || ""}
-    \nRegistro da atualização do veículo: ${user.username} em ${formattedEntryTime}`;
+    \nRegistro da atualização do veículo: ${user.id} em ${formattedEntryTime}`;
 
     const updatedVehicle = await prisma.vehicleEntries.update({
       where: { id: vehicleId },
@@ -349,11 +427,23 @@ async function vehicleEntryUpdateService(vehicleId, plate, category, observation
 
     return updatedVehicle;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao atualizar veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao atualizar veículo',
+      `[vehicleService] Erro ao atualizar veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 };
 
+/**
+ * Atualiza a foto de um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @param {Buffer} photoBuffer - Buffer da foto do veículo
+ * @param {string} photoMimeType - Tipo de mídia da foto do veículo
+ * @param {Object} user - Usuário que atualizou a foto do veículo
+ * @returns {Promise<Object>} - Veículo atualizado
+ */
 async function vehicleEntryUpdatePhotoService(vehicleId, photoBuffer, photoMimeType, user) {
   try {
     const vehicle = await prisma.vehicleEntries.findUnique({
@@ -372,7 +462,7 @@ async function vehicleEntryUpdatePhotoService(vehicleId, photoBuffer, photoMimeT
     const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
 
     const updatedDescription = `${vehicle.description || ""}
-    \nRegistro da atualização da foto do veículo: ${user.username} em ${formattedEntryTime}`;
+    \nRegistro da atualização da foto do veículo: ${user.id} em ${formattedEntryTime}`;
 
     const updatedVehicle = await prisma.vehicleEntries.update({
       where: { id: vehicleId },
@@ -385,11 +475,21 @@ async function vehicleEntryUpdatePhotoService(vehicleId, photoBuffer, photoMimeT
 
     return updatedVehicle;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao atualizar foto do veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao atualizar foto do veículo',
+      `[vehicleService] Erro ao atualizar foto do veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Deleta a foto de um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @param {Object} user - Usuário que deletou a foto do veículo
+ * @returns {Promise<Object>} - Veículo atualizado
+ */
 async function vehicleEntryDeletePhotoService(vehicleId, user) {
   try {
     const vehicle = await prisma.vehicleEntries.findUnique({
@@ -408,7 +508,7 @@ async function vehicleEntryDeletePhotoService(vehicleId, user) {
     const formattedEntryTime = formatBelemTime(getCurrentBelemTime());
 
     const updatedDescription = `${vehicle.description || ""}
-    \nRegistro da deleção da foto do veículo: ${user.username} em ${formattedEntryTime}`;
+    \nRegistro da deleção da foto do veículo: ${user.id} em ${formattedEntryTime}`;
 
     const updatedVehicle = await prisma.vehicleEntries.update({
       where: { id: vehicleId },
@@ -422,11 +522,21 @@ async function vehicleEntryDeletePhotoService(vehicleId, user) {
     return updatedVehicle;
   }
   catch (error) {
-    console.error(`[vehicleService] Erro ao deletar foto do veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao deletar foto do veículo',
+      `[vehicleService] Erro ao deletar foto do veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Busca um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @param {string} plateId - ID da placa do veículo
+ * @returns {Promise<Object>} - Veículo
+ */
 async function fetchVehicleEntryService(vehicleId, plateId) {
   try {
     const vehicle = await prisma.vehicleEntries.findFirst({
@@ -476,11 +586,21 @@ async function fetchVehicleEntryService(vehicleId, plateId) {
 
     return vehicleWithValue;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao buscar veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao buscar veículo',
+      `[vehicleService] Erro ao buscar veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Calcula a dívida de um veículo
+ * @param {string} vehicleId - ID do veículo
+ * @param {string} plateId - ID da placa do veículo
+ * @returns {Promise<Object>} - Veículo
+ */
 async function calculateOutstandingService(vehicleId, plateId) {
   try {
     const vehicle = await prisma.vehicleEntries.findFirst({
@@ -511,11 +631,33 @@ async function calculateOutstandingService(vehicleId, plateId) {
     return vehicle;
   }
   catch (error) {
-    console.error(`[vehicleService] Erro ao calcular dívida de veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao calcular dívida de veículo',
+      `[vehicleService] Erro ao calcular dívida de veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Confirma uma saída de veículo
+ * @param {Object} params - Parâmetros para confirmar uma saída de veículo
+ * @param {string} params.cashId - ID do caixa
+ * @param {string} params.vehicleId - ID do veículo
+ * @param {Date} params.exitTime - Data e hora de saída do veículo
+ * @param {string} params.formattedExitTime - Data e hora de saída do veículo formatada
+ * @param {number} params.amountReceived - Valor recebido
+ * @param {number} params.changeGiven - Valor do troco
+ * @param {number} params.discountAmount - Valor do desconto
+ * @param {number} params.finalAmount - Valor final
+ * @param {number} params.originalAmount - Valor original
+ * @param {string} params.method - Método de pagamento
+ * @param {Object} params.user - Usuário que confirmou a saída do veículo
+ * @param {Buffer} params.photoBuffer - Buffer da foto do veículo
+ * @param {string} params.photoMimeType - Tipo de mídia da foto do veículo
+ * @returns {Promise<Object>} - Veículo confirmado
+ */
 async function exitsRegisterConfirmService({
   cashId,
   vehicleId,
@@ -558,7 +700,7 @@ async function exitsRegisterConfirmService({
   }
 
   const updatedDescription = `${vehicle.description || ""}
-  \nRegistro de confirmação da saída do veículo: ${user.username} em ${formattedExitTime}`;
+  \nRegistro de confirmação da saída do veículo: ${user.id} em ${formattedExitTime}`;
 
   try {
     const transactionExit = await prisma.$transaction(async (tx) => {
@@ -623,11 +765,20 @@ async function exitsRegisterConfirmService({
 
     return transactionExit;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao confirmar saída de veículo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao confirmar saída de veículo',
+      `[vehicleService] Erro ao confirmar saída de veículo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 
+/**
+ * Busca dados para gerar segunda via do recibo
+ * @param {string} transactionId - ID da transação
+ * @returns {Promise<Object>} - Dados para gerar segunda via do recibo
+ */
 async function vehicleExitDuplicateService(transactionId) {
   try {
     const transaction = await prisma.vehicleTransaction.findFirst({
@@ -662,8 +813,12 @@ async function vehicleExitDuplicateService(transactionId) {
 
     return transaction;
   } catch (error) {
-    console.error(`[vehicleService] Erro ao buscar dados para gerar segunda via do recibo: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao buscar dados para gerar segunda via do recibo',
+      `[vehicleService] Erro ao buscar dados para gerar segunda via do recibo`
+    );
+    console.error(message.logMessage);
+    throw new Error(message.userMessage);
   }
 }
 

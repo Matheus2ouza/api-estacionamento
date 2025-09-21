@@ -13,14 +13,14 @@ router.post('/:cashId',
     body("method").exists().notEmpty(),
     param("cashId").exists().notEmpty()
   ],
-  authMiddleware('MANAGER'), expenseController.registerOutgoing
+  authMiddleware('NORMAL'), expenseController.registerOutgoing
 );
 
 router.get('/:cashId',
   [
     param('cashId').exists().notEmpty()
   ],
-  authMiddleware('MANAGER'), expenseController.listOutgoingExpense
+  authMiddleware('NORMAL'), expenseController.listOutgoingExpense
 );
 
 router.delete('/:cashId/:expenseId',
@@ -28,7 +28,7 @@ router.delete('/:cashId/:expenseId',
     param('cashId').exists().notEmpty(),
     param('expenseId').exists().notEmpty()
   ],
-  authMiddleware('MANAGER'), expenseController.deleteOutgoingExpense
+  authMiddleware('NORMAL'), expenseController.deleteOutgoingExpense
 );
 
 router.patch('/:cashId/:expenseId',
@@ -39,7 +39,7 @@ router.patch('/:cashId/:expenseId',
     body("amount").exists().notEmpty(),
     body("method").exists().notEmpty()
   ],
-  authMiddleware('MANAGER'), expenseController.updateOutgoingExpense
+  authMiddleware('NORMAL'), expenseController.updateOutgoingExpense
 );
 
 module.exports = router;

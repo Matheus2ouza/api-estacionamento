@@ -9,6 +9,15 @@ const createMessage = (userMessage, logMessage) => ({
   logMessage
 });
 
+/**
+ * Função para registrar novo usuario
+ * @param {string} username - Nome do usuario
+ * @param {string} password - Senha do usuario
+ * @param {string} role - Role do usuario (ADMIN, MANAGER, NORMAL)
+ * @param {object} user - Usuario que esta criando o novo usuario
+ * @param {string} passwordAdmin - Senha de administrador
+ * @returns {object} - Usuario criado
+ */
 async function registerUserService(username, password, role, user, passwordAdmin) {
   try {
     //Verifica se o usuário já existe
@@ -101,6 +110,13 @@ async function registerUserService(username, password, role, user, passwordAdmin
   }
 }
 
+/**
+ * Função para fazer login de um usuario
+ * @param {string} username - Nome do usuario
+ * @param {string} password - Senha do usuario
+ * @param {string} expoPushToken - Token do expo
+ * @returns {object} - Token de autenticação
+ */
 async function loginUserService(username, password, expoPushToken = null) {
   try {
     const account = await prisma.accounts.findUnique({
@@ -146,26 +162,81 @@ async function loginUserService(username, password, expoPushToken = null) {
     console.log(`[UsersService] Login realizado com sucesso para usuário: ${username} (ID: ${account.id})`);
     return token;
   } catch (err) {
-    console.error(`[UsersService] Erro no processo de login para usuário ${username}: ${err.message}`);
+    const message = createMessage(
+      'Erro ao fazer login',
+      `[UsersService] Erro no processo de login para usuário ${username}: ${err.message}`
+    );
+    console.error(message.logMessage);
     throw err;
   }
 }
 
+/**
+ * Função para registrar push token de um usuario
+ * @param {string} accountId - ID do usuario
+ * @param {string} expoPushToken - Token do expo
+ * @returns {object} - Token registrado
+ */
 async function registerPushTokenService(accountId, expoPushToken) {
   console.log(`[UsersService] Registrando push token para usuário: ${accountId}`);
 
   try {
-    // Verificar se o token já existe
-    const existingToken = await prisma.accountPushToken.findFirst({
+    // Verificar se o token já existe para outro usuário
+    const existingTokenForOtherUser = await prisma.accountPushToken.findFirst({
+      where: {
+        token: expoPushToken,
+        accountId: { not: accountId }
+      }
+    });
+
+    // Se o token existe para outro usuário, atualizar para o novo usuário
+    if (existingTokenForOtherUser) {
+      console.log(`[UsersService] Token já existe para outro usuário, transferindo para usuário: ${accountId}`);
+
+      // Contar tokens ativos do novo usuário
+      const activeTokensCount = await prisma.accountPushToken.count({
+        where: { accountId: accountId }
+      });
+
+      // Se já tem 5 tokens, remover o mais antigo
+      if (activeTokensCount >= 5) {
+        const oldestToken = await prisma.accountPushToken.findFirst({
+          where: { accountId: accountId },
+          orderBy: { createdAt: 'asc' }
+        });
+
+        if (oldestToken) {
+          console.log(`[UsersService] Removendo token mais antigo: ${oldestToken.id}`);
+          await prisma.accountPushToken.delete({
+            where: { id: oldestToken.id }
+          });
+        }
+      }
+
+      // Atualizar o token existente para o novo usuário
+      const updatedToken = await prisma.accountPushToken.update({
+        where: { id: existingTokenForOtherUser.id },
+        data: {
+          accountId: accountId,
+          createdAt: new Date() // Atualizar timestamp para ser o mais recente
+        }
+      });
+
+      console.log(`[UsersService] Push token transferido com sucesso: ${updatedToken.id} para usuário: ${accountId}`);
+      return updatedToken;
+    }
+
+    // Verificar se o token já existe para o mesmo usuário
+    const existingTokenForSameUser = await prisma.accountPushToken.findFirst({
       where: {
         accountId: accountId,
         token: expoPushToken
       }
     });
 
-    if (existingToken) {
+    if (existingTokenForSameUser) {
       console.log(`[UsersService] Push token já existe para usuário: ${accountId}`);
-      return;
+      return existingTokenForSameUser;
     }
 
     // Contar tokens ativos do usuário
@@ -200,11 +271,57 @@ async function registerPushTokenService(accountId, expoPushToken) {
     return newToken;
 
   } catch (error) {
-    console.error(`[UsersService] Erro ao registrar push token para usuário ${accountId}: ${error.message}`);
-    throw error;
+    const message = createMessage(
+      'Erro ao registrar push token',
+      `[UsersService] Erro ao registrar push token para usuário ${accountId}`
+    );
+    console.error(message.logMessage);
+    throw err;
   }
 }
 
+/**
+ *
+ * @param {string} role
+ * @returns
+ */
+async function findPushTokenForRole(role) {
+  console.info("Buscando os tokens dos usuarios com role", role)
+
+
+  try {
+    const tokens = await prisma.accountPushToken.findMany({
+      where: {
+        account: {
+          role: "ADMIN"
+        }
+      },
+      select: {
+        token: true
+      }
+    })
+
+    if (!tokens) {
+      console.warn(`Tentativa de buscar os tokens dos usuarios com role = ${role}, mas não foi encontrado ninguém`)
+    }
+
+    return tokens
+  } catch (error) {
+    console.warn(error.message)
+    return null
+  }
+}
+
+/**
+ * Função para atualizar um usuario
+ * @param {string} id - ID do usuario
+ * @param {string} username - Nome do usuario
+ * @param {string} password - Senha do usuario
+ * @param {string} role - Role do usuario
+ * @param {object} user - Usuario que esta atualizando o usuario
+ * @param {string} passwordAdmin - Senha de administrador
+ * @returns {object} - Usuario atualizado
+ */
 async function updateUserService(id, username, password, role, user, passwordAdmin) {
   try {
     //Verifica se o usuário existe
@@ -293,10 +410,17 @@ async function updateUserService(id, username, password, role, user, passwordAdm
       `[UsersService] Erro ao atualizar usuário com ID ${id}: ${error.message}`
     );
     console.error(message.logMessage);
-    throw new Error(message.userMessage);
+    throw err;
   }
 }
 
+/**
+ * Função para deletar um usuario
+ * @param {string} id - ID do usuario
+ * @param {string} password - Senha do usuario
+ * @param {object} user - Usuario que esta deletando o usuario
+ * @returns {object} - Usuario deletado
+ */
 async function deleteUserService(id, password, user) {
   try {
     //Verifica se o usuário existe
@@ -350,10 +474,14 @@ async function deleteUserService(id, password, user) {
       `[UsersService] Erro ao tentar excluir usuário com ID ${id}: ${err.message}`
     );
     console.error(message.logMessage);
-    throw new Error(message.userMessage);
+    throw err;
   }
 }
 
+/**
+ * Função para listar todos os usuarios
+ * @returns {object} - Lista de usuarios
+ */
 async function listUsersService() {
   try {
     const list = await prisma.accounts.findMany({
@@ -383,7 +511,7 @@ async function listUsersService() {
       `[UsersService] Erro ao buscar a lista de usuários: ${err.message}`
     );
     console.error(message.logMessage);
-    throw new Error(message.userMessage);
+    throw err;
   }
 }
 
@@ -391,6 +519,7 @@ module.exports = {
   registerUserService,
   loginUserService,
   registerPushTokenService,
+  findPushTokenForRole,
   updateUserService,
   deleteUserService,
   listUsersService,

@@ -8,6 +8,16 @@ const createMessage = (userMessage, logMessage) => ({
   logMessage
 });
 
+/**
+ * Registra despesa
+ * @param {string} description - Descrição
+ * @param {number} amount - Valor
+ * @param {string} method - Método
+ * @param {string} cashId - ID do caixa
+ * @param {Date} transactionDate - Data da transação
+ * @param {string} user - Operador
+ * @returns {Promise<string>}
+ */
 async function registerOutgoingService({ description, amount, method, cashId, transactionDate, user }) {
   const verifyCash = await prisma.cashRegister.findUnique({
     where: { id: cashId },
@@ -18,7 +28,8 @@ async function registerOutgoingService({ description, amount, method, cashId, tr
       "Nenhum caixa encontrado",
       `[expenseService] Tentativa de registrar despesa em caixa não encontrado: ${cashId}`
     )
-    throw new Error(message);
+    console.warn(message.logMessage);
+    throw new Error(message.userMessage);
   }
 
   try {
@@ -56,6 +67,11 @@ async function registerOutgoingService({ description, amount, method, cashId, tr
   }
 }
 
+/**
+ * Lista despesas
+ * @param {string} cashId - ID do caixa
+ * @returns {Promise<Array<{id: string, description: string, amount: number, transactionDate: Date, operator: string, method: string}>>}
+ */
 async function listOutgoingExpenseService(cashId) {
   try {
     const outgoing = await prisma.outgoingExpense.findMany({
@@ -80,6 +96,12 @@ async function listOutgoingExpenseService(cashId) {
   }
 }
 
+/**
+ * Deleta despesa
+ * @param {string} cashId - ID do caixa
+ * @param {string} expenseId - ID da despesa
+ * @returns {Promise<{deletedExpense: {id: string}, cashUpdated: {id: string}}>}
+ */
 async function deleteOutgoingExpenseService(cashId, expenseId) {
   console.log(`[expenseService] Iniciando exclusão de despesa - CashId: ${cashId}, ExpenseId: ${expenseId}`);
 
@@ -165,6 +187,15 @@ async function deleteOutgoingExpenseService(cashId, expenseId) {
   }
 }
 
+/**
+ * Atualiza despesa
+ * @param {string} cashId - ID do caixa
+ * @param {string} expenseId - ID da despesa
+ * @param {string} description - Descrição
+ * @param {number} amount - Valor
+ * @param {string} method - Método
+ * @returns {Promise<{updatedExpense: {id: string}, amountDifference: number, oldAmount: number, newAmount: number}>}
+ */
 async function updateOutgoingExpenseService(cashId, expenseId, { description, amount, method }) {
   // 1. Validar se o caixa existe
   const verifyCash = await prisma.cashRegister.findUnique({
@@ -176,6 +207,7 @@ async function updateOutgoingExpenseService(cashId, expenseId, { description, am
       "Nenhum caixa encontrado",
       `[expenseService] Tentativa de atualizar despesa em caixa não encontrado: ${cashId}`
     )
+    console.warn(message.logMessage);
     throw new Error(message.userMessage);
   }
 
@@ -189,6 +221,7 @@ async function updateOutgoingExpenseService(cashId, expenseId, { description, am
       "Despesa não encontrada",
       `[expenseService] Tentativa de atualizar despesa não encontrada: ${expenseId}`
     )
+    console.warn(message.logMessage);
     throw new Error(message.userMessage);
   }
 
@@ -198,6 +231,7 @@ async function updateOutgoingExpenseService(cashId, expenseId, { description, am
       "Despesa não pertence ao caixa especificado",
       `[expenseService] Tentativa de atualizar despesa ${expenseId} que pertence ao caixa ${verifyOutgoing.cashRegisterId} usando cashId ${cashId}`
     )
+    console.warn(message.logMessage);
     throw new Error(message.userMessage);
   }
 

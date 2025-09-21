@@ -7,6 +7,13 @@ const createMessage = (userMessage, logMessage) => ({
   logMessage
 });
 
+
+/**
+ * Lista produtos
+ * @param {string} cursor - Cursor
+ * @param {number} limit - Limite
+ * @returns {Promise<{products: Array<{id: string, barcode: string, productName: string, isActive: boolean, unitPrice: number, quantity: number, expirationDate: string}>, nextCursor: string | null, hasMore: boolean}>}
+ */
 async function listProductService(cursor, limit) {
   try {
     const whereQuery = {
@@ -74,6 +81,11 @@ async function listProductService(cursor, limit) {
   }
 };
 
+/**
+ * Busca produto por código de barras
+ * @param {string} barcode - Código de barras
+ * @returns {Promise<{id: string, barcode: string | null, productName: string, unitPrice: number, quantity: number, expirationDate: string | null}>}
+ */
 async function fetchProductByBarcodeService(barcode) {
   try {
     const product = await prisma.products.findFirst({
@@ -117,6 +129,15 @@ async function fetchProductByBarcodeService(barcode) {
   }
 }
 
+/**
+ * Cria produto
+ * @param {string} productName - Nome do produto
+ * @param {string} barcode - Código de barras
+ * @param {number} unitPrice - Preço unitário
+ * @param {number} quantity - Quantidade
+ * @param {string} expirationDate - Data de validade
+ * @returns {Promise<{id: string}>}
+ */
 async function createProductService({ productName, barcode, unitPrice, quantity, expirationDate }) {
   try {
     let productId;
@@ -198,6 +219,12 @@ async function createProductService({ productName, barcode, unitPrice, quantity,
   }
 };
 
+/**
+ * Atualiza status do produto
+ * @param {string} productId - ID do produto
+ * @param {boolean} isActive - Status do produto
+ * @returns {Promise<{success: boolean}>}
+ */
 async function updateProductModeService(productId, isActive) {
   try {
     const product = await prisma.products.findUnique({
@@ -232,6 +259,17 @@ async function updateProductModeService(productId, isActive) {
   }
 }
 
+/**
+ * Atualiza produto
+ * @param {string} productId - ID do produto
+ * @param {string} productName - Nome do produto
+ * @param {string} barcode - Código de barras
+ * @param {number} unitPrice - Preço unitário
+ * @param {number} quantity - Quantidade
+ * @param {string} expirationDate - Data de validade
+ * @param {boolean} isActive - Status do produto
+ * @returns {Promise<{id: string}>}
+ */
 async function updateProductService(productId, { productName, barcode, unitPrice, quantity, expirationDate, isActive }) {
   try {
     const product = await prisma.products.findUnique({
@@ -311,6 +349,22 @@ async function updateProductService(productId, { productName, barcode, unitPrice
   }
 }
 
+/**
+ * Registra pagamento
+ * @param {string} operator - Operador
+ * @param {string} paymentMethod - Método de pagamento
+ * @param {string} cashRegisterId - ID do caixa
+ * @param {number} totalAmount - Valor total
+ * @param {number} discountValue - Valor do desconto
+ * @param {number} finalPrice - Valor final
+ * @param {number} amountReceived - Valor recebido
+ * @param {number} changeGiven - Valor do troco
+ * @param {Array<{productId: string, productName: string, unitPrice: number, expirationDate: string | null, soldQuantity: number}>} saleItems - Itens da venda
+ * @param {Date} local - Data local
+ * @param {Buffer} photoBuffer - Buffer da foto
+ * @param {string} photoMimeType - Tipo de mime da foto
+ * @returns {Promise<string>}
+ */
 async function registerPayment(
   operator,
   paymentMethod,
