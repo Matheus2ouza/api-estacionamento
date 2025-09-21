@@ -13,12 +13,15 @@ exports.statusCash = async (req, res) => {
 
     const data = await cashService.statusCashService(date);
 
+    console.log(`[CashController] Status do caixa encontrado: ${data.cashStatus}`);
+    console.log(`[CashController] Caixa encontrado: ${data.cash}`);
     // Retorna sempre sucesso, pois agora temos os três cenários cobertos
     const response = {
       success: true,
       cashStatus: data.cashStatus,
       cash: data.cash
     };
+    console.log(`[CashController] Resposta do status do caixa: ${response}`);
     return res.status(200).json(response);
   } catch (error) {
     console.error(`[CashController] Erro ao buscar status do caixa: ${error}`);
@@ -45,7 +48,7 @@ exports.openCash = async (req, res) => {
 
   try {
     const isOpen = await cashService.openCashService(user, initialValue, date);
-
+    console.log(`[CashController] Caixa aberto: ${isOpen}`);
     if (!isOpen) {
       return res.status(409).json({
         success: false,
@@ -81,7 +84,7 @@ exports.closeCash = async (req, res) => {
   const date = getCurrentBelemTime()
   try {
     const cash = await cashService.closeCashService(cashId, date);
-
+    console.log(`[CashController] Caixa fechado: ${cash}`);
     if (!cash) {
       return res.status(404).json({
         success: false,
@@ -119,8 +122,8 @@ exports.reopenCash = async (req, res) => {
 
   try {
     const result = await cashService.reopenCashService(cashId);
-
-    console.log("✅ Caixa reaberto com sucesso:", result.id);
+    console.log(`[CashController] Caixa reaberto: ${result}`);
+    console.log("✅ Caixa reaberto com sucesso - ID:", result.id);
     return res.status(200).json({
       success: true,
       message: "Caixa reaberto com sucesso.",
@@ -150,7 +153,7 @@ exports.updateCash = async (req, res) => {
 
   try {
     const cash = await cashService.updateCashService(cashId, initialValue);
-
+    console.log(`[CashController] Caixa atualizado: ${cash}`);
     return res.status(200).json({
       success: true,
       data: cash,
@@ -179,7 +182,7 @@ exports.cashData = async (req, res) => {
 
   try {
     const cash = await cashService.cashDataService(cashId);
-
+    console.log(`[CashController] Caixa encontrado: ${cash}`);
     if (!cash) {
       return res.status(404).json({
         success: false,
@@ -215,7 +218,7 @@ exports.generalCashData = async (req, res) => {
 
   try {
     const cash = await cashService.generalCashDataService(cashId);
-
+    console.log(`[CashController] Caixa encontrado: ${cash}`);
     return res.status(200).json({
       success: true,
       data: cash
@@ -248,7 +251,7 @@ exports.deleteTransaction = async (req, res) => {
 
   try {
     let result;
-
+    console.log(`[CashController] Tipo de transação: ${type}`);
     switch (type) {
       case 'expense':
         console.log('[cashController] Chamando service para exclusão de despesa');
@@ -272,8 +275,8 @@ exports.deleteTransaction = async (req, res) => {
           message: 'Tipo de transação inválido. Use: expense, product ou vehicle.'
         });
     }
-
-    console.log(`[cashController] Transação ${type} excluída com sucesso - Result:`, result);
+    console.log(`[CashController] Transação excluída: ${result}`);
+    console.log(`[cashController] Transação ${type} excluída com sucesso - ID:`, result?.id || 'N/A');
     return res.status(200).json({
       success: true,
       message: 'Transação excluída com sucesso.'
@@ -303,7 +306,7 @@ exports.cashHistory = async (req, res) => {
 
   try {
     const cash = await cashService.cashHistoryService(cashId);
-
+    console.log(`[CashController] Caixa encontrado: ${cash}`);
     return res.status(200).json({
       success: true,
       data: cash
@@ -331,7 +334,7 @@ exports.generalCashHistory = async (req, res) => {
   const user = req.user;
   const { cursor, limit } = req.query;
 
-  console.log(`[cashController] Buscando histórico geral - User: ${user.username}, Role: ${user.role}, Cursor: ${cursor}, Limit: ${limit}`);
+  console.log(`[cashController] Buscando histórico geral - Role: ${user.role}, Cursor: ${cursor}, Limit: ${limit}`);
 
   try {
     const parsedLimit = limit ? parseInt(limit) : 10;
@@ -346,7 +349,7 @@ exports.generalCashHistory = async (req, res) => {
     }
 
     const result = await cashService.generalCashHistoryService(user, cursor, parsedLimit);
-
+    console.log(`[CashController] Histórico geral encontrado: ${result}`);
     console.log(`[cashController] Histórico geral retornado com sucesso - ${result.cashRegisters.length} caixas`);
     return res.status(200).json({
       success: true,
@@ -382,8 +385,7 @@ exports.transactionPhoto = async (req, res) => {
 
   try {
     const photoData = await cashService.transactionPhotoService(transactionId, type);
-
-
+    console.log(`[CashController] Foto encontrada: ${photoData}`);
 
     // Converter de binário para base64
     const base64Photo = photoData.photo.toString('base64');

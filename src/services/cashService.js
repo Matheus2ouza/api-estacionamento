@@ -9,6 +9,11 @@ const createMessage = (userMessage, logMessage) => ({
   logMessage
 });
 
+/**
+ * Função para verificar o status do caixa
+ * @param {Date} date - Data
+ * @returns {Promise<{cashStatus: string, cash: {id: string, operator: string, status: string, opening_date: string, closing_date: string | null}}>}
+ */
 async function statusCashService(date) {
   try {
 
@@ -37,7 +42,6 @@ async function statusCashService(date) {
 
     // Se não encontrou nenhum caixa para o dia
     if (!result) {
-      console.log("[CashService] Nenhum caixa encontrado para o dia - retornando not_created");
       return {
         cashStatus: 'not_created',
         cash: null
@@ -66,14 +70,16 @@ async function statusCashService(date) {
   }
 }
 
+/**
+ * Função para abrir o caixa
+ * @param {Object} user - Usuário
+ * @param {number} initialValue - Valor inicial
+ * @param {DateTime} localDateTime - Data local
+ * @returns {Promise<Object>} Caixa
+ */
 async function openCashService(user, initialValue, localDateTime) {
-  console.log("[opencashService] Data recebida como DateTime:", localDateTime.toISO());
-
   const startOfDay = localDateTime.startOf('day').toJSDate(); // convertido em UTC
   const endOfDay = localDateTime.endOf('day').toJSDate();
-
-  console.log("[opencashService] Intervalo UTC - startOfDay:", startOfDay);
-  console.log("[opencashService] Intervalo UTC - endOfDay:", endOfDay);
 
   const existingCash = await prisma.cashRegister.findFirst({
     where: {
@@ -86,7 +92,6 @@ async function openCashService(user, initialValue, localDateTime) {
   });
 
   if (existingCash) {
-    console.log("[opencashService] Já existe um caixa aberto:", existingCash);
     return false;
   }
 
@@ -107,10 +112,15 @@ async function openCashService(user, initialValue, localDateTime) {
     }
   });
 
-  console.log("[opencashService] Caixa criado com sucesso:", newCash);
   return newCash;
 }
 
+/**
+ * Função para fechar o caixa
+ * @param {string} id - ID do caixa
+ * @param {Date} date - Data
+ * @returns {Promise<Object>} Caixa
+ */
 async function closeCashService(id, date) {
   try {
     // 1) Verifica se o caixa existe e está aberto
@@ -178,9 +188,13 @@ async function closeCashService(id, date) {
   }
 }
 
+/**
+ * Função para reabrir o caixa
+ * @param {string} cashId - ID do caixa
+ * @returns {Promise<Object>} Caixa
+ */
 async function reopenCashService(cashId) {
   try {
-    console.log("[reopenCashService] Tentando reabrir caixa:", cashId);
 
     const cash = await prisma.cashRegister.findUnique({
       where: { id: cashId, status: 'CLOSED' },
@@ -211,6 +225,12 @@ async function reopenCashService(cashId) {
   }
 }
 
+/**
+ * Função para atualizar o valor inicial do caixa
+ * @param {string} cashId - ID do caixa
+ * @param {number} initialValue - Valor inicial
+ * @returns {Promise<Object>} Caixa
+ */
 async function updateCashService(cashId, initialValue) {
   try {
     const cash = await prisma.cashRegister.findUnique({
@@ -247,6 +267,11 @@ async function updateCashService(cashId, initialValue) {
   }
 }
 
+/**
+ * Função para buscar dados gerais do caixa
+ * @param {string} cashId - ID do caixa
+ * @returns {Promise<Object>} Caixa
+ */
 async function generalCashDataService(cashId) {
   try {
     // 1. Buscar dados gerais do caixa
@@ -267,7 +292,12 @@ async function generalCashDataService(cashId) {
     });
 
     if (!cashRegister) {
-      throw new Error("Caixa não encontrado");
+      const message = createMessage(
+        'Caixa não encontrado',
+        '[cashService] Tentativa de buscar dados gerais do caixa, mas caixa não encontrado'
+      );
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
     }
 
     // 2. Calcular dados de veículos
@@ -430,6 +460,11 @@ async function generalCashDataService(cashId) {
   }
 }
 
+/**
+ * Função para buscar histórico do caixa
+ * @param {string} cashId - ID do caixa
+ * @returns {Promise<Object>} Caixa
+ */
 async function cashHistoryService(cashId) {
   try {
     const cash = await prisma.cashRegister.findUnique({
@@ -514,12 +549,16 @@ async function cashHistoryService(cashId) {
   }
 }
 
+/**
+ * Função para buscar histórico geral do caixa
+ * @param {Object} user - Usuário
+ * @param {string} cursor - Cursor
+ * @param {number} limit - Limite
+ * @returns {Promise<Object>} Caixa
+ */
 async function generalCashHistoryService(user, cursor = null, limit = 10) {
-  console.log(`[cashService] Iniciando busca de histórico geral - User: ${user.username}, Role: ${user.role}, Cursor: ${cursor}, Limit: ${limit}`);
-
   try {
     const isManagerOrAbove = user.role === 'MANAGER' || user.role === 'ADMIN';
-    console.log(`[cashService] Usuário tem permissão para ver valores: ${isManagerOrAbove}`);
 
     // Configurar filtros baseados no role
     const vehicleSelect = isManagerOrAbove ? {
@@ -709,7 +748,6 @@ async function generalCashHistoryService(user, cursor = null, limit = 10) {
       take: Math.ceil(limit / 3) + 1
     });
 
-    console.log(`[cashService] Encontradas ${vehicleTransactions.length} transações de veículos, ${productTransactions.length} de produtos, ${expenses.length} despesas`);
 
     // Adicionar tipo às transações
     vehicleTransactions.forEach(transaction => {
@@ -808,7 +846,6 @@ async function generalCashHistoryService(user, cursor = null, limit = 10) {
       }
     };
 
-    console.log(`[cashService] Histórico geral retornado com sucesso - ${cashRegisters.length} caixas, ${limitedTransactions.length} transações, próxima página: ${hasNextPage}`);
     return result;
 
   } catch (error) {
@@ -817,10 +854,22 @@ async function generalCashHistoryService(user, cursor = null, limit = 10) {
   }
 }
 
+/**
+ * Função para salvar método de cobrança
+ * @param {Object} user - Usuário
+ * @param {string} title - Título
+ * @param {string} description - Descrição
+ * @param {string} category - Categoria
+ * @param {number} tolerance - Tolerância
+ * @param {number} timeMinutes - Tempo em minutos
+ * @param {number} carroValue - Valor do carro
+ * @param {number} motoValue - Valor da moto
+ * @returns {Promise<Object>} Caixa
+ */
 async function saveBillingMethodService({ title, description, category, tolerance, timeMinutes, carroValue, motoValue }) {
 
   try {
-    
+
     const result = await prisma.billingMethod.create({
       data: {
         title,
@@ -843,6 +892,10 @@ async function saveBillingMethodService({ title, description, category, toleranc
   }
 }
 
+/**
+ * Função para listar métodos de cobrança
+ * @returns {Promise<Object>} Caixa
+ */
 async function listBillingMethodService() {
   try {
     const methods = await prisma.billingMethod.findMany({
@@ -868,6 +921,12 @@ async function listBillingMethodService() {
   }
 }
 
+/**
+ * Função para deletar método de cobrança
+ * @param {string} id - ID do método de cobrança
+ * @param {Object} user - Usuário
+ * @returns {Promise<Object>} Caixa
+ */
 async function deleteBillingMethodService(id, user) {
   try {
     const method = await prisma.billingMethod.update({
@@ -885,6 +944,12 @@ async function deleteBillingMethodService(id, user) {
   }
 }
 
+/**
+ * Função para atualizar método de cobrança
+ * @param {string} id - ID do método de cobrança
+ * @param {Object} user - Usuário
+ * @returns {Promise<Object>} Caixa
+ */
 async function updateBillingMethodService(id, user) {
   try {
     const method = await prisma.billingMethod.update({
@@ -902,6 +967,13 @@ async function updateBillingMethodService(id, user) {
   }
 }
 
+/**
+ * Função para atualizar método de cobrança PUT
+ * @param {string} id - ID do método de cobrança
+ * @param {Object} user - Usuário
+ * @param {Object} data - Dados do método de cobrança
+ * @returns {Promise<Object>} Caixa
+ */
 async function updateBillingMethodPutService(id, user, { title, description, category, tolerance, timeMinutes, carroValue, motoValue }) {
   try {
     const method = await prisma.billingMethod.update({
@@ -925,6 +997,11 @@ async function updateBillingMethodPutService(id, user, { title, description, cat
   }
 }
 
+/**
+ * Função para buscar dados do caixa
+ * @param {string} id - ID do caixa
+ * @returns {Promise<Object>} Caixa
+ */
 async function cashDataService(id) {
   try {
     // Busca os dados principais do caixa
@@ -940,9 +1017,15 @@ async function cashDataService(id) {
       }
     });
 
-    console.log("[cashDataService] Dados principais do caixa:", baseData);
 
-    if (!baseData) throw new Error("Caixa não encontrado ou fechado.");
+    if (!baseData) {
+      const message = createMessage(
+        'Caixa não encontrado ou fechado',
+        '[cashService] Tentativa de buscar dados do caixa, mas caixa não encontrado ou fechado'
+      );
+      console.warn(message.logMessage);
+      throw new Error(message.userMessage);
+    }
 
     // Busca transações de produtos
     const productTransactions = await prisma.productTransaction.findMany({
@@ -998,6 +1081,11 @@ async function cashDataService(id) {
   }
 }
 
+/**
+ * Função para buscar dados gerais do caixa
+ * @param {string} cashId - ID do caixa
+ * @returns {Promise<Object>} Caixa
+ */
 async function generalCashDataService(cashId) {
   try {
     const cash = await prisma.cashRegister.findUnique({
@@ -1171,12 +1259,15 @@ async function generalCashDataService(cashId) {
   }
 }
 
+/**
+ * Função para deletar transação de produto
+ * @param {string} cashId - ID do caixa
+ * @param {string} transactionId - ID da transação
+ * @returns {Promise<Object>} Caixa
+ */
 async function deleteProductTransactionService(cashId, transactionId) {
-  console.log(`[cashService] Iniciando exclusão de transação de produto - CashId: ${cashId}, TransactionId: ${transactionId}`);
-
   try {
     // 1. Validar se o caixa existe
-    console.log(`[cashService] Verificando se caixa existe: ${cashId}`);
     const verifyCash = await prisma.cashRegister.findUnique({
       where: { id: cashId },
     });
@@ -1189,10 +1280,8 @@ async function deleteProductTransactionService(cashId, transactionId) {
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
     }
-    console.log(`[cashService] Caixa encontrado: ${verifyCash.id}`);
 
     // 2. Validar se a transação de produto existe
-    console.log(`[cashService] Verificando se transação de produto existe: ${transactionId}`);
     const verifyTransaction = await prisma.productTransaction.findUnique({
       where: { id: transactionId },
       include: {
@@ -1208,7 +1297,6 @@ async function deleteProductTransactionService(cashId, transactionId) {
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
     }
-    console.log(`[cashService] Transação encontrada - Valor: R$ ${verifyTransaction.finalAmount}, Itens: ${verifyTransaction.saleItems.length}`);
 
     // 3. Validar se a transação pertence ao caixa
     if (verifyTransaction.cashRegisterId !== cashId) {
@@ -1219,16 +1307,12 @@ async function deleteProductTransactionService(cashId, transactionId) {
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
     }
-    console.log(`[cashService] Validação de pertencimento ao caixa: OK`);
 
     // 4. Executar transação: deletar transação, saleItems, restaurar estoque e atualizar caixa
-    console.log(`[cashService] Iniciando transação para exclusão da transação de produto`);
     const result = await prisma.$transaction(async (tx) => {
       // Restaurar quantidade de produtos no estoque
-      console.log(`[cashService] Restaurando estoque para ${verifyTransaction.saleItems.length} itens`);
       for (const saleItem of verifyTransaction.saleItems) {
         if (saleItem.productId) {
-          console.log(`[cashService] Restaurando ${saleItem.soldQuantity} unidades do produto: ${saleItem.productName}`);
           // Buscar o produto no GeneralSale para restaurar a quantidade
           const generalSale = await tx.generalSale.findUnique({
             where: { productId: saleItem.productId }
@@ -1243,27 +1327,21 @@ async function deleteProductTransactionService(cashId, transactionId) {
                 }
               }
             });
-            console.log(`[cashService] Estoque restaurado para produto ${saleItem.productName}`);
-          } else {
-            console.warn(`[cashService] GeneralSale não encontrado para produto: ${saleItem.productId}`);
           }
         }
       }
 
       // Deletar saleItems
-      console.log(`[cashService] Deletando saleItems da transação`);
       await tx.saleItems.deleteMany({
         where: { productTransactionId: transactionId }
       });
 
       // Deletar a transação de produto
-      console.log(`[cashService] Deletando transação de produto: ${transactionId}`);
       await tx.productTransaction.delete({
         where: { id: transactionId }
       });
 
       // Atualizar o caixa
-      console.log(`[cashService] Atualizando caixa - removendo R$ ${verifyTransaction.finalAmount} dos totais`);
       await tx.cashRegister.update({
         where: { id: cashId },
         data: {
@@ -1276,11 +1354,9 @@ async function deleteProductTransactionService(cashId, transactionId) {
         }
       });
 
-      console.log(`[cashService] Transação de produto deletada com sucesso`);
       return { success: true };
     });
 
-    console.log(`[cashService] Transação concluída com sucesso`);
     return result;
 
   } catch (error) {
@@ -1289,12 +1365,17 @@ async function deleteProductTransactionService(cashId, transactionId) {
   }
 }
 
-async function deleteVehicleTransactionService(cashId, transactionId, permanent) {
-  console.log(`[cashService] Iniciando exclusão de transação de veículo - CashId: ${cashId}, TransactionId: ${transactionId}, Permanent: ${permanent}`);
 
+/**
+ * Função para deletar transação de veículo
+ * @param {string} cashId - ID do caixa
+ * @param {string} transactionId - ID da transação
+ * @param {boolean} permanent - Se a transação deve ser deletada permanentemente
+ * @returns {Promise<Object>} Caixa
+ */
+async function deleteVehicleTransactionService(cashId, transactionId, permanent) {
   try {
     // 1. Validar se o caixa existe
-    console.log(`[cashService] Verificando se caixa existe: ${cashId}`);
     const verifyCash = await prisma.cashRegister.findUnique({
       where: { id: cashId },
     });
@@ -1307,10 +1388,8 @@ async function deleteVehicleTransactionService(cashId, transactionId, permanent)
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
     }
-    console.log(`[cashService] Caixa encontrado: ${verifyCash.id}`);
 
     // 2. Validar se a transação de veículo existe
-    console.log(`[cashService] Verificando se transação de veículo existe: ${transactionId}`);
     const verifyTransaction = await prisma.vehicleTransaction.findUnique({
       where: { id: transactionId },
       include: {
@@ -1326,7 +1405,6 @@ async function deleteVehicleTransactionService(cashId, transactionId, permanent)
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
     }
-    console.log(`[cashService] Transação encontrada - Placa: ${verifyTransaction.vehicleEntries.plate}, Valor: R$ ${verifyTransaction.finalAmount}`);
 
     // 3. Validar se a transação pertence ao caixa
     if (verifyTransaction.cashRegisterId !== cashId) {
@@ -1337,42 +1415,32 @@ async function deleteVehicleTransactionService(cashId, transactionId, permanent)
       console.warn(message.logMessage);
       throw new Error(message.userMessage);
     }
-    console.log(`[cashService] Validação de pertencimento ao caixa: OK`);
 
     // 4. Executar transação baseada no tipo (permanente ou não)
-    console.log(`[cashService] Iniciando transação para exclusão da transação de veículo - Tipo: ${permanent ? 'PERMANENTE' : 'NÃO PERMANENTE'}`);
     const result = await prisma.$transaction(async (tx) => {
       if (permanent) {
-        console.log(`[cashService] Executando exclusão PERMANENTE`);
         // Exclusão permanente: deletar transação e vehicleEntries
-        console.log(`[cashService] Deletando transação de veículo: ${transactionId}`);
         await tx.vehicleTransaction.delete({
           where: { id: transactionId }
         });
 
-        console.log(`[cashService] Deletando entrada de veículo: ${verifyTransaction.vehicleId}`);
         await tx.vehicleEntries.delete({
           where: { id: verifyTransaction.vehicleId }
         });
 
       } else {
-        console.log(`[cashService] Executando exclusão NÃO PERMANENTE`);
         // Exclusão não permanente: deletar transação mas manter vehicleEntries
-        console.log(`[cashService] Deletando transação de veículo: ${transactionId}`);
         await tx.vehicleTransaction.delete({
           where: { id: transactionId }
         });
 
         // Gerar a hora de entrada em formato HH:mm:ss local de Belém
         const formattedExitTime = formatBelemTime(getCurrentBelemTime());
-        console.log(`[cashService] Hora formatada para descrição: ${formattedExitTime}`);
 
         // Atualizar vehicleEntries: status para INSIDE, exitTime null, concatenar descrição
         const currentDescription = verifyTransaction.vehicleEntries.description || '';
         const newDescription = `${currentDescription}\nTransação de saída cancelada em ${formattedExitTime}`.trim();
-        console.log(`[cashService] Nova descrição: ${newDescription}`);
 
-        console.log(`[cashService] Atualizando entrada de veículo - Status: INSIDE, ExitTime: null`);
         await tx.vehicleEntries.update({
           where: { id: verifyTransaction.vehicleId },
           data: {
@@ -1384,7 +1452,6 @@ async function deleteVehicleTransactionService(cashId, transactionId, permanent)
       }
 
       // Atualizar o caixa
-      console.log(`[cashService] Atualizando caixa - removendo R$ ${verifyTransaction.finalAmount} dos totais`);
       await tx.cashRegister.update({
         where: { id: cashId },
         data: {
@@ -1397,7 +1464,6 @@ async function deleteVehicleTransactionService(cashId, transactionId, permanent)
         }
       });
 
-      console.log(`[cashService] Transação de veículo deletada com sucesso - Tipo: ${permanent ? 'PERMANENTE' : 'NÃO PERMANENTE'}`);
       return {
         success: true,
         permanent: permanent,
@@ -1405,7 +1471,6 @@ async function deleteVehicleTransactionService(cashId, transactionId, permanent)
       };
     });
 
-    console.log(`[cashService] Transação concluída com sucesso`);
     return result;
 
   } catch (error) {
@@ -1414,8 +1479,13 @@ async function deleteVehicleTransactionService(cashId, transactionId, permanent)
   }
 }
 
+/**
+ * Função para buscar foto de transação
+ * @param {string} transactionId - ID da transação
+ * @param {string} type - Tipo de transação
+ * @returns {Promise<Object>} Caixa
+ */
 async function transactionPhotoService(transactionId, type) {
-  console.log(`[cashService] Buscando foto de transação - TransactionId: ${transactionId}, Type: ${type}`);
 
   try {
     let transaction = null;
@@ -1468,7 +1538,6 @@ async function transactionPhotoService(transactionId, type) {
       ? transaction.photo
       : Buffer.from(transaction.photo);
 
-    console.log(`[cashService] Foto encontrada - Type: ${type}, Size: ${photoBuffer.length} bytes`);
     return { photo: photoBuffer };
 
   } catch (error) {

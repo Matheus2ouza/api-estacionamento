@@ -11,6 +11,7 @@ exports.listProducts = async (req, res) => {
 
     // Se não há produtos, retorna 404
     if (!result.products || result.products.length === 0) {
+      console.log('[ProductController] Nenhum produto encontrado');
       return res.status(404).json({
         success: false,
         message: 'Nenhum produto encontrado.',
@@ -21,6 +22,12 @@ exports.listProducts = async (req, res) => {
         }
       });
     }
+
+    console.log('[ProductController] Produtos encontrados:', {
+      totalProducts: result.products.length,
+      hasMore: result.hasMore,
+      nextCursor: result.nextCursor ? 'presente' : 'null'
+    });
 
     // Se há produtos, retorna 200
     return res.status(200).json({
@@ -34,7 +41,10 @@ exports.listProducts = async (req, res) => {
     });
   } catch (error) {
     // Se houve erro no service, retorna 500
-    console.error(`[ProductController] Erro na busca da lista de produtos: ${error.message}`);
+    console.error('[ProductController] Erro na busca da lista de produtos:', {
+      error: error.message,
+      inputData: { cursor, limit }
+    });
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao buscar produtos.',
@@ -44,7 +54,6 @@ exports.listProducts = async (req, res) => {
 
 exports.fetchProductByBarcode = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -57,13 +66,24 @@ exports.fetchProductByBarcode = async (req, res) => {
   try {
     const product = await productsService.fetchProductByBarcodeService(barcode);
 
+    console.log('[ProductController] Produto encontrado:', {
+      productId: product.id,
+      productName: product.productName,
+      barcode: product.barcode,
+      unitPrice: product.unitPrice,
+      quantity: product.quantity
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Produto encontrado com sucesso.',
       data: product,
     });
   } catch (error) {
-    console.error("[ProductController] Erro ao tentar buscar produto por barcode:", error.message);
+    console.error('[ProductController] Erro ao buscar produto por barcode:', {
+      error: error.message,
+      inputData: { barcode }
+    });
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -73,7 +93,6 @@ exports.fetchProductByBarcode = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -104,7 +123,13 @@ exports.createProduct = async (req, res) => {
       expirationDate: expirationValidation.date
     });
 
-    console.log(created);
+    console.log('[ProductController] Produto criado com sucesso:', {
+      productId: created.id,
+      productName: created.productName,
+      barcode: created.barcode,
+      unitPrice: created.unitPrice,
+      quantity: created.quantity
+    });
 
     // Se chegou até aqui, o produto foi criado com sucesso
     return res.status(201).json({
@@ -113,7 +138,10 @@ exports.createProduct = async (req, res) => {
       data: created.id
     });
   } catch (error) {
-    console.error(`[ProductController] Erro ao tentar cadastrar o produto:`, error.message);
+    console.error('[ProductController] Erro ao cadastrar produto:', {
+      error: error.message,
+      inputData: { productName, barcode, unitPrice, quantity }
+    });
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao cadastrar o produto.',
@@ -123,7 +151,6 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -150,13 +177,25 @@ exports.updateProduct = async (req, res) => {
       isActive: isActive
     });
 
+    console.log('[ProductController] Produto atualizado com sucesso:', {
+      productId: updated.id,
+      productName: updated.productName,
+      barcode: updated.barcode,
+      unitPrice: updated.unitPrice,
+      quantity: updated.quantity,
+      isActive: updated.isActive
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Produto atualizado com sucesso.',
       data: updated.id
     });
   } catch (error) {
-    console.error(`[ProductController] Erro ao tentar atualizar o produto:`, error.message);
+    console.error('[ProductController] Erro ao atualizar produto:', {
+      error: error.message,
+      inputData: { productId, productName, barcode, unitPrice, quantity }
+    });
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao atualizar o produto.',
@@ -166,7 +205,6 @@ exports.updateProduct = async (req, res) => {
 
 exports.updateModeProduct = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     console.log("Erros encontrados:", errors.array());
     return res.status(400).json({
@@ -200,7 +238,6 @@ exports.updateModeProduct = async (req, res) => {
 
 exports.registerPayment = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     console.log("Erros encontrados:", errors.array());
     return res.status(400).json({
@@ -314,8 +351,14 @@ exports.registerPayment = async (req, res) => {
       photoBuffer,
       photoMimeType
     );
-    console.log("Tudo ok ate aqui")
-    console.log(`[ProductController] Transaction ID:`, transactionId);
+
+    console.log('[ProductController] Pagamento registrado com sucesso:', {
+      transactionId,
+      method: normalizedMethod,
+      finalAmount: numericFinalAmount,
+      totalItems: saleItemsToInsert.length,
+      cashId
+    });
 
     const receipt = await generateReceiptPDF(
       user.username,
@@ -328,6 +371,12 @@ exports.registerPayment = async (req, res) => {
       numericChangeGiven,
     );
 
+    console.log('[ProductController] Comprovante gerado:', {
+      transactionId,
+      receiptGenerated: !!receipt,
+      receiptPreview: receipt ? receipt.substring(0, 15) + '...' : null
+    });
+
     return res.status(201).json({
       success: true,
       transactionId,
@@ -338,7 +387,10 @@ exports.registerPayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Erro ao registrar pagamento:", error.message);
+    console.error('[ProductController] Erro ao registrar pagamento:', {
+      error: error.message,
+      inputData: { cashId, method, finalAmount: numericFinalAmount }
+    });
     return res.status(500).json({
       success: false,
       message: error.message || 'Erro interno ao registrar pagamento.',

@@ -4,7 +4,6 @@ const { generateDashboardReportPDF } = require('../utils/dashboardReportPDF');
 
 exports.dashboard = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -15,6 +14,8 @@ exports.dashboard = async (req, res) => {
   const { cashId } = req.params;
   try {
     const data = await dashboardService.dashboardService(cashId);
+
+    console.log('[DashboardController] Dados do dashboard encontrados - Cash ID:', data.cash?.id, 'Transações:', data.transactions?.length || 0);
 
     return res.status(200).json({
       success: true,
@@ -35,7 +36,6 @@ exports.dashboard = async (req, res) => {
 
 exports.reports = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -59,6 +59,8 @@ exports.reports = async (req, res) => {
     const generatePDF = pdf === 'true';
     reportData = await dashboardService.getReportService(type, startDateToUse, endDate, includeDetails, requestedCharts);
 
+    console.log('[DashboardController] Relatório gerado - Tipo:', type, 'Período:', startDateToUse, 'a', endDate || 'atual');
+
     // Adiciona o flag includeDetails aos dados do relatório
     reportData.includeDetails = includeDetails;
 
@@ -68,7 +70,7 @@ exports.reports = async (req, res) => {
         const pdfBuffer = await generateDashboardReportPDF(reportData);
         const pdfBase64 = pdfBuffer.toString('base64');
 
-        console.log('PDF gerado com sucesso:', reportData);
+        console.log('[DashboardController] PDF gerado com sucesso - Tamanho:', pdfBuffer.length, 'bytes');
 
         return res.status(200).json({
           success: true,
@@ -80,7 +82,8 @@ exports.reports = async (req, res) => {
         });
 
       } catch (pdfError) {
-        console.error('Erro ao gerar PDF:', pdfError.message);
+        console.error('[DashboardController] Erro ao gerar PDF:', pdfError.message);
+        console.info('[DashboardController] retornando apenas os dados JSON sem PDF');
 
         // Se o PDF falhar, retorna apenas os dados JSON
         return res.status(200).json({
@@ -93,6 +96,8 @@ exports.reports = async (req, res) => {
         });
       }
     } else {
+      console.info('[DashboardController] retornando apenas os dados JSON sem PDF');
+
       // Retorna apenas os dados JSON sem PDF
       return res.status(200).json({
         success: true,
@@ -115,7 +120,6 @@ exports.reports = async (req, res) => {
 
 exports.goals = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -131,7 +135,7 @@ exports.goals = async (req, res) => {
   try {
     const data = await dashboardService.goalsService(goalPeriod, goalValue, isActiveBoolean);
 
-    console.log("Metas configuradas com sucesso:", data);
+    console.log('[DashboardController] Metas configuradas com sucesso - Período:', goalPeriod, 'Valor:', goalValue);
 
     return res.status(200).json({
       success: true,
@@ -159,7 +163,7 @@ exports.listGoals = async (req, res) => {
   try {
     const data = await dashboardService.listGoalsService();
 
-    console.log("Metas encontradas com sucesso:", data);
+    console.log('[DashboardController] Metas encontradas com sucesso - Total:', data?.length || 0);
 
     return res.status(200).json({
       success: true,
@@ -176,7 +180,6 @@ exports.listGoals = async (req, res) => {
 
 exports.desactivateGoal = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -188,6 +191,8 @@ exports.desactivateGoal = async (req, res) => {
 
   try {
     const data = await dashboardService.desactivateGoalService(goalPeriod);
+
+    console.log('[DashboardController] Meta desativada com sucesso - Período:', goalPeriod);
 
     return res.status(200).json({
       success: true,
@@ -203,15 +208,7 @@ exports.desactivateGoal = async (req, res) => {
 }
 
 exports.charts = async (req, res) => {
-  // Log da URL completa e método HTTP
-  try {
-    const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
-    console.log(`[charts] ${req.method} ${fullUrl}`);
-  } catch (e) {
-    console.warn('[charts] Falha ao montar URL completa para log:', e?.message || e);
-  }
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -295,8 +292,8 @@ exports.charts = async (req, res) => {
       }
     }
 
-    console.log('Gráficos processados:', processedCharts);
-    console.log('Gráficos ignorados:', ignoredCharts);
+    console.log('[DashboardController] Gráficos processados:', processedCharts);
+    console.log('[DashboardController] Gráficos ignorados:', ignoredCharts);
 
     return res.status(200).json({
       success: true,
@@ -310,7 +307,7 @@ exports.charts = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro ao obter dados dos gráficos:', error);
+    console.error('[DashboardController] Erro ao obter dados dos gráficos:', error);
     return res.status(500).json({
       success: false,
       message: 'Erro interno ao obter dados dos gráficos.',

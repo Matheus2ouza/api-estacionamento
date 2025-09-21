@@ -5,10 +5,14 @@
   "scripts": {
     "postinstall": "prisma generate",
     "build": "echo \"No build step\"",
-    "dev": "nodemon server.js",
-    "start": "node server.js",
-    "migrate:prod": "npx prisma migrate dev --schema=prisma/schema.prisma",
-    "migrate:local": "npx prisma migrate dev --schema=prisma-local/schema.prisma"
+    "dev": "NODE_ENV=development nodemon server.js",
+    "start": "NODE_ENV=production node server.js",
+    "migrate:prod": "NODE_ENV=production npx prisma migrate dev --schema=prisma/schema.prisma",
+    "migrate:local": "NODE_ENV=development npx prisma migrate dev --schema=prisma/schema.prisma",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "NODE_ENV=development npx prisma studio",
+    "test:users": "node test/run-user-tests.js",
+    "test:setup": "node test/setup-tests.js"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +23,7 @@
     "axios": "^1.12.1",
     "dotenv": "^17.0.0",
     "expo": "53.0.22",
+    "expo-server-sdk": "^4.0.0",
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
@@ -33,6 +38,7 @@
     "react-native": "0.79.5"
   },
   "devDependencies": {
+    "colors": "^1.4.0",
     "nodemon": "^3.1.10",
     "prisma": "^6.16.2"
   }

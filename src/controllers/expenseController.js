@@ -1,6 +1,5 @@
-const { validationResult, Result } = require('express-validator');
+const { validationResult } = require('express-validator');
 const expenseService = require('../services/expenseService');
-const { DateTime } = require("luxon");
 const { getCurrentBelemTime } = require('../utils/timeConverter');
 
 exports.registerOutgoing = async (req, res) => {
@@ -28,6 +27,8 @@ exports.registerOutgoing = async (req, res) => {
       user: user
     });
 
+    console.log('[ExpenseController] Despesa registrada com sucesso - ID:', result?.id || 'N/A');
+
     return res.status(201).json({
       success: true,
       message: 'Despesa registrada com sucesso.',
@@ -53,6 +54,8 @@ exports.listOutgoingExpense = async (req, res) => {
 
   try {
     const result = await expenseService.listOutgoingExpenseService(cashId);
+
+    console.log('[ExpenseController] Despesa encontrada com sucesso - ID:', result?.id || 'N/A');
 
     return res.status(200).json({
       success: true,
@@ -80,6 +83,8 @@ exports.deleteOutgoingExpense = async (req, res) => {
   try {
     const result = await expenseService.deleteOutgoingExpenseService(cashId, expenseId);
 
+    console.log('[ExpenseController] Despesa deletada com sucesso - ID:', result?.id || 'N/A');
+
     return res.status(200).json({
       success: true,
       message: 'Despesa deletada com sucesso.',
@@ -105,13 +110,13 @@ exports.updateOutgoingExpense = async (req, res) => {
   const { description, amount, method } = req.body;
 
   try {
-    await expenseService.updateOutgoingExpenseService(cashId, expenseId, {
+    const result = await expenseService.updateOutgoingExpenseService(cashId, expenseId, {
       description,
       amount,
       method
     });
 
-    console.log('Despesa atualizada com sucesso.');
+    console.log('[ExpenseController] Despesa atualizada com sucesso - ID:', result?.id || 'N/A');
 
     return res.status(200).json({
       success: true,

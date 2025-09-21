@@ -1,6 +1,5 @@
 const { validationResult } = require('express-validator');
 const parkingService = require('../services/parkingService');
-const { DateTime } = require("luxon");
 
 exports.parkingConfig = async (req, res) => {
   try {
@@ -12,6 +11,8 @@ exports.parkingConfig = async (req, res) => {
         message: 'Configuração de pátio não encontrada'
       });
     }
+
+    console.log('[ParkingController] Configuração de pátio encontrada:', parkingConfig);
 
     return res.status(200).json({
       success: true,
@@ -29,7 +30,6 @@ exports.parkingConfig = async (req, res) => {
 
 exports.parkingConfigSave = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     console.log("Erros de validação:", errors.array());
     return res.status(400).json({
@@ -43,6 +43,7 @@ exports.parkingConfigSave = async (req, res) => {
   try {
     const parkingConfig = await parkingService.parkingConfigSaveService(maxCars, maxMotorcycles)
 
+    console.log('[ParkingController] Configuração de pátio salva com sucesso:', parkingConfig);
     return res.status(200).json({
       success: true,
       message: 'Configuração de pátio salva com sucesso',
@@ -59,7 +60,6 @@ exports.parkingConfigSave = async (req, res) => {
 
 exports.capacityParking = async (req, res) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
@@ -78,6 +78,7 @@ exports.capacityParking = async (req, res) => {
       ? parseFloat(((capacityParking.quantityVehicles / capacityMax) * 100).toFixed(1))
       : 0;
 
+    console.log('[ParkingController] Capacidade de pátio encontrada:', capacityParking);
     return res.status(200).json({
       success: true,
       data: {

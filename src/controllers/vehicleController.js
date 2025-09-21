@@ -1,9 +1,6 @@
 const { validationResult } = require('express-validator');
 const vehicleService = require('../services/vehicleService');
-const { DateTime } = require("luxon");
 const { generateEntryTicketPDF } = require('../utils/entryTicketGenerator');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 const { generateVehicleReceiptPDFImproved } = require('../utils/vehicleReceiptPDFImproved');
 const { getCurrentBelemTime, formatBelemTime, convertToBelemTime } = require('../utils/timeConverter');
 
@@ -11,6 +8,7 @@ const { getCurrentBelemTime, formatBelemTime, convertToBelemTime } = require('..
 exports.vehicleEntry = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -85,13 +83,19 @@ exports.vehicleEntry = async (req, res) => {
       ticket = await Promise.race([ticketPromise, timeoutPromise]);
     } catch (err) {
       if (err.message === 'timeout') {
-        console.warn('Geração do ticket excedeu o tempo limite de 6 segundos');
+        console.warn('[VehicleController] Ticket timeout (6s)');
         ticketError = true;
       } else {
-        console.error('Erro ao gerar ticket:', err.message);
+        console.error('[VehicleController] Erro ao gerar ticket:', err.message);
         ticketError = true;
       }
     }
+
+    console.log('[VehicleController] Entrada registrada com sucesso:', {
+      vehicleId: entry.id,
+      category: entry.category,
+      ticketGenerated: !ticketError
+    });
 
     return res.status(201).json({
       success: true,
@@ -101,7 +105,10 @@ exports.vehicleEntry = async (req, res) => {
       ticket: ticket || null,
     })
   } catch (error) {
-    console.error(`[vehicleController] Erro ao registrar entrada de veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao registrar entrada:', {
+      error: error.message,
+      inputData: { plate, category, billingMethod }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -112,6 +119,7 @@ exports.vehicleEntry = async (req, res) => {
 exports.listVehicleEntries = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -132,6 +140,12 @@ exports.listVehicleEntries = async (req, res) => {
       }));
     }
 
+    console.log('[VehicleController] Lista obtida com sucesso:', {
+      totalVehicles: result.vehicles ? result.vehicles.length : 0,
+      hasMore: result.hasMore,
+      cashId
+    });
+
     return res.status(200).json({
       success: true,
       data: {
@@ -141,7 +155,10 @@ exports.listVehicleEntries = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`[vehicleController] Erro ao buscar entradas de veículos: ${error.message}`);
+    console.error('[VehicleController] Erro ao buscar entradas:', {
+      error: error.message,
+      inputData: { cashId, cursor, limit }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -152,6 +169,7 @@ exports.listVehicleEntries = async (req, res) => {
 exports.vehicleEntryPhoto = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -163,12 +181,20 @@ exports.vehicleEntryPhoto = async (req, res) => {
   try {
     const photo = await vehicleService.vehicleEntryPhotoService(vehicleId);
 
+    console.log('[VehicleController] Foto encontrada:', {
+      vehicleId,
+      hasPhoto: !!photo
+    });
+
     return res.status(200).json({
       success: true,
       data: photo
     })
   } catch (error) {
-    console.error(`[vehicleController] Erro ao buscar foto do veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao buscar foto:', {
+      error: error.message,
+      inputData: { vehicleId }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -179,6 +205,7 @@ exports.vehicleEntryPhoto = async (req, res) => {
 exports.vehicleEntryDuplicate = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -223,12 +250,20 @@ exports.vehicleEntryDuplicate = async (req, res) => {
       price: amount,
     })
 
+    console.log('[VehicleController] Ticket duplicado gerado:', {
+      vehicleId: vehicle.id,
+      category: vehicle.category
+    });
+
     return res.status(200).json({
       success: true,
       ticket: ticket
     })
   } catch (error) {
-    console.error(`[vehicleController] Erro ao buscar veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao gerar ticket duplicado:', {
+      error: error.message,
+      inputData: { vehicleId }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -239,6 +274,7 @@ exports.vehicleEntryDuplicate = async (req, res) => {
 exports.vehicleEntryDesactivate = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -251,13 +287,20 @@ exports.vehicleEntryDesactivate = async (req, res) => {
   try {
     await vehicleService.desactivateVehicleEntryService(vehicleId, user)
 
+    console.log('[VehicleController] Veículo desativado com sucesso:', {
+      vehicleId
+    });
+
     return res.status(200).json({
       success: true,
       message: "Veículo desativado com sucesso.",
     });
 
   } catch (error) {
-    console.error(`[vehicleController] Erro ao desativar veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao desativar veículo:', {
+      error: error.message,
+      inputData: { vehicleId }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -268,6 +311,7 @@ exports.vehicleEntryDesactivate = async (req, res) => {
 exports.vehicleEntryActivate = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -280,12 +324,19 @@ exports.vehicleEntryActivate = async (req, res) => {
   try {
     await vehicleService.activateVehicleEntryService(vehicleId, user)
 
+    console.log('[VehicleController] Veículo reativado com sucesso:', {
+      vehicleId
+    });
+
     return res.status(200).json({
       success: true,
       message: "Veículo reativado com sucesso.",
     });
   } catch (error) {
-    console.error(`[vehicleController] Erro ao reativar veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao reativar veículo:', {
+      error: error.message,
+      inputData: { vehicleId }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -296,6 +347,7 @@ exports.vehicleEntryActivate = async (req, res) => {
 exports.vehicleEntryUpdate = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -335,13 +387,22 @@ exports.vehicleEntryUpdate = async (req, res) => {
       })
     }
 
+    console.log('[VehicleController] Veículo atualizado com sucesso:', {
+      vehicleId: vehicle.id,
+      category: vehicle.category,
+      ticketGenerated: !!ticket
+    });
+
     return res.status(200).json({
       success: true,
       message: "Veículo atualizado com sucesso.",
       ticket: ticket
     });
   } catch (error) {
-    console.error(`[vehicleController] Erro ao atualizar veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao atualizar veículo:', {
+      error: error.message,
+      inputData: { vehicleId, plate, category, billingMethod }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -396,12 +457,19 @@ exports.vehicleEntryDeletePhoto = async (req, res) => {
   try {
     await vehicleService.vehicleEntryDeletePhotoService(vehicleId, user);
 
+    console.log('[VehicleController] Foto do veículo deletada com sucesso:', {
+      vehicleId: vehicleId
+    });
+
     return res.status(200).json({
       success: true,
       message: "Foto do veículo deletada com sucesso.",
     });
   } catch (error) {
-    console.error(`[vehicleController] Erro ao deletar foto do veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao deletar foto do veículo:', {
+      error: error.message,
+      inputData: { vehicleId }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -410,8 +478,15 @@ exports.vehicleEntryDeletePhoto = async (req, res) => {
 }
 
 exports.fetchVehicleEntry = async (req, res) => {
+  console.log('[VehicleController] Buscando veículo');
+  console.log('[VehicleController] Dados de entrada:', {
+    params: req.params,
+    userId: req.user ? req.user.id : null
+  });
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -446,12 +521,21 @@ exports.fetchVehicleEntry = async (req, res) => {
       photoType: vehicle.photoType
     };
 
+    console.log('[VehicleController] Veículo encontrado:', {
+      vehicleId: vehicle.id,
+      category: vehicle.category,
+      permanenceTime: permanenceTimeString
+    });
+
     return res.status(200).json({
       success: true,
       data: vehicleResponse
     });
   } catch (error) {
-    console.error(`[vehicleController] Erro ao buscar veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao buscar veículo:', {
+      error: error.message,
+      inputData: { vehicleId, plateId }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
@@ -496,6 +580,12 @@ exports.calculateOutstanding = async (req, res) => {
       return res.status(400).json(calculation.error);
     }
 
+    console.log('[VehicleController] Dívida calculada com sucesso:', {
+      vehicleId: vehicle.id,
+      category: vehicle.category,
+      amount: calculation.amount
+    });
+
     return res.status(200).json({
       success: true,
       amount: calculation.amount
@@ -512,6 +602,7 @@ exports.calculateOutstanding = async (req, res) => {
 exports.exitsRegisterConfirm = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -543,8 +634,7 @@ exports.exitsRegisterConfirm = async (req, res) => {
       method,
       exitTime,
       formattedExitTime,
-      user: user,
-      username: user.username
+      userId: user.id
     });
 
     // Validação: verificar se não está faltando dinheiro
@@ -581,8 +671,10 @@ exports.exitsRegisterConfirm = async (req, res) => {
     // Agora exitRegister contém { transaction, vehicleUpdated }
     const { transaction, vehicleUpdated } = exitRegister;
 
-    console.log(`[VehicleController] Transaction:`, transaction);
-    console.log(`[VehicleController] VehicleUpdated:`, vehicleUpdated);
+    console.log(`[VehicleController] Transaction ID:`, transaction.id);
+    console.log(`[VehicleController] VehicleUpdated ID:`, vehicleUpdated.id);
+
+    await vehicleGoalNotifications(transaction.finalValue, user.role)
 
     const pdf = await generateVehicleReceiptPDFImproved({
       operator: user.username,
@@ -598,6 +690,13 @@ exports.exitsRegisterConfirm = async (req, res) => {
       exitTime: vehicleUpdated.exitTime
     })
 
+    console.log('[VehicleController] Saída registrada com sucesso:', {
+      vehicleId,
+      transactionId: transaction.id,
+      finalAmount: transaction.finalAmount,
+      method: transaction.method
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Saída registrada com sucesso.',
@@ -605,7 +704,10 @@ exports.exitsRegisterConfirm = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`[VehicleController] Erro ao confirmar saída do veículo: ${error.message}`);
+    console.error('[VehicleController] Erro ao confirmar saída:', {
+      error: error.message,
+      inputData: { cashId, vehicleId, finalAmount, method }
+    });
     return res.status(500).json({
       success: false,
       message: error.message || 'Erro interno ao registrar saída do veículo.'
@@ -616,6 +718,7 @@ exports.exitsRegisterConfirm = async (req, res) => {
 exports.vehicleExitDuplicate = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.warn('[VehicleController] Dados inválidos:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Dados inválidos. Verifique os campos e tente novamente.',
@@ -641,12 +744,20 @@ exports.vehicleExitDuplicate = async (req, res) => {
       exitTime: transaction.vehicleEntries.exitTime
     });
 
+    console.log('[VehicleController] Segunda via gerada com sucesso:', {
+      transactionId,
+      finalAmount: transaction.finalAmount
+    });
+
     return res.status(200).json({
       success: true,
       data: pdf
     });
   } catch (error) {
-    console.error(`[vehicleController] Erro ao gerar segunda via do recibo: ${error.message}`);
+    console.error('[VehicleController] Erro ao gerar segunda via:', {
+      error: error.message,
+      inputData: { transactionId }
+    });
     return res.status(500).json({
       success: false,
       message: error.message
