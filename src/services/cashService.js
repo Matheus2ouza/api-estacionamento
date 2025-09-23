@@ -902,6 +902,7 @@ async function listBillingMethodService() {
       select: {
         id: true,
         title: true,
+        description: true,
         category: true,
         isActive: true,
         tolerance: true,
@@ -1260,6 +1261,37 @@ async function generalCashDataService(cashId) {
 }
 
 /**
+ *
+ * @param {string} cashId - ID do caixa
+ * @returns
+ */
+async function cashProfit(cashId) {
+  try {
+    const cash = await prisma.cashRegister.findUnique({
+      where: { id: cashId },
+      select: {
+        initialValue: true,
+        finalValue: true
+      }
+    })
+
+    if (!cash) {
+      console.warn('Nenhum caixa encontrado para calcular seu lucro')
+      return null
+    }
+
+    const initial = Number(cash.initialValue ?? 0);
+    const final = Number(cash.finalValue ?? 0);
+    const profit = final - initial;
+
+    return profit
+  } catch (error) {
+    console.error("Erro ao calcular lucro do caixa:", error);
+    throw error;
+  }
+}
+
+/**
  * Função para deletar transação de produto
  * @param {string} cashId - ID do caixa
  * @param {string} transactionId - ID da transação
@@ -1561,6 +1593,7 @@ module.exports = {
   generalCashDataService,
   cashHistoryService,
   generalCashHistoryService,
+  cashProfit,
   deleteProductTransactionService,
   deleteVehicleTransactionService,
   transactionPhotoService,

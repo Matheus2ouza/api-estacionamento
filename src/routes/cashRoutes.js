@@ -99,6 +99,7 @@ router.post('/billing-method',
     body('title').notEmpty().withMessage('O título é obrigatório'),
     body('tolerance').isInt().withMessage('A tolerância é obrigatória'),
     body('category').notEmpty().isIn(["POR_HORA", "POR_MINUTO", "VALOR_FIXO"]).withMessage('A categoria é obrigatória'),
+    body('description').notEmpty().withMessage('A descrição tem que ser enviada'),
     body('time').optional(),
     body('carroValue').notEmpty().withMessage('O valor do carro é obrigatório'),
     body('motoValue').notEmpty().withMessage('O valor da moto é obrigatório'),
@@ -121,6 +122,7 @@ router.put('/billing-method/:id',
   [
     body('title').notEmpty().withMessage('O título é obrigatório'),
     body('category').notEmpty().isIn(["POR_HORA", "POR_MINUTO", "VALOR_FIXO"]).withMessage('A categoria é obrigatória'),
+    body('description').notEmpty(),
     body('tolerance').isInt().withMessage('A tolerância é obrigatória'),
     body('time').optional().custom((value, { req }) => {
       // Se a categoria for VALOR_FIXO, aceita qualquer valor (será convertido para 0)

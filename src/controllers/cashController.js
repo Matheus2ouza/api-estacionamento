@@ -340,11 +340,11 @@ exports.generalCashHistory = async (req, res) => {
     const parsedLimit = limit ? parseInt(limit) : 10;
 
     // Validar limite
-    if (parsedLimit < 1 || parsedLimit > 50) {
+    if (parsedLimit < 1 || parsedLimit > 15) {
       console.warn(`[cashController] Limite inválido: ${parsedLimit}`);
       return res.status(400).json({
         success: false,
-        message: 'Limite deve estar entre 1 e 50.'
+        message: 'Limite deve estar entre 1 e 15.'
       });
     }
 
@@ -421,11 +421,13 @@ exports.billingMethodSave = async (req, res) => {
     });
   }
 
-  const { title, category, tolerance, time, carroValue, motoValue } = req.body;
+  const { title, category, description, tolerance, time, carroValue, motoValue } = req.body;
 
   // Validação da tolerância
   const toleranceValidation = validateTolerance(tolerance);
+  console.log(toleranceValidation)
   if (!toleranceValidation.isValid) {
+    console.log('caiu no if numero 1')
     console.warn(`Tentativa de salvar um novo metodo de cobrança: ${toleranceValidation.logMessage}`)
     return res.status(400).json({
       success: false,
@@ -435,12 +437,10 @@ exports.billingMethodSave = async (req, res) => {
 
   // Validação e conversão de tempo baseada na categoria
   let timeMinutes;
-  let description;
 
   try {
     const result = validateAndConvertBillingTime(category, time, carroValue, motoValue);
     timeMinutes = result.timeMinutes;
-    description = result.description;
   } catch (error) {
     console.warn(`Tentativa de salvar um novo metodo de cobrança: ${error.logMessage}`)
     return res.status(400).json({
@@ -574,7 +574,7 @@ exports.billingMethodPut = async (req, res) => {
   }
 
   const { id } = req.params;
-  const { title, category, tolerance, time, carroValue, motoValue } = req.body;
+  const { title, category, description, tolerance, time, carroValue, motoValue } = req.body;
   const user = req.user;
 
   // Validação da tolerância
@@ -589,12 +589,10 @@ exports.billingMethodPut = async (req, res) => {
 
   // Validação e conversão de tempo baseada na categoria
   let timeMinutes;
-  let description;
 
   try {
     const result = validateAndConvertBillingTime(category, time, carroValue, motoValue);
     timeMinutes = result.timeMinutes;
-    description = result.description;
   } catch (error) {
     console.warn(`Tentativa de atualizar metodo de cobrança: ${error.logMessage}`)
     return res.status(400).json({
@@ -605,13 +603,13 @@ exports.billingMethodPut = async (req, res) => {
 
   try {
     const result = await cashService.updateBillingMethodPutService(id, user, {
-      title,
-      description,
-      category,
-      tolerance,
-      timeMinutes,
-      carroValue,
-      motoValue
+      title: title,
+      description: description,
+      category: category,
+      tolerance: tolerance,
+      timeMinutes: timeMinutes,
+      carroValue: carroValue,
+      motoValue: motoValue
     });
 
     return res.status(200).json({
