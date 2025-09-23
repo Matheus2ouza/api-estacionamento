@@ -1,16 +1,23 @@
 import { Expo } from "expo-server-sdk";
 
-const expo = new Expo();
+const expo = new Expo({
+  accessToken: process.env.EXPO_ACCESS_TOKEN,
+  useFcmV1: true
+});
 
 /**
  * Envia uma notificação push
  * @param {object} messageConfig - Objeto com os dados da mensagem
- * @param {string[]} tokens - Tokens dos usuários que vão receber
+ * @param {Array<{token: string}>} tokens - Array de objetos com a propriedade token
  */
 export async function sendNotification(messageConfig, tokens) {
   const messages = [];
 
-  for (let token of tokens) {
+  for (let tokenObj of tokens) {
+    const token = tokenObj.token; // pega a string real do token
+    console.log("dentro do sendNotification");
+    console.log(token);
+
     if (!Expo.isExpoPushToken(token)) {
       console.warn(`[Notification] Token inválido: ${token}`);
       continue;
