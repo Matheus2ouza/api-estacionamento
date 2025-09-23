@@ -92,6 +92,14 @@ router.get('/history/:transactionId/photo',
   authMiddleware('NORMAL'), cashController.transactionPhoto
 );
 
+router.get('/history-all',
+  [
+    query('cursor').optional().isString().withMessage('O cursor deve ser uma string'),
+    query('limit').optional().isInt().withMessage('O limite deve ser um número inteiro'),
+  ],
+  authMiddleware('MANAGER'), cashController.generalCashHistoryAll
+)
+
 //Rotas de metodos de cobrança
 //Rotas para criar um metodo de cobrança
 router.post('/billing-method',

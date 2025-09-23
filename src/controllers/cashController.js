@@ -4,6 +4,7 @@ const expenseService = require('../services/expenseService');
 const { DateTime } = require("luxon");
 const { validateAndConvertBillingTime, validateTolerance } = require('../utils/billingMethodUtils');
 const { getCurrentBelemTime, convertToBelemJSDate } = require('../utils/timeConverter');
+const { notifyOpeningCashRegister } = require('../notifications/cash/NotifyOpeningCashRegister');
 
 exports.statusCash = async (req, res) => {
   try {
@@ -55,6 +56,8 @@ exports.openCash = async (req, res) => {
         message: "Já existe um caixa aberto para hoje.",
       });
     }
+
+    await notifyOpeningCashRegister(user)
 
     return res.status(201).json({
       success: true,
@@ -363,6 +366,52 @@ exports.generalCashHistory = async (req, res) => {
       success: false,
       message: 'Erro interno ao buscar histórico geral.',
       error: error.message
+    });
+  }
+}
+
+exports.generalCashHistoryAll = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.warn('[cashController] Dados inválidos no histórico geral:', errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+    });
+  }
+
+  const user = req.user;
+  const { cursor, limit } = req.query;
+
+  console.log(`[cashController] Buscando histórico geral - Role: ${user.role}, Cursor: ${cursor}, Limit: ${limit}`);
+
+  try {
+    const parsedLimit = limit ? parseInt(limit) : 10;
+
+    // Validar limite
+    if (parsedLimit < 1 || parsedLimit > 15) {
+      console.warn(`[cashController] Limite inválido: ${parsedLimit}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Limite deve estar entre 1 e 15.'
+      });
+    }
+
+    const result = await cashService.generalCashHistoryAllService(cursor, parsedLimit);
+    console.log(`[cashController] Histórico geral (caixas) retornado com sucesso - ${result.items.length} itens, hasNextPage=${result.hasNextPage}`);
+    return res.status(200).json({
+      success: true,
+      data: result.items,
+      hasNextPage: result.hasNextPage,
+      nextCursor: result.nextCursor
+    });
+
+  } catch (error) {
+    console.error(`[cashController] Erro ao buscar histórico geral:`, error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno ao buscar histórico geral.',
     });
   }
 }
