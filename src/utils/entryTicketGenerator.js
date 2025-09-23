@@ -151,7 +151,7 @@ async function generateEntryTicketPDF({ id, plate, operator, category, formatted
 
           doc.text(descText, textX, doc.y, {
             width: textWidth,
-            align: 'center',
+            align: 'left',
             lineGap: 1
           });
 
