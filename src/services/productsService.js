@@ -494,6 +494,42 @@ async function registerPayment(
   }
 };
 
+async function productReceiptDuplicateService(transactionId) {
+  try {
+    const transaction = await prisma.productTransaction.findUnique({
+      where: { id: transactionId },
+      select: {
+        operator: true,
+        method: true,
+        saleItems: {
+          select: {
+            productName: true,
+            soldQuantity: true,
+            unitPrice: true,
+          }
+        },
+        originalAmount: true,
+        discountAmount: true,
+        finalAmount: true,
+        amountReceived: true,
+        changeGiven: true
+      }
+    })
+
+    if (!transaction) {
+      const message = createMessage(
+        `Dados da transação não encontradados para gerar o comprovante`,
+        `[ProductsController] Tentativa de gerar uma segunda vida de um comprovante mas não foi encontrado os dados, id da transação: ${productId}`
+      )
+      console.error(message.logMessage)
+      throw new Error(message.userMessage)
+    }
+
+    return transaction
+  } catch (error) {
+    throw new Error('Erro ao registrar pagamento: ' + error.message);
+  }
+}
 
 module.exports = {
   listProductService,
@@ -501,5 +537,6 @@ module.exports = {
   createProductService,
   updateProductService,
   updateProductModeService,
-  registerPayment
+  registerPayment,
+  productReceiptDuplicateService
 };

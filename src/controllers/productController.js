@@ -398,3 +398,50 @@ exports.registerPayment = async (req, res) => {
   }
 };
 
+exports.productReceiptDuplicate = async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log("Erros encontrados:", errors.array());
+    return res.status(400).json({
+      success: false,
+      message: 'Dados inválidos. Verifique os campos e tente novamente.',
+      errors: errors.array(),
+    });
+  }
+
+  const { transactionId } = req.params
+
+  try {
+    const product = await productsService.productReceiptDuplicateService(transactionId)
+
+    const receipt = await generateReceiptPDF(
+      product.operator,
+      product.method,
+      product.saleItems,
+      product.originalAmount,
+      product.discountAmount,
+      product.finalAmount,
+      product.amountReceived,
+      product.changeGiven,
+    );
+
+    console.log('[ProductController] Segunda via do comprovante gerado com sucesso:', {
+      transactionId,
+      receiptGenerated: !!receipt,
+      receiptPreview: receipt ? receipt.substring(0, 15) + '...' : null
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: receipt
+    });
+  } catch (error) {
+    console.log('Erro ao tentar gerar a segunda via do comprovante:', error.message)
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Erro interno ao registrar pagamento.',
+    });
+  }
+}
+
