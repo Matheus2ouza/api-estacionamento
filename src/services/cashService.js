@@ -854,6 +854,63 @@ async function generalCashHistoryService(user, cursor = null, limit = 10) {
   }
 }
 
+async function generalCashHistoryAllService(cursor = null, limit = 10) {
+  try {
+    let whereQuery = { status: "CLOSED" };
+    if (cursor) {
+      const parsed = new Date(cursor);
+      if (parsed instanceof Date && !Number.isNaN(parsed.getTime())) {
+        whereQuery.openingDate = { lt: parsed };
+      }
+    }
+
+    const limitNumber = Number(limit) || 10;
+    const takeLimit = limitNumber + 1; // busca 1 extra para saber se há próxima página
+
+    const cash = await prisma.cashRegister.findMany({
+      where: whereQuery,
+      select: {
+        openingDate: true,
+        closingDate: true,
+        status: true,
+        operator: true,
+        initialValue: true,
+        finalValue: true,
+        generalSaleTotal: true,
+        vehicleEntryTotal: true,
+        outgoingExpenseTotal: true,
+      },
+      orderBy: {
+        openingDate: 'desc' // mais recente primeiro
+      },
+      take: takeLimit
+    });
+
+    const hasNextPage = cash.length > limitNumber;
+    const items = hasNextPage ? cash.slice(0, limitNumber) : cash;
+
+    // Calcula o profit
+    const cashWithProfit = items.map(c => ({
+      ...c,
+      profit: (c.finalValue || 0) - (c.initialValue || 0)
+    }));
+
+    const nextCursor = hasNextPage && items.length > 0
+      ? items[items.length - 1].openingDate.toISOString()
+      : null;
+
+    return {
+      items: cashWithProfit,
+      hasNextPage,
+      nextCursor
+    };
+
+  } catch (error) {
+    console.error('[generalCashHistoryAllService] Erro ao buscar caixas:', error);
+    throw error;
+  }
+}
+
 /**
  * Função para salvar método de cobrança
  * @param {Object} user - Usuário
@@ -1593,6 +1650,7 @@ module.exports = {
   generalCashDataService,
   cashHistoryService,
   generalCashHistoryService,
+  generalCashHistoryAllService,
   cashProfit,
   deleteProductTransactionService,
   deleteVehicleTransactionService,
