@@ -281,8 +281,9 @@ async function registerPushTokenService(accountId, expoPushToken) {
 }
 
 /**
- *
- * @param {string} role
+ * Busca todos os tokens de acordo com role passado
+ * @function findPushTokenForRole
+ * @param {string} role - role passado para buscar o token
  * @returns
  */
 async function findPushTokenForRole(role) {
@@ -293,7 +294,7 @@ async function findPushTokenForRole(role) {
     const tokens = await prisma.accountPushToken.findMany({
       where: {
         account: {
-          role: "ADMIN"
+          role: role
         }
       },
       select: {
