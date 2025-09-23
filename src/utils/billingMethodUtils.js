@@ -6,11 +6,10 @@ const { convertTimeToMinutes } = require('./timeConverter');
  * @param {string} time - Tempo no formato hh:mm:ss
  * @param {number} carroValue - Valor para carro
  * @param {number} motoValue - Valor para moto
- * @returns {object} Objeto com time_minutes e description
+ * @returns {object} Objeto com time_minutes
  */
 function validateAndConvertBillingTime(category, time, carroValue, motoValue) {
   let timeMinutes;
-  let description;
 
   if (category === 'POR_HORA') {
     const totalMinutes = convertTimeToMinutes(time);
@@ -21,12 +20,6 @@ function validateAndConvertBillingTime(category, time, carroValue, motoValue) {
       };
       throw error;
     }
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const timeDisplay = minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
-    const carroValueFormatted = parseFloat(carroValue).toFixed(2).replace('.', ',');
-    const motoValueFormatted = parseFloat(motoValue).toFixed(2).replace('.', ',');
-    description = `A valor a ser cobrado sera calculado de acordo com o tempo de ${timeDisplay} pelo valor de R$ ${carroValueFormatted} para carro e R$ ${motoValueFormatted} para moto.`;
     timeMinutes = totalMinutes;
   } else if (category === 'POR_MINUTO') {
     const totalMinutes = convertTimeToMinutes(time);
@@ -37,9 +30,6 @@ function validateAndConvertBillingTime(category, time, carroValue, motoValue) {
       };
       throw error;
     }
-    const carroValueFormatted = parseFloat(carroValue).toFixed(2).replace('.', ',');
-    const motoValueFormatted = parseFloat(motoValue).toFixed(2).replace('.', ',');
-    description = `A valor a ser cobrado sera calculado de acordo com o tempo de ${totalMinutes} minutos pelo valor de R$ ${carroValueFormatted} para carro e R$ ${motoValueFormatted} para moto.`;
     timeMinutes = totalMinutes;
   } else if (category === 'VALOR_FIXO') {
     // Para VALOR_FIXO, se veio tempo, converte para zero, se não veio, mantém zero
@@ -50,9 +40,6 @@ function validateAndConvertBillingTime(category, time, carroValue, motoValue) {
       };
       throw error;
     }
-    const carroValueFormatted = parseFloat(carroValue).toFixed(2).replace('.', ',');
-    const motoValueFormatted = parseFloat(motoValue).toFixed(2).replace('.', ',');
-    description = `A valor a ser cobrado sera calculado de acordo com o valor de R$ ${carroValueFormatted} para carro e R$ ${motoValueFormatted} para moto independente do tempo.`;
     timeMinutes = 0; // Valor padrão para VALOR_FIXO
   } else {
     // Categoria não reconhecida
@@ -63,7 +50,7 @@ function validateAndConvertBillingTime(category, time, carroValue, motoValue) {
     throw error;
   }
 
-  return { timeMinutes, description };
+  return { timeMinutes };
 }
 
 /**
@@ -72,6 +59,7 @@ function validateAndConvertBillingTime(category, time, carroValue, motoValue) {
  * @returns {object} Objeto com isValid e mensagens de erro
  */
 function validateTolerance(tolerance) {
+  console.log(tolerance)
   if (tolerance < 0 || tolerance > 59) {
     return {
       isValid: false,
