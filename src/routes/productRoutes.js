@@ -89,4 +89,12 @@ router.post('/payment/:cashId/confirm',
   ProductController.registerPayment
 );
 
+router.get('/:transactionId/duplicate',
+  [
+    param('transactionId').exists().notEmpty(),
+  ],
+  authMiddleware('NORMAL'),
+  ProductController.productReceiptDuplicate
+);
+
 module.exports = router

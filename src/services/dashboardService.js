@@ -4,6 +4,7 @@ const { calculateRevenueGrowth, generateRevenueGrowthChart } = require('../graph
 const { calculateBestProducts, generateBestProductsChart } = require('../graphics/bestProducts');
 const { calculateExpensesBreakdown, generateExpensesBreakdownChart } = require('../graphics/expensesBreakdown');
 const { calculateHourlyAnalysis, generateHourlyAnalysisChart } = require('../graphics/hourlyAnalysis');
+const { DateTime } = require("luxon");
 
 // Estrutura para mensagens
 const createMessage = (userMessage, logMessage) => ({
@@ -660,6 +661,85 @@ async function listGoalsService() {
 }
 
 /**
+ * Busca metas ativas que ainda não foram notificadas no período atual.
+ * Considera períodos diários, semanais (segunda a sábado) e mensais.
+ *
+ * @async
+ * @function pendingGoals
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   goalPeriod: string,
+ *   goalValue: number,
+ *   isActive: boolean,
+ *   lastNotifiedAt: Date
+ * }>>} Lista de metas pendentes para notificação.
+ */
+async function pendingGoals() {
+  try {
+    const goals = await prisma.goalConfigs.findMany({
+      where: {
+        isActive: true,
+        notifications: true,
+      },
+    });
+
+    const now = DateTime.now();
+
+    const pendingGoals = goals.filter((goal) => {
+      if (!goal.lastNotifiedAt) return true; // nunca notificada
+
+      const last = DateTime.fromJSDate(goal.lastNotifiedAt);
+
+      switch (goal.goalPeriod) {
+        case "DIARIA":
+          return !last.hasSame(now, "day"); // notifica uma vez por dia
+
+        case "SEMANAL":
+          // Semana ISO: começa na segunda
+          const startOfWeek = now.startOf("week"); // segunda-feira 00:00
+          const endOfWeek = startOfWeek.plus({ days: 5 }).endOf("day"); // sábado 23:59:59
+          return last < startOfWeek || last > endOfWeek;
+
+        case "MENSAL":
+          return !last.hasSame(now, "month"); // notifica uma vez por mês
+
+        default:
+          return true;
+      }
+    });
+
+    console.log('mostrando as metas pendentes')
+    console.log(pendingGoals)
+
+    return pendingGoals;
+  } catch (error) {
+    console.error("Erro em getPendingGoals:", error);
+    throw error;
+  }
+}
+
+/**
+ * Faz update na meta que foi atingida
+ * @async
+ * @function updateGoals
+ * @param {string} goalId
+ */
+async function updateGoals(goalId) {
+  try {
+    await prisma.goalConfigs.update({
+      where: { id: goalId },
+      data: {
+        lastNotifiedAt: new Date(),
+      },
+    });
+    console.log(`[updateGoals] Meta ${goalId} atualizada com lastNotifiedAt`);
+  } catch (error) {
+    console.error("[updateGoals] Erro ao atualizar meta:", error);
+  }
+}
+
+
+/**
  * Função para desativar meta
  * @param {string} goalPeriod - Período da meta
  * @returns {Promise<{goalPeriod: string, goalValue: number, isActive: boolean}>}
@@ -788,6 +868,8 @@ module.exports = {
   getReportService,
   goalsService,
   listGoalsService,
+  pendingGoals,
+  updateGoals,
   desactivateGoalService,
   getGoalConfigService,
   getGoalProgressDataService,

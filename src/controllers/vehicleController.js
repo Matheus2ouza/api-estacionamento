@@ -52,6 +52,7 @@ exports.vehicleEntry = async (req, res) => {
       photoMimeType: photoMimeType,
     })
 
+    let message = `${entry.billingMethod.title.toUpperCase() || ''} - ${entry.billingMethod.description}`
     let amount = 0;
 
     if (entry.category === 'carro') {
@@ -69,7 +70,7 @@ exports.vehicleEntry = async (req, res) => {
       formattedDate: formattedDateOnly,
       formattedTime: formattedTimeOnly,
       tolerance: entry.billingMethod.tolerance,
-      description: entry.billingMethod.description,
+      description: message,
       price: amount,
     });
 
@@ -110,6 +111,7 @@ exports.vehicleEntry = async (req, res) => {
       error: error.message,
       inputData: { plate, category, billingMethod }
     });
+    console.log(error.message)
     return res.status(500).json({
       success: false,
       message: error.message
@@ -231,6 +233,7 @@ exports.vehicleEntryDuplicate = async (req, res) => {
       })
     }
 
+    let message = `${vehicle.billingMethod.title.toUpperCase() || ''} - ${vehicle.billingMethod.description}`
     let amount = 0;
 
     if (vehicle.category === 'carro') {
@@ -247,7 +250,7 @@ exports.vehicleEntryDuplicate = async (req, res) => {
       formattedDate: formattedDateOnly,
       formattedTime: formattedTimeOnly,
       tolerance: vehicle.billingMethod.tolerance,
-      description: vehicle.billingMethod.description,
+      description: message,
       price: amount,
     })
 
@@ -324,6 +327,7 @@ exports.vehicleDeletePermanent = async (req, res) => {
   try {
     await vehicleService.deleteVehicleDeleteService(vehicleId)
 
+    console.info('[VehicleController] Vehiculo Deletado')
     return res.status(200).json({
       success: true,
       message: 'Veiculo deletado com sucesso'
@@ -389,6 +393,7 @@ exports.vehicleEntryUpdate = async (req, res) => {
     const formattedDateOnly = formatBelemTime(vehicle.entryTime, "dd/MM/yyyy");
     const formattedTimeOnly = formatBelemTime(vehicle.entryTime, "HH:mm:ss");
 
+    let message = `${vehicle.billingMethod.title.toUpperCase() || ''} - ${vehicle.billingMethod.description}`
     let amount = 0;
     let ticket = null;
 
@@ -407,7 +412,7 @@ exports.vehicleEntryUpdate = async (req, res) => {
         formattedDate: formattedDateOnly,
         formattedTime: formattedTimeOnly,
         tolerance: vehicle.billingMethod.tolerance,
-        description: vehicle.billingMethod.description,
+        description: message,
         price: amount,
       })
     }
@@ -606,7 +611,7 @@ exports.calculateOutstanding = async (req, res) => {
     }
 
     console.log('[VehicleController] Dívida calculada com sucesso:', {
-      vehicleId: vehicle.id,
+      vehicleId: vehicleId,
       category: vehicle.category,
       amount: calculation.amount
     });
@@ -699,7 +704,7 @@ exports.exitsRegisterConfirm = async (req, res) => {
     console.log(`[VehicleController] Transaction ID:`, transaction.id);
     console.log(`[VehicleController] VehicleUpdated ID:`, vehicleUpdated.id);
 
-    await vehicleGoalNotifications(transaction.finalAmount, user.role)
+    await vehicleGoalNotifications(cashId, user.role)
 
     const pdf = await generateVehicleReceiptPDFImproved({
       operator: user.username,
@@ -753,6 +758,7 @@ exports.vehicleExitDuplicate = async (req, res) => {
   const { transactionId } = req.params;
 
   try {
+    console.log('gerando segunda vida do veiculo')
     const transaction = await vehicleService.vehicleExitDuplicateService(transactionId);
 
     const pdf = await generateVehicleReceiptPDFImproved({

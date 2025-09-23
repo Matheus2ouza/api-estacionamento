@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const dotenv = require('dotenv');
+const cron = require("node-cron");
 
 // Carrega o arquivo de ambiente apropriado
 const envPath = process.env.NODE_ENV === 'production'
@@ -144,7 +145,8 @@ const cashRoutes = require('./src/routes/cashRoutes');
 const productRoutes = require('./src/routes/productRoutes');
 //Rotas de dashboard
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
-const { startNotificationLoop } = require('./src/notifications/sendNotification');
+
+const jobs = require('./src/jobs/jobRoute')
 
 app.use('/users', authRoutes);
 app.use('/vehicles', vehicleRoutes);
@@ -153,6 +155,7 @@ app.use('/cash', cashRoutes);
 app.use('/products', productRoutes);
 app.use('/dashboard', dashboardRoutes)
 app.use('/expense', expenseRoutes);
+app.use('/jobs', jobs)
 
 // 🟩 Rodar localmente
 if (require.main === module) {
@@ -168,6 +171,7 @@ if (require.main === module) {
     console.log(`⏰ Iniciado em: ${new Date().toLocaleString('pt-BR')}`);
     console.log(`📊 Health Check: http://0.0.0.0:${PORT}/health`);
     console.log(`📈 Status Detalhado: http://0.0.0.0:${PORT}/status`);
+
 
     // Log do banco de dados na inicialização
     if (process.env.DATABASE_URL) {

@@ -84,6 +84,7 @@ async function registerVehicleEntryService({
         category: true,
         billingMethod: {
           select: {
+            title: true,
             tolerance: true,
             description: true,
             carroValue: true,
@@ -95,12 +96,7 @@ async function registerVehicleEntryService({
 
     return entry;
   } catch (error) {
-    const message = createMessage(
-      'Erro ao registrar entrada de veículo',
-      `[vehicleService] Erro ao registrar entrada de veículo`
-    );
-    console.error(message.logMessage);
-    throw new Error(message.userMessage);
+    throw new Error(error.message);
   }
 }
 
@@ -177,12 +173,7 @@ async function listVehicleEntriesService(cashId, cursor, limit) {
       hasMore
     }
   } catch (error) {
-    const message = createMessage(
-      'Erro ao buscar entradas de veículos',
-      `[vehicleService] Erro ao buscar entradas de veículos`
-    );
-    console.error(message.logMessage);
-    throw new Error(message.userMessage);
+    throw new Error(error.message);
   }
 }
 
@@ -243,6 +234,7 @@ async function searchVehicleEntryService(vehicleId) {
         category: true,
         billingMethod: {
           select: {
+            title: true,
             tolerance: true,
             description: true,
             carroValue: true,
@@ -321,6 +313,7 @@ async function desactivateVehicleEntryService(vehicleId, user) {
 
 async function deleteVehicleDeleteService(vehicleId) {
   try {
+    console.info(`[vehicleService] Tentativa de exclução do veiculo: ${vehicleId}`)
     const verifyVehicle = await prisma.vehicleEntries.findUnique({
       where: { id: vehicleId }
     })
@@ -338,6 +331,7 @@ async function deleteVehicleDeleteService(vehicleId) {
       where: { id: verifyVehicle.id }
     })
 
+    console.info(`[vehicleService] Tentativa de exclução do veiculo com sucesso`)
   } catch (error) {
     const message = createMessage(
       'Erro ao deletar o veículo',
@@ -445,6 +439,7 @@ async function vehicleEntryUpdateService(vehicleId, plate, category, observation
         entryTime: true,
         billingMethod: {
           select: {
+            title: true,
             tolerance: true,
             description: true,
             carroValue: true,

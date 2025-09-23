@@ -60,11 +60,12 @@ model BillingMethod {
 }
 
 model GoalConfigs {
-  id            String  @id @default(uuid())
-  goalPeriod    Period  @unique @map("goal_period")
-  goalValue     Decimal @map("goal_value") @db.Decimal(10, 2)
-  isActive      Boolean @default(false) @map("is_active")
-  notifications Boolean @default(false)
+  id             String    @id @default(uuid())
+  goalPeriod     Period    @unique @map("goal_period")
+  goalValue      Decimal   @map("goal_value") @db.Decimal(10, 2)
+  isActive       Boolean   @default(false) @map("is_active")
+  notifications  Boolean   @default(false)
+  lastNotifiedAt DateTime?
 
   @@map("goal_configs")
 }

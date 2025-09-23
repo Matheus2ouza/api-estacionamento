@@ -148,6 +148,6 @@ router.get('/exit/:transactionId/duplicate',
   ],
   authMiddleware('NORMAL'),
   vehicleController.vehicleExitDuplicate
-)
+);
 
 module.exports = router

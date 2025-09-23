@@ -1,34 +1,46 @@
-const { listGoalsService } = require("../../services/dashboardService");
-const { sendNotification } = require("../../notifications/sendNotification");
+const { pendingGoals, updateGoals } = require("../../services/dashboardService");
+const { sendNotification, sendNotificationToOne } = require("../../notifications/sendNotification");
 const { findPushTokenForRole } = require("../../services/usersService");
+const { cashProfit } = require("../../services/cashService");
 
-// essa função deve buscar os tokens de quem vai receber a notificação
 /**
- * @param {number} values - Valor da transação
- * @param {string} role - nivel de usuario para qual vão ser enviadas as mensagens
+ * Valida metas e envia notificações de acordo com o lucro
+ * @param {string} cashId - Caixa a ser validado
+ * @param {string} role - Nível de usuário que vai receber a notificação
  */
-exports.vehicleGoalNotifications = async (transactionValue, role) => {
-  const goals = await listGoalsService();
+exports.vehicleGoalNotifications = async (cashId) => {
+  console.log("Verificando se bateu a meta...");
 
-  for (let i = 0; i < goals.length; i++) {
-    const goal = goals[i];
+  // 1. Busca as metas
+  const goals = await pendingGoals();
+  if (goals.length === 0) {
+    console.log("Nenhuma meta cadastrada");
+    return;
+  }
 
-    // Só metas ativas
-    if (goal.isActive && transactionValue >= parseFloat(goal.goalValue)) {
-      console.log(`[NotificationService] Meta atingida: ${goal.goalValue} (valor: ${transactionValue})`);
+  // 2. Calcula o lucro do caixa
+  const profit = await cashProfit(cashId);
+  if (profit === null) return;
 
-      // Pega os tokens dos usuários (ex: admins)
-      const tokens = await findPushTokenForRole(role);
+  // 3. Percorre metas
+  for (let goal of goals) {
+    if (goal.isActive && profit >= parseFloat(goal.goalValue)) {
+      console.log(`[NotificationService] O caixa atingiu a meta ${goal.goalPeriod}: ${goal.goalValue} (lucro atual: ${profit})`);
 
-      // Monta a mensagem
+      const tokens = await findPushTokenForRole("ADMIN");
+      console.log("Tokens encontrados:", tokens);
+
       const messageConfig = {
         title: "🥳 Meta atingida!",
-        body: `Parabens você acabou de alcançar a meta ${goals.goalPeriod}`,
+        body: `Parabéns! A meta ${goal.goalPeriod} foi atingida`,
         priority: "high",
       };
 
-      // Envia notificação
+      //Envia a notificação para todos os usuarios que são admin
       await sendNotification(messageConfig, tokens);
+
+      // Atualiza a meta para registrar que já foi notificada
+      await updateGoals(goal.id);
     }
   }
 };
