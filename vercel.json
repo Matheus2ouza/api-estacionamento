@@ -21,7 +21,7 @@
   "crons": [
     {
       "path": "/jobs/close-cash",
-      "schedule": "00 01 * * *"
+      "schedule": "30 02 * * *"
     }
   ]
 }

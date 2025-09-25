@@ -9,7 +9,7 @@ exports.NotifyCloseCashRegister = async () => {
     const tokens = await findPushTokenForRole("ADMIN");
     console.log("[NotificationService] Tokens encontrados:", tokens);
 
-    if (!tokens || tokens.length === 0) {
+    if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
       console.log("[NotificationService] Nenhum token encontrado para enviar a notificação");
       return;
     }

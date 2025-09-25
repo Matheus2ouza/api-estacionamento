@@ -13,10 +13,10 @@ exports.closeCashRegister = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: "Nenhum caixa aberto encontrado para fechar hoje",
-        data: null
       });
     }
 
+    // Só envia notificação se o caixa foi fechado com sucesso
     await NotifyCloseCashRegister();
 
     console.log(`[CashJobController] Caixa ID ${result.id} fechado com sucesso`);
@@ -24,7 +24,6 @@ exports.closeCashRegister = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Caixa fechado automaticamente!",
-      data: result
     });
   } catch (error) {
     console.error("[CashJobController] Erro ao fechar caixa:", error);
