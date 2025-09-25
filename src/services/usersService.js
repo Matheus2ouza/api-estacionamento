@@ -304,12 +304,13 @@ async function findPushTokenForRole(role) {
 
     if (!tokens) {
       console.warn(`Tentativa de buscar os tokens dos usuarios com role = ${role}, mas não foi encontrado ninguém`)
+      return []
     }
 
     return tokens
   } catch (error) {
     console.warn(error.message)
-    return null
+    return []
   }
 }
 
